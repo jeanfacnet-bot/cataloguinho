@@ -458,7 +458,7 @@ function renderUsers(filter) {
           ${u.blocked_until ? `<br><span class="muted">Bloqueado até: ${new Date(u.blocked_until).toLocaleString("pt-BR")}</span>` : ""}
           ${u.block_reason ? `<br><span class="muted">Motivo: ${u.block_reason}</span>` : ""}
 
-          ${!u.is_admin ? `
+          `
             <div style="margin-top:12px;">
               <label style="display:block; font-weight:600; margin-bottom:6px;">Alterar plano</label>
               <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
@@ -522,7 +522,7 @@ function renderUsers(filter) {
 				  Excluir
 				</button>
             </div>
-          ` : ""}
+          `
         </div>
       `).join("")}
     </div>

@@ -603,7 +603,6 @@ def ensure_admin_user():
     if existing_admin:
         existing_admin.name = "Administrador"
         existing_admin.phone = "(00) 00000-0000"
-        existing_admin.plan = "VIP_PREMIUM"
         existing_admin.is_admin = True
         existing_admin.password_hash = generate_password_hash(admin_password)
         db.session.commit()
@@ -2934,9 +2933,7 @@ def update_user_plan(target_user_id):
     if not target_user:
         return jsonify({"message": "Usuário não encontrado"}), 404
 
-    if target_user.is_admin:
-        return jsonify({"message": "Não é permitido alterar o plano do administrador"}), 400
-
+    
     target_user.plan = new_plan
 
     if new_plan == "FREE":
