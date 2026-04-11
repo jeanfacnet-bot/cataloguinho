@@ -40,7 +40,7 @@ VIP_PLAN_DAYS = {
     "VIP_PREMIUM": 30
 }
 
-app.secret_key = os.getenv("SECRET_KEY", "chave-super-secreta-troque-isso")
+app.secret_key = os.getenv("SECRET_KEY", "michaelis1")
 CORS(app)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
@@ -60,8 +60,11 @@ app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER", app.config[
 db = SQLAlchemy(app)
 mail = Mail(app)
 
-UPLOAD_IMAGE_FOLDER = os.path.join("static", "uploads", "images")
-UPLOAD_VIDEO_FOLDER = os.path.join("static", "uploads", "videos")
+RENDER_DISK_PATH = os.getenv("RENDER_DISK_PATH", "")
+UPLOAD_BASE = RENDER_DISK_PATH if RENDER_DISK_PATH else os.path.join("static", "uploads")
+
+UPLOAD_IMAGE_FOLDER = os.path.join(UPLOAD_BASE, "images")
+UPLOAD_VIDEO_FOLDER = os.path.join(UPLOAD_BASE, "videos")
 
 os.makedirs(UPLOAD_IMAGE_FOLDER, exist_ok=True)
 os.makedirs(UPLOAD_VIDEO_FOLDER, exist_ok=True)
@@ -3233,11 +3236,19 @@ def admin_dashboard_data():
 
 
 # =========================
+# INIT DATABASE
+# =========================
+
+def initialize_database():
+    with app.app_context():
+        db.create_all()
+        ensure_admin_user()
+
+initialize_database()
+
+# =========================
 # MAIN
 # =========================
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-        ensure_admin_user()
     app.run(debug=True)
