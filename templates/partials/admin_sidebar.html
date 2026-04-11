@@ -1,0 +1,9 @@
+<aside id="adminSidebar" class="admin-sidebar">
+  <div class="admin-sidebar-title">Administrador</div>
+  <a href="/admin/dashboard-page" class="{% if active_page == 'dashboard' %}active{% endif %}">Dashboard</a>
+  <a href="/admin/reports-page" class="{% if active_page == 'reports' %}active{% endif %}">Denúncias</a>
+  <a href="/admin/reports-history-page" class="{% if active_page == 'reports_history' %}active{% endif %}">Histórico denúncias</a>
+  <a href="/admin/users-page" class="{% if active_page == 'users' %}active{% endif %}">Usuários</a>
+  <a href="/admin/settings-page" class="{% if active_page == 'settings' %}active{% endif %}">Ajustes</a>
+  <a href="/admin/locations-page" class="{% if active_page == 'locations' %}active{% endif %}">Localidades</a>
+</aside>

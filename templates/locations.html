@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administrador - Localidades</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .topbar { background: #111827; color: white; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .topbar .logo { font-size: 20px; font-weight: bold; }
+    .top-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .top-actions button { border: none; border-radius: 8px; padding: 10px 14px; cursor: pointer; background: #2563eb; color: white; }
+    .top-actions .vip-btn { background: #f59e0b; color: white; font-weight: bold; }
+    .top-actions button:hover { opacity: 0.9; }
+    .page-wrap { max-width: 1200px; margin: 30px auto; padding: 0 16px; }
+    .card { background: #fff; border: 1px solid #eee; border-radius: 16px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); margin-bottom: 20px; }
+    .card h1, .card h2 { margin-top: 0; }
+    .muted { color: #666; font-size: 14px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 16px; }
+    .form-grid input, .form-grid select, .form-grid button { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid #ccc; font-size: 15px; box-sizing: border-box; }
+	select[multiple] {
+	  min-height: 120px;
+	  padding: 8px;
+	}
+    .form-grid button, .toolbar button { background: #0d6efd; color: white; border: none; cursor: pointer; border-radius: 10px; padding: 12px 14px; }
+    .table-wrap { overflow-x: auto; }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; vertical-align: top; }
+    .danger-btn { background: #dc3545; color: white; border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; }
+    .dark-btn { background: #111827; color: white; border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; }
+    .empty-box { padding: 20px; border: 1px dashed #ccc; border-radius: 12px; color: #666; text-align: center; }
+    .admin-sidebar { position: fixed; top: 70px; left: 0; bottom: 0; width: 240px; background: #1f2937; color: white; padding: 20px 16px; display: none; flex-direction: column; gap: 10px; z-index: 900; overflow-y: auto; box-shadow: 2px 0 10px rgba(0,0,0,0.08); }
+    .admin-sidebar-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+    .admin-sidebar a { display: block; text-decoration: none; color: white; padding: 12px 14px; border-radius: 10px; transition: 0.2s; }
+    .admin-sidebar a:hover { background: rgba(255,255,255,0.08); }
+    .admin-sidebar a.active { background: #2563eb; font-weight: bold; }
+    body.admin-has-sidebar .page-wrap, body.admin-has-sidebar .container, body.admin-has-sidebar .vip-container, body.admin-has-sidebar .feed-container { max-width: none; margin-left: 270px; margin-right: 24px; }
+    @media (max-width: 900px) {
+      .admin-sidebar { position: static; width: auto; display: none; margin: 0 16px 16px 16px; border-radius: 14px; }
+      body.admin-has-sidebar .page-wrap, body.admin-has-sidebar .container, body.admin-has-sidebar .vip-container, body.admin-has-sidebar .feed-container { margin-left: auto; margin-right: auto; }
+    }
+	
+	.locations-accordion {
+	  display: grid;
+	  gap: 14px;
+	}
+
+	.location-state-group {
+	  border: 1px solid #e5e7eb;
+	  border-radius: 14px;
+	  overflow: hidden;
+	  background: #fff;
+	}
+
+	.location-state-header {
+	  width: 100%;
+	  border: none;
+	  background: #f8fafc;
+	  padding: 16px 18px;
+	  display: flex;
+	  justify-content: space-between;
+	  align-items: center;
+	  gap: 16px;
+	  cursor: pointer;
+	  text-align: left;
+	}
+
+	.location-state-header:hover {
+	  background: #eef2f7;
+	}
+
+	.location-state-left {
+	  display: flex;
+	  flex-direction: column;
+	  gap: 4px;
+	}
+
+	.location-state-title {
+	  font-size: 16px;
+	  font-weight: 700;
+	  color: #111827;
+	}
+
+	.location-state-count {
+	  font-size: 13px;
+	  color: #6b7280;
+	}
+
+	.location-state-arrow {
+	  font-size: 18px;
+	  color: #374151;
+	  transition: transform 0.2s ease;
+	}
+
+	.location-state-group.open .location-state-arrow {
+	  transform: rotate(180deg);
+	}
+
+	.location-state-body {
+	  display: none;
+	  padding: 14px 16px 16px 16px;
+	  border-top: 1px solid #e5e7eb;
+	  background: #ffffff;
+	}
+
+	.location-state-group.open .location-state-body {
+	  display: block;
+	}
+
+	.location-items-list {
+	  display: grid;
+	  gap: 10px;
+	}
+
+	.location-item {
+	  border: 1px solid #edf0f3;
+	  border-radius: 12px;
+	  padding: 12px 14px;
+	  background: #fafafa;
+	  display: flex;
+	  justify-content: space-between;
+	  align-items: flex-start;
+	  gap: 12px;
+	  flex-wrap: wrap;
+	}
+
+	.location-item-main {
+	  min-width: 240px;
+	  flex: 1;
+	}
+
+	.location-item-line {
+	  font-size: 14px;
+	  color: #111827;
+	  line-height: 1.5;
+	}
+
+	.location-item-line strong {
+	  color: #111827;
+	}
+
+	.location-item-actions {
+	  display: flex;
+	  align-items: center;
+	  gap: 8px;
+	  flex-wrap: wrap;
+	}
+
+	@media (max-width: 700px) {
+	  .location-item {
+		flex-direction: column;
+		align-items: stretch;
+	  }
+
+	  .location-item-actions {
+		justify-content: flex-start;
+	  }
+	}
+	
+	.blocked-accordion {
+	  display: grid;
+	  gap: 14px;
+	}
+
+	.blocked-state-group {
+	  border: 1px solid #e5e7eb;
+	  border-radius: 14px;
+	  overflow: hidden;
+	  background: #fff;
+	}
+
+	.blocked-state-header {
+	  width: 100%;
+	  border: none;
+	  background: #f8fafc;
+	  padding: 16px 18px;
+	  display: flex;
+	  justify-content: space-between;
+	  align-items: center;
+	  gap: 16px;
+	  cursor: pointer;
+	  text-align: left;
+	}
+
+	.blocked-state-header:hover {
+	  background: #eef2f7;
+	}
+
+	.blocked-state-left {
+	  display: flex;
+	  flex-direction: column;
+	  gap: 4px;
+	}
+
+	.blocked-state-title {
+	  font-size: 16px;
+	  font-weight: 700;
+	  color: #111827;
+	}
+
+	.blocked-state-count {
+	  font-size: 13px;
+	  color: #6b7280;
+	}
+
+	.blocked-state-arrow {
+	  font-size: 18px;
+	  color: #374151;
+	  transition: transform 0.2s ease;
+	}
+
+	.blocked-state-group.open .blocked-state-arrow {
+	  transform: rotate(180deg);
+	}
+
+	.blocked-state-body {
+	  display: none;
+	  padding: 14px 16px 16px 16px;
+	  border-top: 1px solid #e5e7eb;
+	  background: #ffffff;
+	}
+
+	.blocked-state-group.open .blocked-state-body {
+	  display: block;
+	}
+
+	.blocked-items-list {
+	  display: grid;
+	  gap: 10px;
+	}
+
+	.blocked-item {
+	  border: 1px solid #edf0f3;
+	  border-radius: 12px;
+	  padding: 12px 14px;
+	  background: #fafafa;
+	  display: flex;
+	  justify-content: space-between;
+	  align-items: flex-start;
+	  gap: 12px;
+	  flex-wrap: wrap;
+	}
+
+	.blocked-item-main {
+	  min-width: 240px;
+	  flex: 1;
+	}
+
+	.blocked-item-line {
+	  font-size: 14px;
+	  color: #111827;
+	  line-height: 1.5;
+	}
+
+	.blocked-item-line strong {
+	  color: #111827;
+	}
+
+	.blocked-item-meta {
+	  font-size: 13px;
+	  color: #6b7280;
+	  margin-top: 4px;
+	}
+
+	.blocked-item-actions {
+	  display: flex;
+	  align-items: center;
+	}
+
+	@media (max-width: 700px) {
+	  .blocked-item {
+		flex-direction: column;
+		align-items: stretch;
+	  }
+
+	  .blocked-item-actions {
+		justify-content: flex-start;
+	  }
+	}
+  </style>
+</head>
+<body>
+  {% include "partials/topbar.html" %}
+  {% include "partials/admin_sidebar.html" %}
+
+  <main class="page-wrap">
+    <section class="card">
+      <h1>Gerenciar localidades</h1>
+      <p class="muted">Aqui o administrador poderá cadastrar e remover localidades próprias do sistema.</p>
+      <div class="form-grid">
+        <select id="locationState"><option value="">Carregando estados...</option></select>
+        <select id="locationCity"><option value="">Selecione a cidade</option></select>
+        <select id="locationNeighborhood"><option value="">Selecione o bairro</option></select>
+        <select id="locationStreet"><option value="">Selecione a rua</option></select>
+        <button type="button" id="createLocationBtn">Adicionar localidade</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Bloqueio manual de localidades</h2>
+      <p class="muted">Use este formulário para bloquear cidade, bairro ou rua mesmo quando a localidade vier do IBGE/OpenStreetMap.</p>
+      <div class="form-grid">
+        <select id="blockedState"><option value="">Carregando estados...</option></select>
+        <select id="blockedCity"><option value="">Selecione a cidade</option></select>
+        <select id="blockedNeighborhood"><option value="">Selecione o bairro</option></select>
+        <select id="blockedStreet" multiple size="6">		  <option value="">Selecione a rua</option>		</select>
+        <button type="button" id="createBlockedLocationBtn">Bloquear manualmente</button>
+      </div>
+    </section>
+
+    <section class="card">
+	  <div class="toolbar">
+		<div>
+		  <h2 style="margin-bottom: 4px;">Localidades cadastradas</h2>
+		  <div class="muted">Lista administrativa para exclusão e organização.</div>
+		</div>
+		<button type="button" id="refreshLocationsBtn">Atualizar lista</button>
+	  </div>
+
+	  <div id="locationsAccordion">
+		<div class="empty-box">Nenhuma localidade cadastrada.</div>
+	  </div>
+	</section>
+
+		<section class="card">
+	  <div class="toolbar">
+		<div>
+		  <h2 style="margin-bottom: 4px;">Localidades bloqueadas</h2>
+		  <div class="muted">Itens que não devem mais aparecer nas buscas.</div>
+		</div>
+		<button type="button" id="refreshBlockedLocationsBtn">Atualizar bloqueios</button>
+	  </div>
+
+	  <div id="blockedLocationsAccordion">
+		<div class="empty-box">Nenhum bloqueio cadastrado.</div>
+	  </div>
+	</section>
+  </main>
+
+  <script>
+    (function () {
+      const adminLayoutUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+      const adminSidebar = document.getElementById("adminSidebar");
+      function isAdmin(user) { return !!user && (user.is_admin === true || user.role === "admin"); }
+      if (isAdmin(adminLayoutUser) && adminSidebar) {
+        document.body.classList.add("admin-has-sidebar");
+        adminSidebar.style.display = "flex";
+      }
+    })();
+  </script>
+  <script>
+    (function () {
+      const savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+      const menu = document.getElementById("topActionsMenu");
+      if (!menu) return;
+      const isAdmin = savedUser && (savedUser.is_admin === true || savedUser.role === "admin");
+      if (!isAdmin) return;
+      const existingAdminButton = Array.from(menu.querySelectorAll("button")).find(btn => btn.textContent.trim() === "Admin");
+      if (existingAdminButton) existingAdminButton.remove();
+      const firstButton = menu.querySelector("button");
+      if (!firstButton) {
+        menu.innerHTML = '<button type="button" onclick="window.location.href=\'/admin/reports-page\'">Admin</button>';
+        return;
+      }
+      firstButton.insertAdjacentHTML("beforebegin", '<button type="button" onclick="window.location.href=\'/admin/reports-page\'">Admin</button>');
+    })();
+  </script>
+  <script>
+    const savedAdminUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+    const locationState = document.getElementById("locationState");
+    const locationCity = document.getElementById("locationCity");
+    const locationNeighborhood = document.getElementById("locationNeighborhood");
+    const locationStreet = document.getElementById("locationStreet");
+    const createLocationBtn = document.getElementById("createLocationBtn");
+    const refreshLocationsBtn = document.getElementById("refreshLocationsBtn");
+    const locationsAccordion = document.getElementById("locationsAccordion");
+    const blockedState = document.getElementById("blockedState");
+    const blockedCity = document.getElementById("blockedCity");
+    const blockedNeighborhood = document.getElementById("blockedNeighborhood");
+    const blockedStreet = document.getElementById("blockedStreet");
+    const createBlockedLocationBtn = document.getElementById("createBlockedLocationBtn");
+    const refreshBlockedLocationsBtn = document.getElementById("refreshBlockedLocationsBtn");
+    const blockedLocationsAccordion = document.getElementById("blockedLocationsAccordion");
+
+    function requireAdminUser() {
+      if (!savedAdminUser || !savedAdminUser.id || !savedAdminUser.is_admin) {
+        alert("Administrador não identificado.");
+        return null;
+      }
+      return savedAdminUser;
+    }
+    function resetSelect(el, text) {
+      if (!el) return;
+      el.innerHTML = `<option value="">${text}</option>`;
+    }
+    function esc(v) { return String(v || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'"); }
+
+    async function loadLocationStates() {
+      try {
+        resetSelect(locationState, 'Carregando estados...');
+        resetSelect(blockedState, 'Carregando estados...');
+        const response = await fetch('/locations/states');
+        const states = await response.json();
+        resetSelect(locationState, 'Selecione o estado');
+        resetSelect(blockedState, 'Selecione o estado');
+        if (!response.ok || !Array.isArray(states)) return;
+        states.forEach(state => {
+          const o1 = document.createElement('option'); o1.value = state.sigla; o1.textContent = `${state.nome} (${state.sigla})`; locationState.appendChild(o1);
+          const o2 = document.createElement('option'); o2.value = state.sigla; o2.textContent = `${state.nome} (${state.sigla})`; blockedState.appendChild(o2);
+        });
+      } catch (e) {
+        resetSelect(locationState, 'Erro ao carregar estados');
+        resetSelect(blockedState, 'Erro ao carregar estados');
+      }
+    }
+    async function loadCities(stateValue, citySelect, neighborhoodSelect, streetSelect) {
+      resetSelect(citySelect, 'Carregando cidades...');
+      resetSelect(neighborhoodSelect, 'Selecione o bairro');
+      resetSelect(streetSelect, 'Selecione a rua');
+      if (!stateValue) { resetSelect(citySelect, 'Selecione a cidade'); return; }
+      try {
+        const response = await fetch(`/locations/cities?uf=${encodeURIComponent(stateValue)}`);
+        const items = await response.json();
+        resetSelect(citySelect, 'Selecione a cidade');
+        if (!response.ok || !Array.isArray(items)) return;
+        items.forEach(item => {
+          const option = document.createElement('option');
+          option.value = item.nome || item;
+          option.textContent = item.nome || item;
+          citySelect.appendChild(option);
+        });
+      } catch (e) {
+        resetSelect(citySelect, 'Erro ao carregar cidades');
+      }
+    }
+    async function loadNeighborhoods(stateValue, cityValue, neighborhoodSelect, streetSelect) {
+      resetSelect(neighborhoodSelect, 'Carregando bairros...');
+      resetSelect(streetSelect, 'Selecione a rua');
+      if (!stateValue || !cityValue) { resetSelect(neighborhoodSelect, 'Selecione o bairro'); return; }
+      try {
+        const response = await fetch(`/locations/neighborhoods?state=${encodeURIComponent(stateValue)}&city=${encodeURIComponent(cityValue)}`);
+        const items = await response.json();
+        resetSelect(neighborhoodSelect, 'Selecione o bairro');
+        if (!response.ok || !Array.isArray(items)) return;
+        items.forEach(item => {
+          const value = item.nome || item;
+          const option = document.createElement('option');
+          option.value = value; option.textContent = value;
+          neighborhoodSelect.appendChild(option);
+        });
+      } catch (e) {
+        resetSelect(neighborhoodSelect, 'Erro ao carregar bairros');
+      }
+    }
+    async function loadStreets(stateValue, cityValue, neighborhoodValue, streetSelect) {
+      resetSelect(streetSelect, 'Carregando ruas...');
+      if (!stateValue || !cityValue) { resetSelect(streetSelect, 'Selecione a rua'); return; }
+      try {
+        const qs = new URLSearchParams({ state: stateValue, city: cityValue });
+        if (neighborhoodValue) qs.append('neighborhood', neighborhoodValue);
+        const response = await fetch(`/locations/streets?${qs.toString()}`);
+        const items = await response.json();
+        resetSelect(streetSelect, 'Selecione a rua');
+        if (!response.ok || !Array.isArray(items)) return;
+        items.forEach(item => {
+          const value = item.nome || item;
+          const option = document.createElement('option');
+          option.value = value; option.textContent = value;
+          streetSelect.appendChild(option);
+        });
+      } catch (e) {
+        resetSelect(streetSelect, 'Erro ao carregar ruas');
+      }
+    }
+    function renderLocations(items) {
+	  if (!Array.isArray(items) || !items.length) {
+		locationsAccordion.innerHTML = '<div class="empty-box">Nenhuma localidade cadastrada.</div>';
+		return;
+	  }
+
+	  const grouped = items.reduce((acc, item) => {
+		const state = (item.state || "Sem estado").trim() || "Sem estado";
+		if (!acc[state]) acc[state] = [];
+		acc[state].push(item);
+		return acc;
+	  }, {});
+
+	  const orderedStates = Object.keys(grouped).sort((a, b) =>
+		a.localeCompare(b, "pt-BR", { sensitivity: "base" })
+	  );
+
+	  locationsAccordion.innerHTML = `
+		<div class="locations-accordion">
+		  ${orderedStates.map((state, index) => {
+			const stateItems = grouped[state].slice().sort((a, b) => {
+			  const cityA = (a.city || "").toLowerCase();
+			  const cityB = (b.city || "").toLowerCase();
+
+			  if (cityA !== cityB) {
+				return cityA.localeCompare(cityB, "pt-BR");
+			  }
+
+			  const neighborhoodA = (a.neighborhood || "").toLowerCase();
+			  const neighborhoodB = (b.neighborhood || "").toLowerCase();
+
+			  if (neighborhoodA !== neighborhoodB) {
+				return neighborhoodA.localeCompare(neighborhoodB, "pt-BR");
+			  }
+
+			  const streetA = (a.street || "").toLowerCase();
+			  const streetB = (b.street || "").toLowerCase();
+
+			  return streetA.localeCompare(streetB, "pt-BR");
+			});
+
+			return `
+			  <div class="location-state-group">
+				<button type="button" class="location-state-header">
+				  <div class="location-state-left">
+					<div class="location-state-title">${state}</div>
+					<div class="location-state-count">${stateItems.length} localidade(s)</div>
+				  </div>
+				  <span class="location-state-arrow">⌄</span>
+				</button>
+
+				<div class="location-state-body">
+				  <div class="location-items-list">
+					${stateItems.map(item => `
+					  <div class="location-item">
+						<div class="location-item-main">
+						  <div class="location-item-line">
+							<strong>Cidade:</strong> ${item.city || "-"}
+						  </div>
+						  <div class="location-item-line">
+							<strong>Bairro:</strong> ${item.neighborhood || "-"}
+						  </div>
+						  <div class="location-item-line">
+							<strong>Rua:</strong> ${item.street || "-"}
+						  </div>
+						</div>
+
+						<div class="location-item-actions">
+						  <button
+							type="button"
+							class="danger-btn"
+							onclick="deleteManagedLocation(${item.id})">
+							Excluir
+						  </button>
+
+						  <button
+							type="button"
+							class="dark-btn"
+							onclick="blockManagedLocation('${esc(item.state)}', '${esc(item.city)}', '${esc(item.neighborhood)}', '${esc(item.street)}')">
+							Bloquear
+						  </button>
+						</div>
+					  </div>
+					`).join("")}
+				  </div>
+				</div>
+			  </div>
+			`;
+		  }).join("")}
+		</div>
+	  `;
+
+	  document.querySelectorAll(".location-state-header").forEach(header => {
+		header.addEventListener("click", () => {
+		  const group = header.closest(".location-state-group");
+		  if (!group) return;
+		  group.classList.toggle("open");
+		});
+	  });
+	}
+    function renderBlockedLocations(items) {
+	  if (!Array.isArray(items) || !items.length) {
+		blockedLocationsAccordion.innerHTML = '<div class="empty-box">Nenhum bloqueio cadastrado.</div>';
+		return;
+	  }
+
+	  const grouped = items.reduce((acc, item) => {
+		const state = (item.state || "Sem estado").trim() || "Sem estado";
+		if (!acc[state]) acc[state] = [];
+		acc[state].push(item);
+		return acc;
+	  }, {});
+
+	  const orderedStates = Object.keys(grouped).sort((a, b) =>
+		a.localeCompare(b, "pt-BR", { sensitivity: "base" })
+	  );
+
+	  blockedLocationsAccordion.innerHTML = `
+		<div class="blocked-accordion">
+		  ${orderedStates.map((state, index) => {
+			const stateItems = grouped[state].slice().sort((a, b) => {
+			  const cityA = (a.city || "").toLowerCase();
+			  const cityB = (b.city || "").toLowerCase();
+
+			  if (cityA !== cityB) {
+				return cityA.localeCompare(cityB, "pt-BR");
+			  }
+
+			  const neighborhoodA = (a.neighborhood || "").toLowerCase();
+			  const neighborhoodB = (b.neighborhood || "").toLowerCase();
+
+			  if (neighborhoodA !== neighborhoodB) {
+				return neighborhoodA.localeCompare(neighborhoodB, "pt-BR");
+			  }
+
+			  const streetA = (a.street || "").toLowerCase();
+			  const streetB = (b.street || "").toLowerCase();
+
+			  return streetA.localeCompare(streetB, "pt-BR");
+			});
+
+			return `
+			  <div class="blocked-state-group">
+				<button type="button" class="blocked-state-header">
+				  <div class="blocked-state-left">
+					<div class="blocked-state-title">${state}</div>
+					<div class="blocked-state-count">${stateItems.length} bloqueio(s)</div>
+				  </div>
+				  <span class="blocked-state-arrow">⌄</span>
+				</button>
+
+				<div class="blocked-state-body">
+				  <div class="blocked-items-list">
+					${stateItems.map(item => `
+					  <div class="blocked-item">
+						<div class="blocked-item-main">
+						  <div class="blocked-item-line">
+							<strong>Cidade:</strong> ${item.city || "-"}
+						  </div>
+						  <div class="blocked-item-line">
+							<strong>Bairro:</strong> ${item.neighborhood || "-"}
+						  </div>
+						  <div class="blocked-item-line">
+							<strong>Rua:</strong> ${item.street || "-"}
+						  </div>
+						</div>
+
+						<div class="blocked-item-actions">
+						  <button
+							type="button"
+							class="danger-btn"
+							onclick="deleteBlockedLocation(${item.id})">
+							Remover bloqueio
+						  </button>
+						</div>
+					  </div>
+					`).join("")}
+				  </div>
+				</div>
+			  </div>
+			`;
+		  }).join("")}
+		</div>
+	  `;
+
+	  document.querySelectorAll(".blocked-state-header").forEach(header => {
+		header.addEventListener("click", () => {
+		  const group = header.closest(".blocked-state-group");
+		  if (!group) return;
+		  group.classList.toggle("open");
+		});
+	  });
+	}
+    async function loadManagedLocations() {
+      const admin = requireAdminUser(); if (!admin) return;
+      const response = await fetch(`/admin/locations?user_id=${encodeURIComponent(admin.id)}`); const data = await response.json();
+      if (!response.ok) return alert(data.message || 'Erro ao carregar localidades.');
+      renderLocations(data);
+    }
+    async function loadBlockedLocations() {
+      const admin = requireAdminUser(); if (!admin) return;
+      const response = await fetch(`/admin/blocked-locations?user_id=${encodeURIComponent(admin.id)}`); const data = await response.json();
+      if (!response.ok) return alert(data.message || 'Erro ao carregar bloqueios.');
+      renderBlockedLocations(data);
+    }
+    async function createManagedLocation() {
+      const admin = requireAdminUser(); if (!admin) return;
+      const response = await fetch('/admin/locations', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ admin_user_id: admin.id, state: locationState.value.trim(), city: locationCity.value.trim(), neighborhood: locationNeighborhood.value.trim(), street: locationStreet.value.trim() }) });
+      const data = await response.json(); if (!response.ok) return alert(data.message || 'Erro ao cadastrar localidade.');
+      await loadManagedLocations();
+    }
+    async function createBlockedLocation() {
+      const admin = requireAdminUser(); if (!admin) return;
+		const selectedStreets = Array.from(blockedStreet.selectedOptions)
+		  .map(option => option.value.trim())
+		  .filter(value => value);
+
+		const response = await fetch('/admin/blocked-locations', {
+		  method: 'POST',
+		  headers: { 'Content-Type': 'application/json' },
+		  body: JSON.stringify({
+			admin_user_id: admin.id,
+			state: blockedState.value.trim(),
+			city: blockedCity.value.trim(),
+			neighborhood: blockedNeighborhood.value.trim(),
+			streets: selectedStreets
+		  })
+		});
+	  const data = await response.json();
+	  if (!response.ok) return alert(data.message || 'Erro ao bloquear localidade.');
+
+	  blockedCity.value = '';
+	  blockedNeighborhood.value = '';
+
+	  resetSelect(blockedCity, 'Selecione a cidade');
+	  resetSelect(blockedNeighborhood, 'Selecione o bairro');
+	  resetSelect(blockedStreet, 'Selecione a rua');
+
+	  await loadBlockedLocations();
+    }
+    async function deleteManagedLocation(locationId) {
+      const admin = requireAdminUser(); if (!admin) return;
+      if (!window.confirm('Deseja realmente excluir esta localidade?')) return;
+      const response = await fetch(`/admin/locations/${locationId}`, { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ admin_user_id: admin.id }) });
+      const data = await response.json(); if (!response.ok) return alert(data.message || 'Erro ao excluir localidade.');
+      await loadManagedLocations();
+    }
+    async function blockManagedLocation(state, city, neighborhood, street) {
+      const admin = requireAdminUser(); if (!admin) return;
+      if (!window.confirm('Deseja bloquear esta localidade?')) return;
+      const response = await fetch('/admin/blocked-locations', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ admin_user_id: admin.id, state:(state||'').trim(), city:(city||'').trim(), neighborhood:(neighborhood||'').trim(), street:(street||'').trim() }) });
+      const data = await response.json(); if (!response.ok) return alert(data.message || 'Erro ao bloquear localidade.');
+      await loadBlockedLocations();
+    }
+    async function deleteBlockedLocation(blockId) {
+      const admin = requireAdminUser(); if (!admin) return;
+      if (!window.confirm('Deseja remover este bloqueio?')) return;
+      const response = await fetch(`/admin/blocked-locations/${blockId}`, { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ admin_user_id: admin.id }) });
+      const data = await response.json(); if (!response.ok) return alert(data.message || 'Erro ao remover bloqueio.');
+      await loadBlockedLocations();
+    }
+    locationState.addEventListener('change', () => loadCities(locationState.value, locationCity, locationNeighborhood, locationStreet));
+    locationCity.addEventListener('change', async () => {
+	  await loadNeighborhoods(locationState.value, locationCity.value, locationNeighborhood, locationStreet);
+	  await loadStreets(locationState.value, locationCity.value, '', locationStreet);
+	});
+
+    locationNeighborhood.addEventListener('change', () => loadStreets(locationState.value, locationCity.value, locationNeighborhood.value, locationStreet));
+    blockedState.addEventListener('change', () => loadCities(blockedState.value, blockedCity, blockedNeighborhood, blockedStreet));
+    blockedCity.addEventListener('change', async () => {
+	  await loadNeighborhoods(blockedState.value, blockedCity.value, blockedNeighborhood, blockedStreet);
+	  await loadStreets(blockedState.value, blockedCity.value, '', blockedStreet);
+	});
+    blockedNeighborhood.addEventListener('change', () => loadStreets(blockedState.value, blockedCity.value, blockedNeighborhood.value, blockedStreet));
+    if (createLocationBtn) createLocationBtn.addEventListener('click', createManagedLocation);
+    if (refreshLocationsBtn) refreshLocationsBtn.addEventListener('click', loadManagedLocations);
+    if (createBlockedLocationBtn) createBlockedLocationBtn.addEventListener('click', createBlockedLocation);
+    if (refreshBlockedLocationsBtn) refreshBlockedLocationsBtn.addEventListener('click', loadBlockedLocations);
+    window.deleteManagedLocation = deleteManagedLocation;
+    window.blockManagedLocation = blockManagedLocation;
+    window.deleteBlockedLocation = deleteBlockedLocation;
+    loadLocationStates();
+    loadManagedLocations();
+    loadBlockedLocations();
+  </script>
+  <script src="{{ url_for('static', filename='common_layout.js') }}"></script>
+</body>
+</html>

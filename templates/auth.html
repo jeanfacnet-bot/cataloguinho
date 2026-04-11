@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrar</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<style>
+.page-wrap {
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  background:
+    radial-gradient(circle at top, rgba(37, 99, 235, 0.10), transparent 35%),
+    linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
+}
+
+.login-shell {
+  width: 100%;
+  max-width: 980px;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  background: #ffffff;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.login-hero {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 55%, #3b82f6 100%);
+  color: white;
+  padding: 48px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.18);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+.login-hero h1 {
+  font-size: 34px;
+  line-height: 1.15;
+  margin: 0 0 16px;
+}
+
+.login-hero p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.7;
+  color: rgba(255,255,255,0.92);
+  max-width: 470px;
+}
+
+.login-points {
+  margin-top: 28px;
+  display: grid;
+  gap: 12px;
+}
+
+.login-point {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 15px;
+  color: rgba(255,255,255,0.95);
+}
+
+.login-point .icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.16);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: bold;
+}
+
+.login-panel {
+  padding: 42px 36px;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+}
+
+.login-card {
+  width: 100%;
+}
+
+.login-card h2 {
+  margin: 0 0 10px;
+  font-size: 28px;
+  color: #0f172a;
+}
+
+.login-subtitle {
+  margin: 0 0 28px;
+  color: #475569;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.auth-form {
+  display: grid;
+  gap: 16px;
+}
+
+.field-group {
+  display: grid;
+  gap: 8px;
+}
+
+.field-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 15px 16px;
+  border-radius: 14px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 15px;
+  transition: 0.2s ease;
+  box-sizing: border-box;
+}
+
+.auth-form input:focus {
+  outline: none;
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.submit-btn {
+  border: none;
+  border-radius: 14px;
+  padding: 15px 18px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.22);
+}
+
+.submit-btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.98;
+}
+
+.auth-message {
+  margin-top: 16px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  display: none;
+}
+
+.auth-message.success {
+  display: block;
+  background: #ecfdf3;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.auth-message.error {
+  display: block;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.helper-note {
+  margin-top: 18px;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.login-footer {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  font-size: 14px;
+}
+
+.login-footer a {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.login-footer a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+  .login-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .login-hero {
+    padding: 34px 24px;
+  }
+
+  .login-panel {
+    padding: 30px 22px;
+  }
+
+  .login-hero h1 {
+    font-size: 28px;
+  }
+
+  .login-card h2 {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 520px) {
+  .page-wrap {
+    padding: 20px 12px;
+  }
+
+  .login-hero,
+  .login-panel {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .login-hero h1 {
+    font-size: 24px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+{% include "partials/topbar.html" %}
+
+<main class="page-wrap">
+  <section class="login-shell">
+
+    <div class="login-hero">
+      <div class="login-badge">🔑 Acesso à conta</div>
+
+      <h1>Entre na sua conta com segurança</h1>
+
+      <p>
+        Faça login para acessar seus anúncios, gerenciar sua conta e acompanhar
+        seus recursos disponíveis dentro do sistema.
+      </p>
+
+      <div class="login-points">
+        <div class="login-point">
+          <span class="icon">1</span>
+          <span>Acesse sua conta com e-mail e senha cadastrados.</span>
+        </div>
+        <div class="login-point">
+          <span class="icon">2</span>
+          <span>Recupere sua senha rapidamente caso não lembre.</span>
+        </div>
+        <div class="login-point">
+          <span class="icon">3</span>
+          <span>Cadastre-se em poucos passos se ainda não tiver conta.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="login-panel">
+      <div class="login-card">
+        <h2>Entrar</h2>
+        <p class="login-subtitle">
+          Informe seus dados de acesso para continuar.
+        </p>
+
+        <form id="loginForm" class="auth-form">
+          <div class="field-group">
+            <label for="loginEmail" class="field-label">E-mail</label>
+            <input
+              type="email"
+              id="loginEmail"
+              placeholder="Digite seu e-mail"
+              autocomplete="email"
+              required
+            >
+          </div>
+
+          <div class="field-group">
+            <label for="loginPassword" class="field-label">Senha</label>
+            <input
+              type="password"
+              id="loginPassword"
+              placeholder="Digite sua senha"
+              autocomplete="current-password"
+              required
+            >
+          </div>
+
+          <button type="submit" class="submit-btn">Entrar</button>
+        </form>
+
+        <div id="loginMessage" class="auth-message"></div>
+
+        <div class="helper-note">
+          Use o mesmo e-mail cadastrado no sistema. Caso não lembre sua senha,
+          utilize a recuperação de acesso.
+        </div>
+
+        <div class="login-footer">
+          <a href="/forgot-password-page">Esqueci minha senha</a>
+          <a href="/register-page">Não tem cadastro? Cadastre-se aqui</a>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<script src="{{ url_for('static', filename='auth.js') }}"></script>
+<script src="{{ url_for('static', filename='common_layout.js') }}"></script>
+
+</body>
+</html>

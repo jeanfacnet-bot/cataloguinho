@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Propagandas</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<h1>Propagandas VIP</h1>
+
+<div class="filters">
+
+<select id="country">
+<option value="">País</option>
+<option value="Brasil">Brasil</option>
+</select>
+
+<select id="state"></select>
+<select id="city"></select>
+<select id="municipality"></select>
+<select id="neighborhood"></select>
+
+<button id="searchAds">Buscar Propagandas</button>
+
+</div>
+
+<div id="adsResults"></div>
+
+<script src="{{ url_for('static', filename='ads.js') }}"></script>
+
+</body>
+</html>

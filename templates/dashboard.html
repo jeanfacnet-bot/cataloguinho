@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at top left, rgba(59, 130, 246, 0.14), transparent 28%),
+      radial-gradient(circle at top right, rgba(236, 72, 153, 0.10), transparent 24%),
+      linear-gradient(180deg, #eef4ff 0%, #f8fbff 45%, #f5f7fb 100%);
+    font-family: Arial, sans-serif;
+    color: #111827;
+  }
+
+  .page-wrap {
+    max-width: none;
+    margin: 30px 24px 30px 270px;
+    padding: 0;
+  }
+
+  .dashboard-shell {
+    display: grid;
+    gap: 22px;
+  }
+
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 6px 4px;
+  }
+
+  .dashboard-title h1 {
+    margin: 0 0 6px 0;
+    font-size: 30px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+
+  .dashboard-title p {
+    margin: 0;
+    color: #475569;
+    font-size: 14px;
+  }
+
+  .refresh-btn {
+    border: none;
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 700;
+    box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
+  }
+
+  .refresh-btn:hover {
+    opacity: 0.95;
+    transform: translateY(-1px);
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .stat-card {
+    border-radius: 20px;
+    padding: 18px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    min-height: 122px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border: 1px solid rgba(255,255,255,0.55);
+    color: #0f172a;
+  }
+
+  .stat-card:nth-child(1)  { background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%); }
+  .stat-card:nth-child(2)  { background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%); }
+  .stat-card:nth-child(3)  { background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%); }
+  .stat-card:nth-child(4)  { background: linear-gradient(135deg, #fce7f3 0%, #fdf2f8 100%); }
+  .stat-card:nth-child(5)  { background: linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%); }
+  .stat-card:nth-child(6)  { background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%); }
+  .stat-card:nth-child(7)  { background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%); }
+  .stat-card:nth-child(8)  { background: linear-gradient(135deg, #fef9c3 0%, #fefce8 100%); }
+  .stat-card:nth-child(9)  { background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%); }
+  .stat-card:nth-child(10) { background: linear-gradient(135deg, #ffe4e6 0%, #fff1f2 100%); }
+  .stat-card:nth-child(11) { background: linear-gradient(135deg, #ede9fe 0%, #faf5ff 100%); }
+  .stat-card:nth-child(12) { background: linear-gradient(135deg, #e0f2fe 0%, #ecfeff 100%); }
+  .stat-card:nth-child(13) { background: linear-gradient(135deg, #fef3c7 0%, #fff7ed 100%); }
+
+  .stat-label {
+    font-size: 13px;
+    color: #475569;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .stat-value {
+    font-size: 31px;
+    font-weight: 900;
+    color: #0f172a;
+    line-height: 1;
+  }
+
+  .stat-foot {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 600;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 20px;
+  }
+
+  .chart-card,
+  .panel-card,
+  .list-card {
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(203, 213, 225, 0.7);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+  }
+
+  .card-title {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+
+  .card-subtitle {
+    margin: 0 0 18px 0;
+    color: #64748b;
+    font-size: 13px;
+  }
+
+  .chart-box {
+    position: relative;
+    width: 100%;
+    height: 360px;
+  }
+
+  .mini-panels {
+    display: grid;
+    gap: 14px;
+  }
+
+  .mini-panel {
+    border: none;
+    border-radius: 14px;
+    padding: 14px;
+    color: #0f172a;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35);
+  }
+
+  .mini-panel:nth-child(1) { background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%); }
+  .mini-panel:nth-child(2) { background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%); }
+  .mini-panel:nth-child(3) { background: linear-gradient(135deg, #fee2e2 0%, #fff1f2 100%); }
+
+  .mini-panel strong {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 6px;
+    color: #0f172a;
+  }
+
+  .mini-panel span {
+    font-size: 13px;
+    color: #475569;
+    font-weight: 600;
+  }
+
+  .list-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .list-card ul {
+    margin: 0;
+    padding-left: 18px;
+    color: #334155;
+  }
+
+  .list-card li {
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .list-card strong {
+    color: #0f172a;
+  }
+
+  .empty-note {
+    color: #94a3b8;
+    font-size: 13px;
+  }
+
+  @media (max-width: 1200px) {
+    .stats-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .charts-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .list-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .page-wrap {
+      margin: 20px 16px;
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 600px) {
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .dashboard-title h1 {
+      font-size: 24px;
+    }
+
+    .chart-box {
+      height: 300px;
+    }
+  }
+</style>
+</head>
+
+<body>
+  {% include "partials/topbar.html" %}
+  {% include "partials/admin_sidebar.html" %}
+
+  <main class="page-wrap">
+    <div class="dashboard-shell">
+
+      <div class="dashboard-header">
+        <div class="dashboard-title">
+          <h1>Dashboard administrativo</h1>
+          <p>Visão geral do sistema em números e gráficos.</p>
+        </div>
+
+        <button class="refresh-btn" type="button" onclick="loadDashboard()">
+          Atualizar dashboard
+        </button>
+      </div>
+
+      <section class="stats-grid" id="cards"></section>
+
+      <section class="charts-grid">
+        <div class="chart-card">
+          <h2 class="card-title">Usuários por plano</h2>
+          <p class="card-subtitle">Distribuição atual dos usuários entre FREE e planos VIP.</p>
+          <div class="chart-box">
+            <canvas id="usersChart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <h2 class="card-title">Resumo operacional</h2>
+          <p class="card-subtitle">Indicadores principais para acompanhamento rápido.</p>
+
+          <div class="mini-panels" id="summaryPanels">
+            <div class="mini-panel">
+              <strong>Carregando...</strong>
+              <span>Aguarde os dados do sistema.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="list-grid">
+        <div class="list-card">
+          <h2 class="card-title">Indicadores de usuários</h2>
+          <p class="card-subtitle">Leitura rápida da base de contas.</p>
+          <div id="usersInsights" class="empty-note">Carregando...</div>
+        </div>
+
+        <div class="list-card">
+          <h2 class="card-title">Indicadores do sistema</h2>
+          <p class="card-subtitle">Leitura rápida de anúncios, denúncias e localidades.</p>
+          <div id="systemInsights" class="empty-note">Carregando...</div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+<script>
+let usersChartInstance = null;
+
+async function loadDashboard() {
+  const res = await fetch("/admin/dashboard-data");
+  const data = await res.json();
+
+  renderCards(data.summary);
+  renderSummaryPanels(data.summary);
+  renderInsights(data.summary);
+  renderCharts(data);
+}
+
+function renderCards(summary) {
+  const container = document.getElementById("cards");
+
+  container.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Usuários cadastrados</div>
+      <div class="stat-value">${summary.total_users}</div>
+      <div class="stat-foot">Base total do sistema</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Usuários VIP</div>
+      <div class="stat-value">${summary.vip_users}</div>
+      <div class="stat-foot">Planos pagos ativos</div>
+    </div>
+	
+	<div class="stat-card">
+	  <div class="stat-label">VIP Bronze</div>
+	  <div class="stat-value">${summary.vip_bronze}</div>
+	  <div class="stat-foot">Usuários no plano Bronze</div>
+	</div>
+
+	<div class="stat-card">
+	  <div class="stat-label">VIP Prata</div>
+	  <div class="stat-value">${summary.vip_prata}</div>
+	  <div class="stat-foot">Usuários no plano Prata</div>
+	</div>
+
+	<div class="stat-card">
+	  <div class="stat-label">VIP Ouro</div>
+	  <div class="stat-value">${summary.vip_ouro}</div>
+	  <div class="stat-foot">Usuários no plano Ouro</div>
+	</div>
+
+	<div class="stat-card">
+	  <div class="stat-label">VIP Premium</div>
+	  <div class="stat-value">${summary.vip_premium}</div>
+	  <div class="stat-foot">Usuários no plano Premium</div>
+	</div>
+
+    <div class="stat-card">
+      <div class="stat-label">Usuários bloqueados</div>
+      <div class="stat-value">${summary.blocked_users}</div>
+      <div class="stat-foot">Contas com restrição</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Anúncios totais</div>
+      <div class="stat-value">${summary.total_ads}</div>
+      <div class="stat-foot">Volume geral de anúncios</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Anúncios ativos</div>
+      <div class="stat-value">${summary.active_ads}</div>
+      <div class="stat-foot">Atualmente visíveis</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Denúncias</div>
+      <div class="stat-value">${summary.total_reports}</div>
+      <div class="stat-foot">Total registrado</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Denúncias pendentes</div>
+      <div class="stat-value">${summary.pending_reports}</div>
+      <div class="stat-foot">Aguardando ação</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Localidades cadastradas</div>
+      <div class="stat-value">${summary.total_locations}</div>
+      <div class="stat-foot">Mapa administrativo</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Localidades bloqueadas</div>
+      <div class="stat-value">${summary.blocked_locations}</div>
+      <div class="stat-foot">Itens fora da busca</div>
+    </div>
+  `;
+}
+
+function renderSummaryPanels(summary) {
+  const container = document.getElementById("summaryPanels");
+
+  const vipPercent = summary.total_users
+    ? ((summary.vip_users / summary.total_users) * 100).toFixed(1)
+    : "0.0";
+
+  const activeAdsPercent = summary.total_ads
+    ? ((summary.active_ads / summary.total_ads) * 100).toFixed(1)
+    : "0.0";
+
+  const pendingReportsPercent = summary.total_reports
+    ? ((summary.pending_reports / summary.total_reports) * 100).toFixed(1)
+    : "0.0";
+
+  container.innerHTML = `
+    <div class="mini-panel">
+      <strong>${vipPercent}% da base está em plano VIP</strong>
+      <span>Mostra a participação dos planos pagos no total de usuários.</span>
+    </div>
+
+    <div class="mini-panel">
+      <strong>${activeAdsPercent}% dos anúncios estão ativos</strong>
+      <span>Indicador de disponibilidade atual do catálogo.</span>
+    </div>
+
+    <div class="mini-panel">
+      <strong>${pendingReportsPercent}% das denúncias estão pendentes</strong>
+      <span>Ajuda a medir o volume operacional em aberto.</span>
+    </div>
+  `;
+}
+
+function renderInsights(summary) {
+  const usersInsights = document.getElementById("usersInsights");
+  const systemInsights = document.getElementById("systemInsights");
+
+  usersInsights.innerHTML = `
+    <ul>
+      <li>Total de usuários cadastrados: <strong>${summary.total_users}</strong></li>
+      <li>Total de usuários VIP: <strong>${summary.vip_users}</strong></li>
+      <li>Total de usuários bloqueados: <strong>${summary.blocked_users}</strong></li>
+    </ul>
+  `;
+
+  systemInsights.innerHTML = `
+    <ul>
+      <li>Total de anúncios: <strong>${summary.total_ads}</strong></li>
+      <li>Anúncios ativos: <strong>${summary.active_ads}</strong></li>
+      <li>Denúncias pendentes: <strong>${summary.pending_reports}</strong></li>
+      <li>Localidades cadastradas: <strong>${summary.total_locations}</strong></li>
+      <li>Localidades bloqueadas: <strong>${summary.blocked_locations}</strong></li>
+    </ul>
+  `;
+}
+
+function renderCharts(data) {
+  const ctx = document.getElementById("usersChart");
+
+  if (usersChartInstance) {
+    usersChartInstance.destroy();
+  }
+
+  usersChartInstance = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: data.users_by_plan.map(x => x.plan),
+      datasets: [{
+        data: data.users_by_plan.map(x => x.total),
+        backgroundColor: [
+          "#94a3b8",
+          "#f59e0b",
+          "#3b82f6",
+          "#8b5cf6",
+          "#ec4899"
+        ],
+        borderColor: "#ffffff",
+        borderWidth: 3,
+        hoverOffset: 10
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "58%",
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: {
+            color: "#334155",
+            font: {
+              size: 12,
+              weight: "600"
+            },
+            padding: 18
+          }
+        }
+      }
+    }
+  });
+}
+
+loadDashboard();
+</script>
+
+<script>
+  (function () {
+    const adminLayoutUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+    const adminSidebar = document.getElementById("adminSidebar");
+
+    function isAdmin(user) {
+      return !!user && (user.is_admin === true || user.role === "admin");
+    }
+
+    if (isAdmin(adminLayoutUser) && adminSidebar) {
+      document.body.classList.add("admin-has-sidebar");
+      adminSidebar.style.display = "flex";
+    }
+  })();
+</script>
+
+<script src="{{ url_for('static', filename='common_layout.js') }}"></script>
+</body>
+</html>

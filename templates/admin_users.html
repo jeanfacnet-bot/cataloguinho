@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Usuários</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <style>
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    background: #f5f6fa;
+    font-family: Arial, sans-serif;
+  }
+
+  .topbar {
+	  background: #111827;
+	  color: white;
+	  padding: 14px 20px;
+	  display: flex;
+	  justify-content: space-between;
+	  align-items: center;
+	  gap: 16px;
+	  flex-wrap: wrap;
+	}
+
+	.topbar .logo {
+	  font-size: 20px;
+	  font-weight: bold;
+	}
+
+	.top-actions {
+	  display: flex;
+	  gap: 10px;
+	  flex-wrap: wrap;
+	}
+
+	.top-actions button {
+	  border: none;
+	  border-radius: 8px;
+	  padding: 10px 14px;
+	  cursor: pointer;
+	  background: #2563eb;
+	  color: white;
+	}
+
+	.top-actions .vip-btn {
+	  background: #f59e0b;
+	  color: white;
+	  font-weight: bold;
+	}
+
+	.top-actions button:hover {
+	  opacity: 0.9;
+	}
+
+  .admin-layout {
+    display: flex;
+    min-height: calc(100vh - 64px);
+  }
+
+  .admin-sidebar {
+    width: 240px;
+    background: #1f2937;
+    color: white;
+    padding: 20px 16px;
+    flex-shrink: 0;
+  }
+
+  .admin-sidebar h3 {
+    margin-top: 0;
+    margin-bottom: 18px;
+    font-size: 18px;
+  }
+
+  .admin-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .admin-menu a {
+    display: block;
+    text-decoration: none;
+    color: white;
+    padding: 12px 14px;
+    border-radius: 10px;
+    transition: 0.2s;
+  }
+
+  .admin-menu a:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .admin-menu a.active {
+    background: #2563eb;
+    font-weight: bold;
+  }
+
+  .admin-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .page-wrap {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 16px;
+  }
+
+  .card {
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  }
+
+  .users-grid {
+	  display: flex;
+	  flex-wrap: wrap;
+	  gap: 16px;
+	}
+
+	.user-card {
+	  border: 1px solid #e5e7eb;
+	  border-radius: 14px;
+	  padding: 12px;
+	  background: #fafafa;
+	  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+
+	  width: fit-content;   /* 👈 chave */
+	  min-width: 260px;     /* evita ficar pequeno demais */
+	}
+
+  .muted {
+    color: #666;
+    font-size: 14px;
+  }
+
+  .user-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 18px 0 20px 0;
+  }
+
+  .filter-btn {
+    border: none;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #e9ecef;
+    font-weight: 600;
+  }
+
+  .filter-btn.active {
+    background: #2563eb;
+    color: white;
+  }
+
+  .user-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 18px 0 20px 0;
+  }
+
+  .create-user-btn {
+    border: none;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #198754;
+    color: white;
+    font-weight: 600;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+  }
+
+  .modal-box {
+    width: 100%;
+    max-width: 520px;
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .form-grid input {
+    padding: 12px;
+    border: 1px solid #dcdcdc;
+    border-radius: 10px;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 18px;
+  }
+
+  .user-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .block-user-btn,
+  .delete-user-btn,
+  .unblock-user-btn {
+    border: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .block-user-btn {
+    background: #dc3545;
+    color: white;
+  }
+
+  .unblock-user-btn {
+    background: #198754;
+    color: white;
+  }
+
+  .delete-user-btn {
+    background: #111827;
+    color: white;
+  }
+
+  @media (max-width: 900px) {
+	  .admin-layout {
+		flex-direction: column;
+	  }
+
+	  .page-wrap {
+		margin: 20px auto;
+	  }
+
+	  body.admin-has-sidebar .page-wrap {
+		margin-left: auto;
+		margin-right: auto;
+	  }
+	}
+
+  @media (max-width: 700px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .admin-sidebar {
+    position: fixed;
+    top: 72px;
+    left: 0;
+    bottom: 0;
+    width: 240px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 900;
+    overflow-y: auto;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
+  }
+
+  .admin-sidebar-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+
+  .admin-sidebar a {
+    display: block;
+    text-decoration: none;
+    color: white;
+    padding: 12px 14px;
+    border-radius: 10px;
+    transition: 0.2s;
+  }
+
+  .admin-sidebar a:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .admin-sidebar a.active {
+    background: #2563eb;
+    font-weight: bold;
+  }
+
+  body.admin-has-sidebar .page-wrap {
+    max-width: none;
+    margin-left: 270px;
+    margin-right: 24px;
+  }
+</style>
+</head>
+<body>
+  {% include "partials/topbar.html" %}
+  {% include "partials/admin_sidebar.html" %}
+
+<main class="page-wrap">
+  <div class="card">
+    <h1>Usuários cadastrados</h1>
+
+    <div class="user-topbar">
+	  <input
+		type="text"
+		id="userSearchInput"
+		placeholder="Buscar por nome..."
+		style="padding: 10px 14px; border: 1px solid #dcdcdc; border-radius: 10px; min-width: 260px;"
+	  >
+
+		<div class="user-filters">
+		  <button id="filterAll" class="filter-btn active">Todos (0)</button>
+		  <button id="filterFree" class="filter-btn">FREE (0)</button>
+		  <button id="filterBronze" class="filter-btn">VIP Bronze (0)</button>
+		  <button id="filterPrata" class="filter-btn">VIP Prata (0)</button>
+		  <button id="filterOuro" class="filter-btn">VIP Ouro (0)</button>
+		  <button id="filterPremium" class="filter-btn">VIP Premium (0)</button>
+		  <button id="filterBlocked" class="filter-btn">Bloqueados (0)</button>
+		</div>
+
+	  <button id="openCreateUserModal" class="create-user-btn">Cadastrar usuário</button>
+	</div>
+	
+	<div id="createUserModal" class="modal-overlay" style="display: none;">
+	  <div class="modal-box">
+		<h2>Novo usuário</h2>
+
+		<div class="form-grid">
+		  <input type="text" id="newUserName" placeholder="Nome">
+		  <input type="text" id="newUserCpf" placeholder="CPF">
+		  <input type="email" id="newUserEmail" placeholder="E-mail">
+		  <input type="text" id="newUserPhone" placeholder="Telefone">
+		  <input type="password" id="newUserPassword" placeholder="Senha">
+		</div>
+
+		<div id="createUserMessage" class="muted" style="margin-top: 10px;"></div>
+
+		<div class="modal-actions">
+		  <button id="saveNewUserBtn" class="create-user-btn">Salvar</button>
+		  <button id="closeCreateUserModal" class="filter-btn" type="button">Cancelar</button>
+		</div>
+	  </div>
+	</div>
+
+    <div id="usersList">Carregando...</div>
+  </div>
+</main>
+
+
+<script>
+let allUsers = [];
+let currentFilter = "all";
+let searchTerm = "";
+
+const savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+const VIP_PLANS = ["VIP_BRONZE", "VIP_PRATA", "VIP_OURO", "VIP_PREMIUM"];
+
+function isVipPlan(plan) {
+  return VIP_PLANS.includes(plan);
+}
+
+function getPlanLabel(plan) {
+  const labels = {
+    FREE: "FREE",
+    VIP_BRONZE: "VIP Bronze",
+    VIP_PRATA: "VIP Prata",
+    VIP_OURO: "VIP Ouro",
+    VIP_PREMIUM: "VIP Premium"
+  };
+
+  return labels[plan] || plan || "FREE";
+}
+
+function getPlanBadge(plan) {
+  const badges = {
+    FREE: "🆓 FREE",
+    VIP_BRONZE: "🥉 VIP Bronze",
+    VIP_PRATA: "🥈 VIP Prata",
+    VIP_OURO: "🥇 VIP Ouro",
+    VIP_PREMIUM: "💎 VIP Premium"
+  };
+
+  return badges[plan] || plan;
+}
+
+function renderUsers(filter) {
+  const container = document.getElementById("usersList");
+
+  let filteredUsers = allUsers;
+
+  if (filter === "free") {
+    filteredUsers = allUsers.filter(u => u.plan === "FREE");
+  } else if (filter === "VIP_BRONZE") {
+    filteredUsers = allUsers.filter(u => u.plan === "VIP_BRONZE");
+  } else if (filter === "VIP_PRATA") {
+    filteredUsers = allUsers.filter(u => u.plan === "VIP_PRATA");
+  } else if (filter === "VIP_OURO") {
+    filteredUsers = allUsers.filter(u => u.plan === "VIP_OURO");
+  } else if (filter === "VIP_PREMIUM") {
+    filteredUsers = allUsers.filter(u => u.plan === "VIP_PREMIUM");
+  } else if (filter === "blocked") {
+    filteredUsers = allUsers.filter(u => u.is_blocked);
+  }
+
+  if (searchTerm) {
+    filteredUsers = filteredUsers.filter(u =>
+      (u.name || "").toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+	// 🔥 ORDENAR ALFABETICAMENTE SEMPRE
+	filteredUsers.sort((a, b) => {
+	  const nameA = (a.name || "").toLowerCase();
+	  const nameB = (b.name || "").toLowerCase();
+	  return nameA.localeCompare(nameB, "pt-BR");
+	});
+
+  if (!filteredUsers.length) {
+    container.innerHTML = "<p class='muted'>Nenhum usuário encontrado.</p>";
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="users-grid">
+      ${filteredUsers.map(u => `
+        <div class="user-card">
+          <strong>${u.name}</strong><br>
+          <span class="muted">${u.email}</span><br>
+          <span class="muted">CPF: ${u.cpf || "-"}</span><br>
+          ${getPlanBadge(u.plan)}
+          ${u.is_admin ? "<br>👑 Admin" : ""}
+          ${u.is_blocked ? "<br>🚫 Bloqueado" : ""}
+          ${u.blocked_until ? `<br><span class="muted">Bloqueado até: ${new Date(u.blocked_until).toLocaleString("pt-BR")}</span>` : ""}
+          ${u.block_reason ? `<br><span class="muted">Motivo: ${u.block_reason}</span>` : ""}
+
+          ${!u.is_admin ? `
+            <div style="margin-top:12px;">
+              <label style="display:block; font-weight:600; margin-bottom:6px;">Alterar plano</label>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <select
+                  id="plan-user-${u.id}"
+                  style="padding:10px; border:1px solid #ccc; border-radius:8px; min-width:180px;"
+                >
+                  <option value="FREE" ${u.plan === "FREE" ? "selected" : ""}>FREE</option>
+                  <option value="VIP_BRONZE" ${u.plan === "VIP_BRONZE" ? "selected" : ""}>VIP Bronze</option>
+                  <option value="VIP_PRATA" ${u.plan === "VIP_PRATA" ? "selected" : ""}>VIP Prata</option>
+                  <option value="VIP_OURO" ${u.plan === "VIP_OURO" ? "selected" : ""}>VIP Ouro</option>
+                  <option value="VIP_PREMIUM" ${u.plan === "VIP_PREMIUM" ? "selected" : ""}>VIP Premium</option>
+                </select>
+				
+				<input
+				  type="date"
+				  id="vip-expiration-${u.id}"
+				  value="${u.vip_expires_at ? new Date(u.vip_expires_at).toISOString().split('T')[0] : ''}"
+				  style="padding:8px; border:1px solid #ccc; border-radius:8px;"
+				>
+
+                <button
+                  class="create-user-btn"
+                  onclick="updateUserPlan(${u.id})">
+                  Salvar plano
+                </button>
+              </div>
+            </div>
+
+            <div class="user-actions">
+              ${
+                u.is_blocked
+                  ? `
+                    <button
+                      class="unblock-user-btn"
+                      onclick="unblockUser(${u.id})">
+                      Desbloquear
+                    </button>
+                  `
+                  : `
+                    <input
+                      type="number"
+                      min="1"
+                      id="days-user-${u.id}"
+                      placeholder="Dias"
+                      style="width: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 8px;"
+                    >
+
+                    <button
+                      class="block-user-btn"
+                      onclick="blockUser(${u.id})">
+                      Bloquear
+                    </button>
+                  `
+              }
+
+				<button
+				  class="delete-user-btn"
+				  data-user-id="${u.id}"
+				  data-user-name="${(u.name || "").replace(/"/g, "&quot;")}">
+				  Excluir
+				</button>
+            </div>
+          ` : ""}
+        </div>
+      `).join("")}
+    </div>
+  `;
+     document.querySelectorAll(".delete-user-btn").forEach(button => {
+		button.addEventListener("click", async () => {
+		  const userId = button.dataset.userId;
+		  const userName = button.dataset.userName || "";
+		  await deleteUser(userId, userName);
+		});
+	  });
+}
+
+function updateFilterButtons() {
+  document.getElementById("filterAll").classList.remove("active");
+  document.getElementById("filterFree").classList.remove("active");
+  document.getElementById("filterBronze").classList.remove("active");
+  document.getElementById("filterPrata").classList.remove("active");
+  document.getElementById("filterOuro").classList.remove("active");
+  document.getElementById("filterPremium").classList.remove("active");
+  document.getElementById("filterBlocked").classList.remove("active");
+
+  if (currentFilter === "all") {
+    document.getElementById("filterAll").classList.add("active");
+  } else if (currentFilter === "free") {
+    document.getElementById("filterFree").classList.add("active");
+  } else if (currentFilter === "VIP_BRONZE") {
+    document.getElementById("filterBronze").classList.add("active");
+  } else if (currentFilter === "VIP_PRATA") {
+    document.getElementById("filterPrata").classList.add("active");
+  } else if (currentFilter === "VIP_OURO") {
+    document.getElementById("filterOuro").classList.add("active");
+  } else if (currentFilter === "VIP_PREMIUM") {
+    document.getElementById("filterPremium").classList.add("active");
+  } else if (currentFilter === "blocked") {
+    document.getElementById("filterBlocked").classList.add("active");
+  }
+}
+const createUserModal = document.getElementById("createUserModal");
+const openCreateUserModal = document.getElementById("openCreateUserModal");
+const closeCreateUserModal = document.getElementById("closeCreateUserModal");
+const saveNewUserBtn = document.getElementById("saveNewUserBtn");
+const createUserMessage = document.getElementById("createUserMessage");
+
+openCreateUserModal.addEventListener("click", function () {
+  createUserModal.style.display = "flex";
+  createUserMessage.textContent = "";
+});
+
+closeCreateUserModal.addEventListener("click", function () {
+  createUserModal.style.display = "none";
+});
+
+createUserModal.addEventListener("click", function (e) {
+  if (e.target === createUserModal) {
+    createUserModal.style.display = "none";
+  }
+});
+
+saveNewUserBtn.addEventListener("click", async function () {
+  const name = document.getElementById("newUserName").value.trim();
+  const cpf = document.getElementById("newUserCpf").value.trim();
+  const email = document.getElementById("newUserEmail").value.trim();
+  const phone = document.getElementById("newUserPhone").value.trim();
+  const password = document.getElementById("newUserPassword").value.trim();
+
+  createUserMessage.textContent = "";
+
+  const res = await fetch("/admin/users/create", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name,
+      cpf,
+      email,
+      phone,
+      password
+    })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    createUserMessage.textContent = data.message || "Erro ao cadastrar usuário";
+    return;
+  }
+
+  createUserMessage.textContent = "Usuário cadastrado com sucesso";
+
+  document.getElementById("newUserName").value = "";
+  document.getElementById("newUserCpf").value = "";
+  document.getElementById("newUserEmail").value = "";
+  document.getElementById("newUserPhone").value = "";
+  document.getElementById("newUserPassword").value = "";
+
+  await loadUsers();
+});
+
+async function updateUserPlan(userId) {
+  const planSelect = document.getElementById(`plan-user-${userId}`);
+  const dateInput = document.getElementById(`vip-expiration-${userId}`);
+
+  const selectedPlan = planSelect ? planSelect.value : "";
+  const vipExpiration = dateInput ? dateInput.value : "";
+
+  if (!selectedPlan) {
+    alert("Selecione um plano.");
+    return;
+  }
+
+  if (!savedUser || !savedUser.id) {
+    alert("Administrador não identificado.");
+    return;
+  }
+
+  const res = await fetch(`/admin/users/${userId}/plan`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      admin_user_id: savedUser.id,
+      plan: selectedPlan,
+      vip_expires_at: vipExpiration
+    })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data.message || "Erro ao alterar plano do usuário");
+    return;
+  }
+
+  alert(data.message || "Plano alterado com sucesso");
+  await loadUsers();
+}
+
+async function loadUsers() {
+  const res = await fetch("/admin/users");
+  allUsers = await res.json();
+
+  const total = allUsers.length;
+  const totalFree = allUsers.filter(u => u.plan === "FREE").length;
+  const totalBronze = allUsers.filter(u => u.plan === "VIP_BRONZE").length;
+  const totalPrata = allUsers.filter(u => u.plan === "VIP_PRATA").length;
+  const totalOuro = allUsers.filter(u => u.plan === "VIP_OURO").length;
+  const totalPremium = allUsers.filter(u => u.plan === "VIP_PREMIUM").length;
+  const totalBlocked = allUsers.filter(u => u.is_blocked).length;
+
+  document.getElementById("filterAll").textContent = `Todos (${total})`;
+  document.getElementById("filterFree").textContent = `FREE (${totalFree})`;
+  document.getElementById("filterBronze").textContent = `VIP Bronze (${totalBronze})`;
+  document.getElementById("filterPrata").textContent = `VIP Prata (${totalPrata})`;
+  document.getElementById("filterOuro").textContent = `VIP Ouro (${totalOuro})`;
+  document.getElementById("filterPremium").textContent = `VIP Premium (${totalPremium})`;
+  document.getElementById("filterBlocked").textContent = `Bloqueados (${totalBlocked})`;
+
+  renderUsers(currentFilter);
+  updateFilterButtons();
+}
+
+document.getElementById("filterAll").addEventListener("click", function () {
+  currentFilter = "all";
+  renderUsers(currentFilter);
+  updateFilterButtons();
+});
+
+document.getElementById("filterFree").addEventListener("click", function () {
+  currentFilter = "free";
+  renderUsers(currentFilter);
+  updateFilterButtons();
+});
+
+document.getElementById("filterBronze").addEventListener("click", function () {
+  currentFilter = "VIP_BRONZE";
+  renderUsers(currentFilter);
+  updateFilterButtons();
+});
+
+document.getElementById("filterPrata").addEventListener("click", function () {
+  currentFilter = "VIP_PRATA";
+  renderUsers(currentFilter);
+  updateFilterButtons();
+});
+
+document.getElementById("filterOuro").addEventListener("click", function () {
+  currentFilter = "VIP_OURO";
+  renderUsers(currentFilter);
+  updateFilterButtons();
+});
+
+document.getElementById("filterPremium").addEventListener("click", function () {
+  currentFilter = "VIP_PREMIUM";
+  renderUsers(currentFilter);
+  updateFilterButtons();
+});
+
+document.getElementById("filterBlocked").addEventListener("click", function () {
+  currentFilter = "blocked";
+  renderUsers(currentFilter);
+  updateFilterButtons();
+});
+
+const userSearchInput = document.getElementById("userSearchInput");
+
+userSearchInput.addEventListener("input", function (e) {
+  searchTerm = e.target.value.trim();
+  renderUsers(currentFilter);
+});
+
+async function blockUser(userId) {
+  const daysInput = document.getElementById(`days-user-${userId}`);
+  const days = daysInput ? daysInput.value.trim() : "";
+
+  if (!days) {
+    alert("Informe a quantidade de dias.");
+    return;
+  }
+
+  if (!savedUser || !savedUser.id) {
+    alert("Administrador não identificado.");
+    return;
+  }
+
+  const res = await fetch(`/admin/users/${userId}/block`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      admin_user_id: savedUser.id,
+      days: Number(days)
+    })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data.message || "Erro ao bloquear usuário");
+    return;
+  }
+
+  alert(data.message || "Usuário bloqueado com sucesso");
+  await loadUsers();
+}
+
+async function unblockUser(userId) {
+  const confirmed = confirm("Deseja desbloquear este usuário?");
+  if (!confirmed) return;
+
+  if (!savedUser || !savedUser.id) {
+    alert("Administrador não identificado.");
+    return;
+  }
+
+  const res = await fetch(`/admin/users/${userId}/unblock`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      admin_user_id: savedUser.id
+    })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data.message || "Erro ao desbloquear usuário");
+    return;
+  }
+
+  alert(data.message || "Usuário desbloqueado com sucesso");
+  await loadUsers();
+}
+
+async function deleteUser(userId, userName) {
+  const confirmed = confirm(`Deseja realmente excluir o usuário "${userName}"?`);
+  if (!confirmed) return;
+
+  try {
+    console.log("Excluindo usuário:", userId, userName);
+
+    const res = await fetch(`/admin/users/${userId}/delete`, {
+      method: "DELETE"
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.message || "Erro ao excluir usuário");
+      return;
+    }
+
+    alert(data.message || "Usuário excluído com sucesso");
+    await loadUsers();
+  } catch (error) {
+    console.error("Erro ao excluir usuário:", error);
+    alert("Erro ao excluir usuário");
+  }
+}
+
+function logout() {
+  localStorage.removeItem("catalogo_user");
+  window.location.href = "/auth-page";
+}
+
+loadUsers();
+</script>
+  <script>
+	  (function () {
+		const savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+		const menu = document.getElementById("topActionsMenu");
+
+		if (!menu) return;
+
+		const isAdmin = savedUser && (savedUser.is_admin === true || savedUser.role === "admin");
+
+		if (!isAdmin) return;
+
+		const existingAdminButton = Array.from(menu.querySelectorAll("button")).find(
+		  btn => btn.textContent.trim() === "Admin"
+		);
+
+		if (existingAdminButton) {
+		  existingAdminButton.remove();
+		}
+
+		const firstButton = menu.querySelector("button");
+
+		if (!firstButton) {
+		  menu.innerHTML = `
+			<button type="button" onclick="window.location.href='/admin/reports-page'">Admin</button>
+		  `;
+		  return;
+		}
+
+		firstButton.insertAdjacentHTML(
+		  "beforebegin",
+		  `<button type="button" onclick="window.location.href='/admin/reports-page'">Admin</button>`
+		);
+	  })();
+	</script>
+	<script src="{{ url_for('static', filename='common_layout.js') }}"></script>
+
+</body>
+</html>

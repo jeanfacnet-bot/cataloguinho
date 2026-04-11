@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Criar conta</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<style>
+.auth-container {
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 0 16px;
+}
+
+.auth-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  border: 1px solid #eee;
+}
+
+.auth-form {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-form input,
+.auth-form button {
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+}
+
+.auth-form button {
+  background: #0d6efd;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.auth-message {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  display: none;
+}
+
+.auth-message.success {
+  background: #e8f7ee;
+  color: #155724;
+  display: block;
+}
+
+.auth-message.error {
+  background: #fdecea;
+  color: #842029;
+  display: block;
+}
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+<div class="logo">Catálogo</div>
+<nav class="top-actions">
+<button onclick="window.location.href='/search-page'">Pesquisa</button>
+<button class="vip-btn" onclick="window.location.href='/vip-page'">Tornar-se VIP</button>
+</nav>
+</header>
+
+<main class="auth-container">
+
+<section class="auth-card">
+
+<h2>Criar conta</h2>
+
+<form id="registerForm" class="auth-form">
+
+<input type="text" id="registerName" placeholder="Seu nome" required>
+
+<input type="text" id="registerCpf" placeholder="Seu CPF" maxlength="14" required>
+
+<input type="email" id="registerEmail" placeholder="Seu e-mail" required>
+
+<input type="email" id="confirmEmail" placeholder="Confirme seu e-mail" required>
+
+<input type="text" id="registerPhone" placeholder="Seu telefone" required>
+
+<input type="password" id="registerPassword" placeholder="Sua senha" required>
+
+<input type="password" id="confirmPassword" placeholder="Confirme sua senha" required>
+
+<button type="submit">Cadastrar</button>
+
+</form>
+
+<div style="text-align:center;margin-top:10px;">
+<a href="/auth-page">Já tem conta? entrar</a>
+</div>
+
+<div id="registerMessage" class="auth-message"></div>
+
+</section>
+
+</main>
+
+<script src="{{ url_for('static', filename='auth.js') }}"></script>
+
+</body>
+</html>

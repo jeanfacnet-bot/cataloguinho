@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Pagamento VIP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%);
+      padding: 24px 16px;
+      color: #111827;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      background: white;
+      padding: 28px;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      text-align: center;
+      border: 1px solid #e5e7eb;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #fef3c7;
+      color: #92400e;
+      font-weight: bold;
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 30px;
+      color: #111827;
+    }
+
+    .subtitle {
+      margin: 0 0 24px;
+      color: #6b7280;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .info-box {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 22px;
+      text-align: left;
+    }
+
+    .info-box strong {
+      color: #111827;
+    }
+
+    .qr-box {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .qr-box img {
+      max-width: 260px;
+      width: 100%;
+      display: block;
+      margin: 0 auto 12px;
+    }
+
+    .hint {
+      font-size: 14px;
+      color: #6b7280;
+      margin-top: 10px;
+    }
+
+    .pix-label {
+      text-align: left;
+      font-weight: bold;
+      margin-bottom: 8px;
+      margin-top: 12px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 14px;
+      resize: none;
+      background: #f9fafb;
+      color: #111827;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 22px;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .primary-btn {
+      background: #2563eb;
+      color: white;
+    }
+
+    .primary-btn:hover {
+      background: #1d4ed8;
+    }
+
+    .secondary-btn {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .secondary-btn:hover {
+      background: #d1d5db;
+    }
+
+    .success-box {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 12px;
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+      display: none;
+      font-size: 14px;
+    }
+
+    .error-box {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 12px;
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      display: none;
+      font-size: 14px;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px 16px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="badge">Pagamento Pix Mercado Pago</div>
+
+  <h1>Pague seu plano VIP</h1>
+  <p class="subtitle">
+    Escaneie o QR Code abaixo no app do seu banco ou copie o código Pix para concluir o pagamento.
+  </p>
+
+  <div id="info" class="info-box"></div>
+
+  <div class="qr-box">
+    <img id="qr" style="display:none;" alt="QR Code Pix">
+    <div class="hint">Após o pagamento, seu plano será confirmado automaticamente.</div>
+  </div>
+
+  <div class="pix-label">Código Pix copia e cola</div>
+  <textarea id="pix" readonly></textarea>
+
+  <div class="actions">
+    <button class="primary-btn" onclick="copiar()">Copiar Pix</button>
+    <button class="secondary-btn" onclick="window.history.back()">Voltar</button>
+    <button class="secondary-btn" onclick="window.location.href='/vip-page'">Voltar para VIP</button>
+  </div>
+
+  <div id="successBox" class="success-box">Código Pix copiado com sucesso.</div>
+  <div id="errorBox" class="error-box">Nenhum pagamento encontrado.</div>
+</div>
+
+<script>
+  const data = JSON.parse(localStorage.getItem("vip_checkout") || "null");
+
+  const info = document.getElementById("info");
+  const qr = document.getElementById("qr");
+  const pix = document.getElementById("pix");
+  const successBox = document.getElementById("successBox");
+  const errorBox = document.getElementById("errorBox");
+
+  function formatMoney(value) {
+    const number = Number(value || 0);
+    return number.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL"
+    });
+  }
+
+  if (!data) {
+    info.innerHTML = `
+      <strong>Status:</strong> Nenhum pagamento encontrado.
+    `;
+    errorBox.style.display = "block";
+  } else {
+    info.innerHTML = `
+      <strong>Plano:</strong> ${data.plan || "-"}<br>
+      <strong>Valor:</strong> ${formatMoney(data.amount)}<br>
+      <strong>ID do pagamento:</strong> ${data.payment_id || "-"}
+    `;
+
+    pix.value = data.qr_code || "";
+
+    if (data.qr_code_base64) {
+      qr.src = "data:image/png;base64," + data.qr_code_base64;
+      qr.style.display = "block";
+    }
+  }
+
+  function copiar() {
+    if (!pix.value) return;
+
+    pix.select();
+    pix.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(pix.value)
+      .then(() => {
+        successBox.style.display = "block";
+        setTimeout(() => {
+          successBox.style.display = "none";
+        }, 2500);
+      })
+      .catch(() => {
+        document.execCommand("copy");
+        successBox.style.display = "block";
+        setTimeout(() => {
+          successBox.style.display = "none";
+        }, 2500);
+      });
+  }
+  
+function atualizarUsuarioLocal(userData) {
+  if (!userData) return;
+  localStorage.setItem("catalogo_user", JSON.stringify(userData));
+}
+
+async function verificarPagamento() {
+  if (!data || !data.payment_id) return;
+
+  try {
+    const res = await fetch(`/vip/check-payment/${data.payment_id}`);
+    const result = await res.json();
+
+    if (result.status === "approved") {
+	  info.innerHTML = `
+		<strong style="color:green;">Pagamento confirmado!</strong><br>
+		Seu plano foi atualizado com sucesso. Redirecionando...
+	  `;
+
+	  if (result.user) {
+		atualizarUsuarioLocal(result.user);
+	  }
+
+	  setTimeout(() => {
+		window.location.href = "/vip-page";
+	  }, 2000);
+
+	  return;
+	}
+
+  } catch (e) {
+    console.error("Erro ao verificar pagamento", e);
+  }
+}
+  
+setInterval(verificarPagamento, 5000); // verifica a cada 5s
+  
+</script>
+
+</body>
+</html>

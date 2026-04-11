@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ajustes do Sistema</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .topbar {
+      background: #111827;
+      color: white;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .topbar .logo {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .top-actions button {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+    }
+
+    .top-actions .vip-btn {
+      background: #f59e0b;
+      color: white;
+      font-weight: bold;
+    }
+
+    .top-actions button:hover {
+      opacity: 0.9;
+    }
+
+    .admin-sidebar {
+      position: fixed;
+      top: 70px;
+      left: 0;
+      bottom: 0;
+      width: 240px;
+      background: #1f2937;
+      color: white;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 900;
+      overflow-y: auto;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .admin-sidebar-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .admin-sidebar a {
+      display: block;
+      text-decoration: none;
+      color: white;
+      padding: 12px 14px;
+      border-radius: 10px;
+      transition: 0.2s;
+    }
+
+    .admin-sidebar a:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .admin-sidebar a.active {
+      background: #2563eb;
+      font-weight: bold;
+    }
+
+    .container {
+	  max-width: none;
+	  margin-left: 270px;
+	  margin-right: 24px;
+	  margin-top: 30px;
+	  padding: 0 16px 30px 16px;
+	}
+
+	.settings-box {
+	  background: #fff;
+	  border: 1px solid #eee;
+	  border-radius: 20px;
+	  padding: 24px;
+	  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+	}
+
+	.settings-box h1 {
+	  margin-top: 0;
+	  margin-bottom: 8px;
+	}
+
+	.muted {
+	  color: #666;
+	  font-size: 14px;
+	  margin-bottom: 20px;
+	}
+
+	.plans-grid {
+	  display: flex;
+	  flex-wrap: wrap;
+	  gap: 20px;
+	}
+
+	.plan-card {
+	  background: #fafafa;
+	  border: 1px solid #e5e7eb;
+	  border-radius: 18px;
+	  padding: 16px;
+	  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+	  width: fit-content;       /* 👈 chave principal */
+	  min-width: 260px;         /* evita ficar pequeno demais */
+	}
+
+	.plan-card h2 {
+	  margin-top: 0;
+	  margin-bottom: 16px;
+	  font-size: 20px;
+	}
+
+	.form-grid {
+	  display: flex;
+	  flex-wrap: wrap;
+	  gap: 12px;
+	}
+
+	.form-group {
+	  margin-bottom: 0;
+	}
+
+	.form-group label {
+	  display: block;
+	  font-weight: 600;
+	  margin-bottom: 8px;
+	}
+
+	.form-group input {
+	  width: 120px; /* 👈 tamanho reduzido */
+	  padding: 10px;
+	}
+	
+	.form-group {
+	  display: flex;
+	  flex-direction: column;
+	  gap: 6px;
+	  min-width: 120px;
+	}
+
+	.plan-options {
+	  display: grid;
+	  gap: 10px;
+	  margin-top: 16px;
+	  padding-top: 14px;
+	  border-top: 1px solid #e5e7eb;
+	}
+
+	.plan-options label {
+	  display: flex;
+	  align-items: center;
+	  gap: 10px;
+	  font-weight: 500;
+	  color: #333;
+	}
+
+	.plan-options input[type="checkbox"] {
+	  width: 16px;
+	  height: 16px;
+	}
+
+	.actions {
+	  display: flex;
+	  gap: 10px;
+	  flex-wrap: wrap;
+	  margin-top: 24px;
+	}
+
+	.actions button {
+	  border: none;
+	  border-radius: 12px;
+	  padding: 14px 20px;
+	  cursor: pointer;
+	  background: #2563eb;
+	  color: white;
+	  font-size: 15px;
+	  font-weight: 600;
+	}
+
+	.actions button:hover {
+	  opacity: 0.95;
+	}
+
+	.status-message {
+	  margin-top: 16px;
+	  font-size: 14px;
+	  font-weight: 600;
+	}
+
+	@media (max-width: 1100px) {
+	  .plans-grid {
+		grid-template-columns: 1fr;
+	  }
+	}
+
+	@media (max-width: 900px) {
+	  .admin-sidebar {
+		position: static;
+		width: auto;
+		margin: 16px;
+		border-radius: 14px;
+	  }
+
+	  .container {
+		margin: 20px 16px;
+	  }
+	}
+  </style>
+</head>
+<body>
+  {% include "partials/topbar.html" %}
+  {% include "partials/admin_sidebar.html" %}
+
+  <main class="container">
+    <section class="settings-box">
+	  <h1>Ajustes</h1>
+	  <p class="muted">Defina os benefícios de cada plano.</p>
+
+	  <div class="plans-grid">
+		<div class="plan-card">
+		  <h2>FREE</h2>
+		  <div class="form-grid">
+			<div class="form-group">
+			  <label for="freeAdsLimit">Limite de anúncios</label>
+			  <input type="number" id="freeAdsLimit" min="0">
+			</div>
+			<div class="form-group">
+			  <label for="freeKeywordsLimit">Limite de palavras-chave</label>
+			  <input type="number" id="freeKeywordsLimit" min="0">
+			</div>
+		  </div>
+
+		  <div class="plan-options">
+			<label><input type="checkbox" id="freeCanUseImages"> Pode usar imagem</label>
+			<label><input type="checkbox" id="freeCanUseVideos"> Pode usar vídeo</label>
+			<label><input type="checkbox" id="freeCanAppearInVipList"> Aparece na tela inicial de pesquisa</label>
+			<label><input type="checkbox" id="freeCanShowFullDetails"> Mostra detalhes completos</label>
+			<label><input type="checkbox" id="freeCanUseVitrine"> Pode usar vitrine</label>
+		  </div>
+		</div>
+
+		<div class="plan-card">
+		  <h2>VIP Bronze</h2>
+		  <div class="form-grid">
+			<div class="form-group">
+			  <label for="bronzeAdsLimit">Limite de anúncios</label>
+			  <input type="number" id="bronzeAdsLimit" min="0">
+			</div>
+			<div class="form-group">
+			  <label for="bronzeKeywordsLimit">Limite de palavras-chave</label>
+			  <input type="number" id="bronzeKeywordsLimit" min="0">
+			</div>
+			<div class="form-group">
+			  <label for="bronzePrice">Valor do plano (R$)</label>
+			  <input type="number" id="bronzePrice" min="0" step="0.01">
+			</div>
+		  </div>
+
+		  <div class="plan-options">
+			<label><input type="checkbox" id="bronzeCanUseImages"> Pode usar imagem</label>
+			<label><input type="checkbox" id="bronzeCanUseVideos"> Pode usar vídeo</label>
+			<label><input type="checkbox" id="bronzeCanAppearInVipList"> Aparece na tela inicial de pesquisa</label>
+			<label><input type="checkbox" id="bronzeCanShowFullDetails"> Mostra detalhes completos</label>
+			<label><input type="checkbox" id="bronzeCanUseVitrine"> Pode usar vitrine</label>
+		  </div>
+		</div>
+
+		<div class="plan-card">
+		  <h2>VIP Prata</h2>
+		  <div class="form-grid">
+			<div class="form-group">
+			  <label for="prataAdsLimit">Limite de anúncios</label>
+			  <input type="number" id="prataAdsLimit" min="0">
+			</div>
+			<div class="form-group">
+			  <label for="prataKeywordsLimit">Limite de palavras-chave</label>
+			  <input type="number" id="prataKeywordsLimit" min="0">
+			</div>
+			<div class="form-group">
+			  <label for="prataPrice">Valor do plano (R$)</label>
+			  <input type="number" id="prataPrice" min="0" step="0.01">
+			</div>
+		  </div>
+
+		  <div class="plan-options">
+			<label><input type="checkbox" id="prataCanUseImages"> Pode usar imagem</label>
+			<label><input type="checkbox" id="prataCanUseVideos"> Pode usar vídeo</label>
+			<label><input type="checkbox" id="prataCanAppearInVipList"> Aparece na tela inicial de pesquisa</label>
+			<label><input type="checkbox" id="prataCanShowFullDetails"> Mostra detalhes completos</label>
+			<label><input type="checkbox" id="prataCanUseVitrine"> Pode usar vitrine</label>
+		  </div>
+		</div>
+
+		<div class="plan-card">
+		  <h2>VIP Ouro</h2>
+		  <div class="form-grid">
+			<div class="form-group">
+			  <label for="ouroAdsLimit">Limite de anúncios</label>
+			  <input type="number" id="ouroAdsLimit" min="0">
+			</div>
+			<div class="form-group">
+			  <label for="ouroKeywordsLimit">Limite de palavras-chave</label>
+			  <input type="number" id="ouroKeywordsLimit" min="0">
+			</div>
+			<div class="form-group">
+			  <label for="ouroPrice">Valor do plano (R$)</label>
+			  <input type="number" id="ouroPrice" min="0" step="0.01">
+			</div>
+		  </div>
+
+		  <div class="plan-options">
+			<label><input type="checkbox" id="ouroCanUseImages"> Pode usar imagem</label>
+			<label><input type="checkbox" id="ouroCanUseVideos"> Pode usar vídeo</label>
+			<label><input type="checkbox" id="ouroCanAppearInVipList"> Aparece na tela inicial de pesquisa</label>
+			<label><input type="checkbox" id="ouroCanShowFullDetails"> Mostra detalhes completos</label>
+			<label><input type="checkbox" id="ouroCanUseVitrine"> Pode usar vitrine</label>
+		  </div>
+		</div>
+
+		<div class="plan-card">
+		  <h2>VIP Premium</h2>
+		  <div class="form-grid">
+			<div class="form-group">
+			  <label for="premiumAdsLimit">Limite de anúncios</label>
+			  <input type="number" id="premiumAdsLimit" min="0">
+			</div>
+			<div class="form-group">
+			  <label for="premiumKeywordsLimit">Limite de palavras-chave</label>
+			  <input type="number" id="premiumKeywordsLimit" min="0">
+			</div>
+			<div class="form-group">
+			  <label for="premiumPrice">Valor do plano (R$)</label>
+			  <input type="number" id="premiumPrice" min="0" step="0.01">
+			</div>
+		  </div>
+
+		  <div class="plan-options">
+			<label><input type="checkbox" id="premiumCanUseImages"> Pode usar imagem</label>
+			<label><input type="checkbox" id="premiumCanUseVideos"> Pode usar vídeo</label>
+			<label><input type="checkbox" id="premiumCanAppearInVipList"> Aparece na tela inicial de pesquisa</label>
+			<label><input type="checkbox" id="premiumCanShowFullDetails"> Mostra detalhes completos</label>
+			<label><input type="checkbox" id="premiumCanUseVitrine"> Pode usar vitrine</label>
+		  </div>
+		</div>
+	  </div>
+
+	  <div class="actions">
+		<button type="button" id="saveSettingsBtn">Salvar ajustes</button>
+	  </div>
+
+	  <div id="settingsStatus" class="status-message"></div>
+	</section>
+  </main>
+
+    <script>
+    function logout() {
+      localStorage.removeItem("catalogo_user");
+      window.location.href = "/auth-page";
+    }
+  </script>
+  <script src="{{ url_for('static', filename='settings.js') }}?v=2"></script>
+   <script>
+	  (function () {
+		const adminLayoutUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+		const adminSidebar = document.getElementById("adminSidebar");
+
+		function isAdmin(user) {
+		  if (!user) return false;
+		  return user.is_admin === true || user.role === "admin";
+		}
+
+		if (isAdmin(adminLayoutUser) && adminSidebar) {
+		  document.body.classList.add("admin-has-sidebar");
+		  adminSidebar.style.display = "flex";
+		}
+	  })();
+	</script>
+
+  <script src="{{ url_for('static', filename='vip.js') }}?v=2"></script>
+  <script>
+	  (function () {
+		const savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+		const menu = document.getElementById("topActionsMenu");
+
+		if (!menu) return;
+
+		const isAdmin = savedUser && (savedUser.is_admin === true || savedUser.role === "admin");
+
+		if (!isAdmin) return;
+
+		const existingAdminButton = Array.from(menu.querySelectorAll("button")).find(
+		  btn => btn.textContent.trim() === "Admin"
+		);
+
+		if (existingAdminButton) {
+		  existingAdminButton.remove();
+		}
+
+		const firstButton = menu.querySelector("button");
+
+		if (!firstButton) {
+		  menu.innerHTML = `
+			<button type="button" onclick="window.location.href='/admin/reports-page'">Admin</button>
+		  `;
+		  return;
+		}
+
+		firstButton.insertAdjacentHTML(
+		  "beforebegin",
+		  `<button type="button" onclick="window.location.href='/admin/reports-page'">Admin</button>`
+		);
+	  })();
+	</script>
+	<script src="{{ url_for('static', filename='common_layout.js') }}"></script>
+	
+</body>
+</html>

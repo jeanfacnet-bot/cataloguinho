@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feed de mídias</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    html, body {
+	  margin: 0;
+	  padding: 0;
+	  height: 100%;
+	  overflow: hidden;
+	}
+
+	.topbar {
+	  background: #111827;
+	  color: white;
+	  padding: 14px 20px;
+	  display: flex;
+	  justify-content: space-between;
+	  align-items: center;
+	  gap: 16px;
+	  flex-wrap: wrap;
+	}
+
+	.topbar .logo {
+	  font-size: 20px;
+	  font-weight: bold;
+	}
+
+	.top-actions {
+	  display: flex;
+	  gap: 10px;
+	  flex-wrap: wrap;
+	}
+
+	.top-actions button {
+	  border: none;
+	  border-radius: 8px;
+	  padding: 10px 14px;
+	  cursor: pointer;
+	  background: #2563eb;
+	  color: white;
+	}
+
+	.top-actions .vip-btn {
+	  background: #f59e0b;
+	  color: white;
+	  font-weight: bold;
+	}
+
+	.top-actions button:hover {
+	  opacity: 0.9;
+	}
+
+	.feed-container {
+	  max-width: 680px;
+	  margin: 0 auto;
+	  padding: 16px;
+	  height: calc(100vh - 80px);
+	  box-sizing: border-box;
+	}
+
+	.feed-header {
+	  display: none;
+	}
+
+	.feed-grid {
+	  height: 100%;
+	  overflow-y: auto;
+	  scroll-snap-type: y mandatory;
+	  scroll-behavior: smooth;
+	  -webkit-overflow-scrolling: touch;
+	  overscroll-behavior-y: contain;
+	  touch-action: pan-y;
+	  display: flex;
+	  flex-direction: column;
+	  gap: 0;
+	}
+
+	.feed-grid::-webkit-scrollbar {
+	  width: 8px;
+	}
+
+	.feed-card {
+	  flex: 0 0 100%;
+	  height: 100%;
+	  scroll-snap-align: start;
+	  scroll-snap-stop: always;
+	  background: white;
+	  border: 1px solid #eee;
+	  border-radius: 16px;
+	  overflow: hidden;
+	  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+	  display: flex;
+	  flex-direction: column;
+	}
+
+	.feed-media-wrap {
+	  flex: 1;
+	  background: #000;
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	  overflow: hidden;
+	  touch-action: pan-y;
+	}
+
+	.feed-media {
+	  width: 100%;
+	  height: 100%;
+	  object-fit: contain;
+	  display: block;
+	  background: #000;
+	  touch-action: pan-y;
+	}
+
+	.feed-info {
+	  padding: 16px;
+	  background: white;
+	  border-top: 1px solid #eee;
+	}
+
+	.feed-title {
+	  font-size: 18px;
+	  font-weight: bold;
+	  margin-bottom: 8px;
+	}
+
+	.feed-meta {
+	  color: #666;
+	  font-size: 14px;
+	  margin-bottom: 10px;
+	}
+
+	.feed-link {
+	  display: inline-block;
+	  text-decoration: none;
+	  color: #0d6efd;
+	  font-weight: bold;
+	}
+
+	.empty-box {
+	  height: 100%;
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	  background: white;
+	  border-radius: 16px;
+	  text-align: center;
+	  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+	}
+	body {
+	  scroll-snap-type: y mandatory;
+	}
+	
+	/* ===== SIDEBAR ADMIN ===== */
+	.admin-sidebar {
+	  position: fixed;
+	  top: 72px;
+	  left: 0;
+	  bottom: 0;
+	  width: 240px;
+	  background: #1f2937;
+	  color: white;
+	  padding: 20px 16px;
+	  display: none;
+	  flex-direction: column;
+	  gap: 10px;
+	  z-index: 900;
+	  overflow-y: auto;
+	  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
+	}
+
+	.admin-sidebar-title {
+	  font-size: 18px;
+	  font-weight: bold;
+	  margin-bottom: 8px;
+	}
+
+	.admin-sidebar a {
+	  display: block;
+	  text-decoration: none;
+	  color: white;
+	  padding: 12px 14px;
+	  border-radius: 10px;
+	  transition: 0.2s;
+	}
+
+	.admin-sidebar a:hover {
+	  background: rgba(255, 255, 255, 0.08);
+	}
+
+	.admin-sidebar a.active {
+	  background: #2563eb;
+	  font-weight: bold;
+	}
+
+	body.admin-has-sidebar .feed-container {
+	  max-width: 680px;
+	  margin: 0 auto;
+	  padding: 16px;
+	  height: calc(100vh - 80px);
+	  box-sizing: border-box;
+	}
+
+	@media (max-width: 900px) {
+	  .admin-sidebar {
+		position: static;
+		width: auto;
+		display: none;
+		margin: 0 16px 16px 16px;
+		border-radius: 14px;
+	  }
+
+	  body.admin-has-sidebar .feed-container {
+		  max-width: 680px;
+		  margin: 0 auto;
+		  padding: 16px;
+		}
+	}
+
+	@media (max-width: 768px) {
+	  .feed-card {
+		height: calc(100vh - 120px);
+		min-height: 500px;
+	  }
+	}
+  </style>
+</head>
+<body>
+  {% include "partials/topbar.html" %}
+  {% include "partials/admin_sidebar.html" %}
+
+  <main class="feed-container">
+    <section class="feed-header">
+      <h1>Feed de fotos e vídeos</h1>
+      <p>Veja todas as mídias cadastradas nos anúncios.</p>
+    </section>
+
+    <div id="feedContent" class="feed-grid"></div>
+  </main>
+
+  <script>
+	const savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+
+		
+	function toggleVideo(video) {
+	  if (video.muted) {
+		video.muted = false;
+		video.play().catch(() => {});
+		return;
+	  }
+
+	  if (video.paused) {
+		video.play().catch(() => {});
+	  } else {
+		video.pause();
+	  }
+	}
+	
+	function unmuteVisibleVideo() {
+	  const cards = document.querySelectorAll(".feed-card");
+
+	  cards.forEach((card) => {
+		const video = card.querySelector(".feed-video");
+		if (!video) return;
+
+		const rect = card.getBoundingClientRect();
+		const visibleTop = Math.max(rect.top, 0);
+		const visibleBottom = Math.min(rect.bottom, window.innerHeight);
+		const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+
+		if (visibleHeight > window.innerHeight * 0.5) {
+		  video.muted = false;
+		  video.play().catch(() => {});
+		} else {
+		  video.muted = true;
+		}
+	  });
+	}
+	
+    const feedContent = document.getElementById("feedContent");
+	
+	function enableGlobalWheelScroll() {
+	  window.addEventListener("wheel", (event) => {
+		if (window.innerWidth <= 768) return;
+
+		const canScrollDown =
+		  feedContent.scrollTop + feedContent.clientHeight < feedContent.scrollHeight;
+
+		const canScrollUp = feedContent.scrollTop > 0;
+
+		if ((event.deltaY > 0 && canScrollDown) || (event.deltaY < 0 && canScrollUp)) {
+		  event.preventDefault();
+
+		  feedContent.scrollBy({
+			top: event.deltaY,
+			behavior: "auto"
+		  });
+		}
+	  }, { passive: false });
+	}
+	
+	function setupVideoAutoplay() {
+	  const cards = document.querySelectorAll(".feed-card");
+
+	  function updateVisibleVideo() {
+		let bestCard = null;
+		let bestVisibleArea = 0;
+
+		cards.forEach((card) => {
+		  const rect = card.getBoundingClientRect();
+		  const visibleTop = Math.max(rect.top, 0);
+		  const visibleBottom = Math.min(rect.bottom, window.innerHeight);
+		  const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+
+		  if (visibleHeight > bestVisibleArea) {
+			bestVisibleArea = visibleHeight;
+			bestCard = card;
+		  }
+		});
+
+		cards.forEach((card) => {
+		  const video = card.querySelector(".feed-video");
+		  if (!video) return;
+
+		  if (card === bestCard) {
+			video.play().catch(() => {});
+		  } else {
+			video.pause();
+			video.currentTime = 0;
+		  }
+		});
+	  }
+
+	  feedContent.addEventListener("scroll", updateVisibleVideo);
+	  window.addEventListener("resize", updateVisibleVideo);
+
+	  setTimeout(updateVisibleVideo, 300);
+	}
+
+    function renderFeed(items) {
+      if (!items.length) {
+        feedContent.className = "empty-box";
+        feedContent.innerHTML = "<p>Nenhuma mídia cadastrada até o momento.</p>";
+        return;
+      }
+
+		feedContent.className = "feed-grid";
+		feedContent.innerHTML = items.map(item => `
+		  <section class="feed-card">
+			<div class="feed-media-wrap">
+			  ${
+				item.type === "image"
+				  ? `<img src="${item.url}" alt="${item.title}" class="feed-media">`
+				  : `<video
+					  controls
+					  muted
+					  autoplay
+					  loop
+					  playsinline
+					  webkit-playsinline
+					  preload="auto"
+					  class="feed-media feed-video"
+					  src="${item.url}"
+					  onclick="toggleVideo(this)">
+					  Seu navegador não suporta vídeo.
+				     </video>`
+			  }
+			</div>
+
+			<div class="feed-info">
+			  <div class="feed-title">${item.title || ""}</div>
+			  <div class="feed-meta">
+				${item.plan === "VIP" ? "VIP" : "FREE"} • ${item.type === "image" ? "Foto" : "Vídeo"}
+			  </div>
+			  <a class="feed-link" href="/ads/${item.ad_id}/page">Ver anúncio</a>
+			</div>
+		  </section>
+		`).join("");
+    }
+	
+	
+
+    async function loadFeed() {
+      try {
+        const response = await fetch("/feed");
+        const items = await response.json();
+
+        if (!response.ok || !Array.isArray(items)) {
+          throw new Error("Não foi possível carregar o feed.");
+        }
+
+        renderFeed(items);
+		setupVideoAutoplay();
+      } catch (error) {
+        feedContent.className = "empty-box";
+        feedContent.innerHTML = `<p>${error.message}</p>`;
+      }
+    }
+
+	(function () {
+		const adminLayoutUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+		const adminSidebar = document.getElementById("adminSidebar");
+
+		function isAdmin(user) {
+		  if (!user) return false;
+		  return user.is_admin === true || user.role === "admin";
+		}
+
+		if (isAdmin(adminLayoutUser) && adminSidebar) {
+		  document.body.classList.add("admin-has-sidebar");
+		  adminSidebar.style.display = "flex";
+		}
+	  })();
+  
+    enableGlobalWheelScroll();
+	loadFeed();
+  </script>
+  
+  <script src="{{ url_for('static', filename='common_layout.js') }}"></script>
+
+</body>
+</html>

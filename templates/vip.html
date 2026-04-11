@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tornar-se VIP</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .vip-container {
+      max-width: 1100px;
+      margin: 30px auto;
+      padding: 0 16px;
+    }
+
+    .vip-hero,
+    .vip-card,
+    .vip-benefits {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      border: 1px solid #eee;
+      margin-bottom: 20px;
+    }
+
+    .vip-hero h1 {
+      margin-bottom: 10px;
+    }
+
+    .vip-grid {
+	  display: grid;
+	  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	  gap: 20px;
+	}
+
+    .plan-box {
+      border: 1px solid #e5e5e5;
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .plan-box.vip {
+      border: 2px solid #f4b400;
+      background: #fffdf5;
+    }
+
+    .plan-box h2 {
+      margin-bottom: 12px;
+    }
+
+    .plan-box ul {
+      padding-left: 20px;
+      line-height: 1.8;
+    }
+	
+	.topbar {
+	  background: #111827;
+	  color: white;
+	  padding: 14px 20px;
+	  display: flex;
+	  justify-content: space-between;
+	  align-items: center;
+	  gap: 16px;
+	  flex-wrap: wrap;
+	}
+
+	.topbar .logo {
+	  font-size: 20px;
+	  font-weight: bold;
+	}
+
+	.top-actions {
+	  display: flex;
+	  gap: 10px;
+	  flex-wrap: wrap;
+	}
+
+	.top-actions button {
+	  border: none;
+	  border-radius: 8px;
+	  padding: 10px 14px;
+	  cursor: pointer;
+	  background: #2563eb;
+	  color: white;
+	}
+
+	.top-actions .vip-btn {
+	  background: #f59e0b;
+	  color: white;
+	  font-weight: bold;
+	}
+
+	.top-actions button:hover {
+	  opacity: 0.9;
+	}
+
+    .vip-actions {
+      margin-top: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .vip-actions button {
+      padding: 14px 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .primary-btn {
+      background: #0d6efd;
+      color: white;
+    }
+
+    .secondary-btn {
+      background: #e9ecef;
+    }
+
+    .message-box {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 10px;
+      display: none;
+    }
+
+    .message-box.success {
+      display: block;
+      background: #e8f7ee;
+      color: #155724;
+    }
+
+    .message-box.error {
+      display: block;
+      background: #fdecea;
+      color: #842029;
+    }
+
+    .user-status {
+      color: #555;
+      margin-top: 8px;
+    }
+	
+	/* ===== SIDEBAR ADMIN ===== */
+	.admin-sidebar {
+	  position: fixed;
+	  top: 72px;
+	  left: 0;
+	  bottom: 0;
+	  width: 240px;
+	  background: #1f2937;
+	  color: white;
+	  padding: 20px 16px;
+	  display: none;
+	  flex-direction: column;
+	  gap: 10px;
+	  z-index: 900;
+	  overflow-y: auto;
+	  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
+	}
+
+	.admin-sidebar-title {
+	  font-size: 18px;
+	  font-weight: bold;
+	  margin-bottom: 8px;
+	}
+
+	.admin-sidebar a {
+	  display: block;
+	  text-decoration: none;
+	  color: white;
+	  padding: 12px 14px;
+	  border-radius: 10px;
+	  transition: 0.2s;
+	}
+
+	.admin-sidebar a:hover {
+	  background: rgba(255, 255, 255, 0.08);
+	}
+
+	.admin-sidebar a.active {
+	  background: #2563eb;
+	  font-weight: bold;
+	}
+
+	/* Ajuste do layout com sidebar */
+	body.admin-has-sidebar .vip-container {
+	  max-width: none;
+	  margin-left: 270px;
+	  margin-right: 24px;
+	}
+
+	/* Mobile */
+	@media (max-width: 900px) {
+	  .admin-sidebar {
+		position: static;
+		width: auto;
+		display: none;
+		margin: 0 16px 16px 16px;
+		border-radius: 14px;
+	  }
+
+	  body.admin-has-sidebar .vip-container {
+		margin-left: auto;
+		margin-right: auto;
+	  }
+	}
+
+    @media (max-width: 900px) {
+      .vip-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  {% include "partials/topbar.html" %}
+  {% include "partials/admin_sidebar.html" %}
+
+  <main class="vip-container">
+    <section class="vip-hero">
+      <h1>Torne-se VIP</h1>
+      <p>Destaque seus produtos e serviços, apareça melhor na busca e tenha acesso a recursos extras.</p>
+	  <p style="margin-top:8px; font-weight:600; color:#2563eb;">
+	    Todos os planos VIP têm duração de 30 dias.
+	  </p>
+      <div id="userStatus" class="user-status">Carregando status da conta...</div>
+      <div id="vipMessage" class="message-box"></div>
+    </section>
+
+    <section class="vip-grid">
+	  <div class="plan-box">
+		<h2>Plano FREE</h2>
+		<ul id="freePlanFeatures"></ul>
+	  </div>
+
+	  <div class="plan-box vip">
+		<h2>VIP Bronze</h2>
+		<div style="font-size:13px; color:#2563eb; margin-bottom:10px;"> Duração: 30 dias </div>
+		<ul id="bronzePlanFeatures"></ul>
+		<div class="vip-actions">
+		  <button type="button" class="primary-btn upgrade-plan-btn" data-plan="VIP_BRONZE">
+			Escolher Bronze
+		  </button>
+		</div>
+	  </div>
+
+	  <div class="plan-box vip">
+		<h2>VIP Prata</h2>
+		<div style="font-size:13px; color:#2563eb; margin-bottom:10px;"> Duração: 30 dias </div>
+		<ul id="prataPlanFeatures"></ul>
+		<div class="vip-actions">
+		  <button type="button" class="primary-btn upgrade-plan-btn" data-plan="VIP_PRATA">
+			Escolher Prata
+		  </button>
+		</div>
+	  </div>
+
+	  <div class="plan-box vip">
+		<h2>VIP Ouro</h2>
+		<div style="font-size:13px; color:#2563eb; margin-bottom:10px;"> Duração: 30 dias </div>
+		<ul id="ouroPlanFeatures"></ul>
+		<div class="vip-actions">
+		  <button type="button" class="primary-btn upgrade-plan-btn" data-plan="VIP_OURO">
+			Escolher Ouro
+		  </button>
+		</div>
+	  </div>
+
+	  <div class="plan-box vip">
+		<h2>VIP Premium</h2>
+		<div style="font-size:13px; color:#2563eb; margin-bottom:10px;"> Duração: 30 dias </div>
+		<ul id="premiumPlanFeatures"></ul>
+		<div class="vip-actions">
+		  <button type="button" class="primary-btn upgrade-plan-btn" data-plan="VIP_PREMIUM">
+			Escolher Premium
+		  </button>
+		</div>
+	  </div>
+	</section>
+
+    <section class="vip-card">
+	  <h2>Escolha seu plano</h2>
+	  <p>Selecione abaixo o nível VIP que deseja ativar no seu cadastro.</p>
+
+	  <div class="vip-actions">
+		<button class="secondary-btn" onclick="window.location.href='/create-ad-page'">
+		  Voltar para meus anúncios
+		</button>
+	  </div>
+	</section>
+  </main>
+  
+  <script>
+	  (function () {
+		const adminLayoutUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+		const adminSidebar = document.getElementById("adminSidebar");
+
+		function isAdmin(user) {
+		  if (!user) return false;
+		  return user.is_admin === true || user.role === "admin";
+		}
+
+		if (isAdmin(adminLayoutUser) && adminSidebar) {
+		  document.body.classList.add("admin-has-sidebar");
+		  adminSidebar.style.display = "flex";
+		}
+	  })();
+	</script>
+
+  <script src="{{ url_for('static', filename='vip.js') }}?v=2"></script>
+  <script>
+	  (function () {
+		const savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+		const menu = document.getElementById("topActionsMenu");
+
+		if (!menu) return;
+
+		const isAdmin = savedUser && (savedUser.is_admin === true || savedUser.role === "admin");
+
+		if (!isAdmin) return;
+
+		const existingAdminButton = Array.from(menu.querySelectorAll("button")).find(
+		  btn => btn.textContent.trim() === "Admin"
+		);
+
+		if (existingAdminButton) {
+		  existingAdminButton.remove();
+		}
+
+		const firstButton = menu.querySelector("button");
+
+		if (!firstButton) {
+		  menu.innerHTML = `
+			<button type="button" onclick="window.location.href='/admin/reports-page'">Admin</button>
+		  `;
+		  return;
+		}
+
+		firstButton.insertAdjacentHTML(
+		  "beforebegin",
+		  `<button type="button" onclick="window.location.href='/admin/reports-page'">Admin</button>`
+		);
+	  })();
+	</script>
+	
+	<script src="{{ url_for('static', filename='common_layout.js') }}"></script>
+	
+</body>
+</html>
