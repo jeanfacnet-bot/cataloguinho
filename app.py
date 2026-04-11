@@ -614,7 +614,7 @@ def ensure_admin_user():
         email=admin_email,
         phone="(00) 00000-0000",
         password_hash=generate_password_hash(admin_password),
-        plan="VIP_BRONZE",
+        plan="VIP_PREMIUM",
         is_admin=True
     )
 
