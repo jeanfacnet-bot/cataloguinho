@@ -412,20 +412,20 @@ function getPlanBadge(plan) {
 function renderUsers(filter) {
   const container = document.getElementById("usersList");
 
-  let filteredUsers = allUsers;
+  let filteredUsers = [...allUsers];
 
   if (filter === "free") {
-    filteredUsers = allUsers.filter(u => u.plan === "FREE");
+    filteredUsers = filteredUsers.filter(u => u.plan === "FREE");
   } else if (filter === "VIP_BRONZE") {
-    filteredUsers = allUsers.filter(u => u.plan === "VIP_BRONZE");
+    filteredUsers = filteredUsers.filter(u => u.plan === "VIP_BRONZE");
   } else if (filter === "VIP_PRATA") {
-    filteredUsers = allUsers.filter(u => u.plan === "VIP_PRATA");
+    filteredUsers = filteredUsers.filter(u => u.plan === "VIP_PRATA");
   } else if (filter === "VIP_OURO") {
-    filteredUsers = allUsers.filter(u => u.plan === "VIP_OURO");
+    filteredUsers = filteredUsers.filter(u => u.plan === "VIP_OURO");
   } else if (filter === "VIP_PREMIUM") {
-    filteredUsers = allUsers.filter(u => u.plan === "VIP_PREMIUM");
+    filteredUsers = filteredUsers.filter(u => u.plan === "VIP_PREMIUM");
   } else if (filter === "blocked") {
-    filteredUsers = allUsers.filter(u => u.is_blocked);
+    filteredUsers = filteredUsers.filter(u => u.is_blocked);
   }
 
   if (searchTerm) {
@@ -433,12 +433,20 @@ function renderUsers(filter) {
       (u.name || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
   }
-	// 🔥 ORDENAR ALFABETICAMENTE SEMPRE
-	filteredUsers.sort((a, b) => {
-	  const nameA = (a.name || "").toLowerCase();
-	  const nameB = (b.name || "").toLowerCase();
-	  return nameA.localeCompare(nameB, "pt-BR");
-	});
+
+  const adminUser = allUsers.find(u => u.is_admin);
+  if (adminUser) {
+    const alreadyIncluded = filteredUsers.some(u => u.id === adminUser.id);
+    if (!alreadyIncluded) {
+      filteredUsers.unshift(adminUser);
+    }
+  }
+
+  filteredUsers.sort((a, b) => {
+    const nameA = (a.name || "").toLowerCase();
+    const nameB = (b.name || "").toLowerCase();
+    return nameA.localeCompare(nameB, "pt-BR");
+  });
 
   if (!filteredUsers.length) {
     container.innerHTML = "<p class='muted'>Nenhum usuário encontrado.</p>";
@@ -449,8 +457,8 @@ function renderUsers(filter) {
     <div class="users-grid">
       ${filteredUsers.map(u => `
         <div class="user-card">
-          <strong>${u.name}</strong><br>
-          <span class="muted">${u.email}</span><br>
+          <strong>${u.name || "-"}</strong><br>
+          <span class="muted">${u.email || "-"}</span><br>
           <span class="muted">CPF: ${u.cpf || "-"}</span><br>
           ${getPlanBadge(u.plan)}
           ${u.is_admin ? "<br>👑 Admin" : ""}
@@ -458,82 +466,81 @@ function renderUsers(filter) {
           ${u.blocked_until ? `<br><span class="muted">Bloqueado até: ${new Date(u.blocked_until).toLocaleString("pt-BR")}</span>` : ""}
           ${u.block_reason ? `<br><span class="muted">Motivo: ${u.block_reason}</span>` : ""}
 
-          `
-            <div style="margin-top:12px;">
-              <label style="display:block; font-weight:600; margin-bottom:6px;">Alterar plano</label>
-              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                <select
-                  id="plan-user-${u.id}"
-                  style="padding:10px; border:1px solid #ccc; border-radius:8px; min-width:180px;"
-                >
-                  <option value="FREE" ${u.plan === "FREE" ? "selected" : ""}>FREE</option>
-                  <option value="VIP_BRONZE" ${u.plan === "VIP_BRONZE" ? "selected" : ""}>VIP Bronze</option>
-                  <option value="VIP_PRATA" ${u.plan === "VIP_PRATA" ? "selected" : ""}>VIP Prata</option>
-                  <option value="VIP_OURO" ${u.plan === "VIP_OURO" ? "selected" : ""}>VIP Ouro</option>
-                  <option value="VIP_PREMIUM" ${u.plan === "VIP_PREMIUM" ? "selected" : ""}>VIP Premium</option>
-                </select>
-				
-				<input
-				  type="date"
-				  id="vip-expiration-${u.id}"
-				  value="${u.vip_expires_at ? new Date(u.vip_expires_at).toISOString().split('T')[0] : ''}"
-				  style="padding:8px; border:1px solid #ccc; border-radius:8px;"
-				>
+          <div style="margin-top:12px;">
+            <label style="display:block; font-weight:600; margin-bottom:6px;">Alterar plano</label>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+              <select
+                id="plan-user-${u.id}"
+                style="padding:10px; border:1px solid #ccc; border-radius:8px; min-width:180px;"
+              >
+                <option value="FREE" ${u.plan === "FREE" ? "selected" : ""}>FREE</option>
+                <option value="VIP_BRONZE" ${u.plan === "VIP_BRONZE" ? "selected" : ""}>VIP Bronze</option>
+                <option value="VIP_PRATA" ${u.plan === "VIP_PRATA" ? "selected" : ""}>VIP Prata</option>
+                <option value="VIP_OURO" ${u.plan === "VIP_OURO" ? "selected" : ""}>VIP Ouro</option>
+                <option value="VIP_PREMIUM" ${u.plan === "VIP_PREMIUM" ? "selected" : ""}>VIP Premium</option>
+              </select>
 
-                <button
-                  class="create-user-btn"
-                  onclick="updateUserPlan(${u.id})">
-                  Salvar plano
-                </button>
-              </div>
+              <input
+                type="date"
+                id="vip-expiration-${u.id}"
+                value="${u.vip_expires_at ? new Date(u.vip_expires_at).toISOString().split("T")[0] : ""}"
+                style="padding:8px; border:1px solid #ccc; border-radius:8px;"
+              >
+
+              <button
+                class="create-user-btn"
+                onclick="updateUserPlan(${u.id})">
+                Salvar plano
+              </button>
             </div>
+          </div>
 
-            <div class="user-actions">
-              ${
-                u.is_blocked
-                  ? `
-                    <button
-                      class="unblock-user-btn"
-                      onclick="unblockUser(${u.id})">
-                      Desbloquear
-                    </button>
-                  `
-                  : `
-                    <input
-                      type="number"
-                      min="1"
-                      id="days-user-${u.id}"
-                      placeholder="Dias"
-                      style="width: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 8px;"
-                    >
+          <div class="user-actions">
+            ${
+              u.is_blocked
+                ? `
+                  <button
+                    class="unblock-user-btn"
+                    onclick="unblockUser(${u.id})">
+                    Desbloquear
+                  </button>
+                `
+                : `
+                  <input
+                    type="number"
+                    min="1"
+                    id="days-user-${u.id}"
+                    placeholder="Dias"
+                    style="width: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 8px;"
+                  >
 
-                    <button
-                      class="block-user-btn"
-                      onclick="blockUser(${u.id})">
-                      Bloquear
-                    </button>
-                  `
-              }
+                  <button
+                    class="block-user-btn"
+                    onclick="blockUser(${u.id})">
+                    Bloquear
+                  </button>
+                `
+            }
 
-				<button
-				  class="delete-user-btn"
-				  data-user-id="${u.id}"
-				  data-user-name="${(u.name || "").replace(/"/g, "&quot;")}">
-				  Excluir
-				</button>
-            </div>
-          `
+            <button
+              class="delete-user-btn"
+              data-user-id="${u.id}"
+              data-user-name="${(u.name || "").replace(/"/g, "&quot;")}">
+              Excluir
+            </button>
+          </div>
         </div>
       `).join("")}
     </div>
   `;
-     document.querySelectorAll(".delete-user-btn").forEach(button => {
-		button.addEventListener("click", async () => {
-		  const userId = button.dataset.userId;
-		  const userName = button.dataset.userName || "";
-		  await deleteUser(userId, userName);
-		});
-	  });
+
+  document.querySelectorAll(".delete-user-btn").forEach(button => {
+    button.addEventListener("click", async () => {
+      const userId = button.dataset.userId;
+      const userName = button.dataset.userName || "";
+      await deleteUser(userId, userName);
+    });
+  });
 }
 
 function updateFilterButtons() {
@@ -664,27 +671,50 @@ async function updateUserPlan(userId) {
 }
 
 async function loadUsers() {
-  const res = await fetch("/admin/users");
-  allUsers = await res.json();
+  const container = document.getElementById("usersList");
 
-  const total = allUsers.length;
-  const totalFree = allUsers.filter(u => u.plan === "FREE").length;
-  const totalBronze = allUsers.filter(u => u.plan === "VIP_BRONZE").length;
-  const totalPrata = allUsers.filter(u => u.plan === "VIP_PRATA").length;
-  const totalOuro = allUsers.filter(u => u.plan === "VIP_OURO").length;
-  const totalPremium = allUsers.filter(u => u.plan === "VIP_PREMIUM").length;
-  const totalBlocked = allUsers.filter(u => u.is_blocked).length;
+  try {
+    container.innerHTML = "<p class='muted'>Carregando usuários...</p>";
 
-  document.getElementById("filterAll").textContent = `Todos (${total})`;
-  document.getElementById("filterFree").textContent = `FREE (${totalFree})`;
-  document.getElementById("filterBronze").textContent = `VIP Bronze (${totalBronze})`;
-  document.getElementById("filterPrata").textContent = `VIP Prata (${totalPrata})`;
-  document.getElementById("filterOuro").textContent = `VIP Ouro (${totalOuro})`;
-  document.getElementById("filterPremium").textContent = `VIP Premium (${totalPremium})`;
-  document.getElementById("filterBlocked").textContent = `Bloqueados (${totalBlocked})`;
+    const res = await fetch("/admin/users");
 
-  renderUsers(currentFilter);
-  updateFilterButtons();
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Erro ao carregar /admin/users:", errorText);
+      container.innerHTML = "<p class='muted'>Erro ao carregar usuários.</p>";
+      return;
+    }
+
+    allUsers = await res.json();
+
+    if (!Array.isArray(allUsers)) {
+      console.error("Resposta inesperada de /admin/users:", allUsers);
+      container.innerHTML = "<p class='muted'>Resposta inválida ao carregar usuários.</p>";
+      return;
+    }
+
+    const total = allUsers.length;
+    const totalFree = allUsers.filter(u => u.plan === "FREE").length;
+    const totalBronze = allUsers.filter(u => u.plan === "VIP_BRONZE").length;
+    const totalPrata = allUsers.filter(u => u.plan === "VIP_PRATA").length;
+    const totalOuro = allUsers.filter(u => u.plan === "VIP_OURO").length;
+    const totalPremium = allUsers.filter(u => u.plan === "VIP_PREMIUM").length;
+    const totalBlocked = allUsers.filter(u => u.is_blocked).length;
+
+    document.getElementById("filterAll").textContent = `Todos (${total})`;
+    document.getElementById("filterFree").textContent = `FREE (${totalFree})`;
+    document.getElementById("filterBronze").textContent = `VIP Bronze (${totalBronze})`;
+    document.getElementById("filterPrata").textContent = `VIP Prata (${totalPrata})`;
+    document.getElementById("filterOuro").textContent = `VIP Ouro (${totalOuro})`;
+    document.getElementById("filterPremium").textContent = `VIP Premium (${totalPremium})`;
+    document.getElementById("filterBlocked").textContent = `Bloqueados (${totalBlocked})`;
+
+    renderUsers(currentFilter);
+    updateFilterButtons();
+  } catch (error) {
+    console.error("Erro em loadUsers():", error);
+    container.innerHTML = "<p class='muted'>Erro ao processar usuários.</p>";
+  }
 }
 
 document.getElementById("filterAll").addEventListener("click", function () {
