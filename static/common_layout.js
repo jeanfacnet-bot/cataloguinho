@@ -270,7 +270,9 @@ function renderSharedTopbar() {
 	  guestMessage = `
 		<div class="topbar-user-lines">
 		  <span>Olá, visitante</span>
-		  <span class="topbar-plan-line">Faça login para acessar todos os recursos</span>
+			<span class="topbar-plan-line">
+			  Faça login para acessar<br>todos os recursos do app
+			</span>
 		</div>
 	  `;
 	  authButton = `<button type="button" onclick="window.location.href='/auth-page'">Entrar</button>`;

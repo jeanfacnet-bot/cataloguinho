@@ -1027,26 +1027,27 @@ DF_NEIGHBORHOODS = {
 
 @app.route("/")
 def home():
-    return """
-    <!DOCTYPE html>
-    <html lang="pt-BR">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Catálogo</title>
-    </head>
-    <body style="font-family: Arial, sans-serif; background:#f5f5f5; margin:0; padding:40px;">
-        <div style="max-width:600px; margin:60px auto; background:white; padding:30px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1); text-align:center;">
-            <h1>API do catálogo rodando com sucesso</h1>
-            <p>Acesse a busca de anúncios pelo link abaixo:</p>
-            <a href="/search-page" style="display:inline-block; margin-top:15px; padding:12px 20px; background:#007bff; color:white; text-decoration:none; border-radius:8px;">
-                Ir para busca
-            </a>
-        </div>
-    </body>
-    </html>
-    """
+    return render_template("home.html")
 
+@app.route("/sitemap.xml")
+def sitemap():
+    return """<?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+        <url>
+            <loc>https://cataloguinho.onrender.com/</loc>
+        </url>
+
+        <url>
+            <loc>https://cataloguinho.onrender.com/search-page</loc>
+        </url>
+
+        <url>
+            <loc>https://cataloguinho.onrender.com/create-ad-page</loc>
+        </url>
+
+    </urlset>
+    """, 200, {'Content-Type': 'application/xml'}
 
 @app.route("/auth-page")
 def auth_page():

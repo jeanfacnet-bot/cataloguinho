@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- SEO -->
+  <title>Encontre e divulgue produtos e serviços na sua região | Agenda Inteligente</title>
+  <meta name="description" content="Encontre produtos e serviços perto de você ou divulgue seu negócio gratuitamente. Busque empresas, profissionais e serviços da sua região com facilidade.">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <style>
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.10), transparent 28%),
+        radial-gradient(circle at top right, rgba(168, 85, 247, 0.08), transparent 24%),
+        linear-gradient(180deg, #f8fbff 0%, #eef4ff 45%, #f7f8fc 100%);
+    }
+
+    .home-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px 60px;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 64px 24px;
+      background: linear-gradient(135deg, #1d4ed8, #111827);
+      color: white;
+      border-radius: 28px;
+      margin-bottom: 36px;
+      box-shadow: 0 20px 40px rgba(17, 24, 39, 0.16);
+    }
+
+    .hero h1 {
+      font-size: 42px;
+      line-height: 1.12;
+      margin: 0 0 16px;
+    }
+
+    .hero p {
+      font-size: 18px;
+      opacity: 0.92;
+      max-width: 780px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      margin-top: 28px;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .hero-actions button {
+      padding: 14px 20px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .hero-actions button:hover {
+      transform: translateY(-1px);
+      opacity: 0.97;
+    }
+
+    .primary-btn {
+      background: #f59e0b;
+      color: white;
+      box-shadow: 0 12px 24px rgba(245, 158, 11, 0.20);
+    }
+
+    .secondary-btn {
+      background: white;
+      color: #111827;
+      box-shadow: 0 12px 24px rgba(255, 255, 255, 0.10);
+    }
+
+    .section {
+      margin-bottom: 28px;
+    }
+
+    .section h2 {
+      font-size: 29px;
+      margin: 0 0 14px;
+      color: #111827;
+    }
+
+    .section p.section-intro {
+      color: #475569;
+      font-size: 15px;
+      line-height: 1.7;
+      margin: 0 0 18px;
+      max-width: 860px;
+    }
+
+    .highlight {
+      background: linear-gradient(180deg, #ecfdf5 0%, #f0fdf4 100%);
+      border: 1px solid #86efac;
+      padding: 18px 20px;
+      border-radius: 18px;
+      color: #166534;
+      font-size: 15px;
+      line-height: 1.7;
+      box-shadow: 0 12px 24px rgba(22, 101, 52, 0.06);
+    }
+
+    .highlight strong {
+      font-size: 16px;
+    }
+
+    .info-block {
+      background: white;
+      border-radius: 22px;
+      padding: 26px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+      margin-bottom: 20px;
+    }
+
+    .info-find {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    }
+
+    .info-promote {
+      background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
+    }
+
+    .info-badge {
+      display: inline-block;
+      margin-bottom: 14px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .info-badge.alt {
+      background: #ecfdf5;
+      color: #166534;
+    }
+
+    .info-block h2 {
+      margin: 0 0 12px;
+      font-size: 28px;
+      color: #111827;
+    }
+
+    .info-block p {
+      color: #475569;
+      line-height: 1.7;
+      margin-bottom: 14px;
+      font-size: 15px;
+    }
+
+    .info-list {
+      margin: 0;
+      padding-left: 20px;
+      color: #334155;
+      line-height: 1.9;
+      font-size: 15px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 22px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    }
+
+    .card strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 18px;
+      color: #111827;
+    }
+
+    .card p {
+      margin: 0;
+      color: #475569;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .steps {
+      display: grid;
+      gap: 14px;
+    }
+
+    .step {
+      background: #f8fafc;
+      padding: 16px 18px;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .final-cta {
+      text-align: center;
+      background: linear-gradient(135deg, #f8fbff, #eef4ff);
+      border-radius: 24px;
+      padding: 40px 24px;
+      border: 1px solid #dbeafe;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+    }
+
+    .final-cta h2 {
+      margin-bottom: 12px;
+    }
+
+    .final-cta p {
+      color: #475569;
+      max-width: 760px;
+      margin: 0 auto 20px;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    @media (max-width: 768px) {
+      .home-container {
+        padding: 24px 16px 40px;
+      }
+
+      .hero {
+        padding: 40px 18px;
+        border-radius: 22px;
+      }
+
+      .hero h1 {
+        font-size: 32px;
+      }
+
+      .hero p {
+        font-size: 16px;
+      }
+
+      .section h2,
+      .info-block h2 {
+        font-size: 24px;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+      }
+
+      .hero-actions button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  {% include "partials/topbar.html" %}
+
+  <div class="home-container">
+
+    <!-- HERO -->
+    <section class="hero">
+      <h1>Encontre e divulgue produtos e serviços na sua região</h1>
+      <p>
+        Nossa plataforma ajuda quem está procurando empresas e profissionais,
+        e também ajuda quem quer divulgar seu negócio de forma simples, acessível e profissional.
+      </p>
+
+      <div class="hero-actions">
+        <button class="primary-btn" onclick="window.location.href='/search-page'">Buscar serviços</button>
+        <button class="secondary-btn" onclick="goToCreate()">Cadastrar anúncio</button>
+      </div>
+    </section>
+
+    <!-- BLOCO PARA QUEM QUER ENCONTRAR -->
+    <section class="section">
+      <div class="info-block info-find">
+        <div class="info-badge">Para quem quer encontrar</div>
+        <h2>Encontre produtos e serviços com mais facilidade</h2>
+        <p>
+          Pesquise empresas, profissionais e serviços da sua região usando filtros por localização
+          e encontre exatamente o que você precisa de forma mais rápida e organizada.
+        </p>
+
+        <ul class="info-list">
+          <li>Buscar por tipo de produto ou serviço</li>
+          <li>Encontrar opções na sua região</li>
+          <li>Usar filtros por estado, cidade, bairro e rua</li>
+          <li>Visualizar detalhes e contatos dos anúncios</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- BLOCO PARA QUEM QUER DIVULGAR -->
+    <section class="section">
+      <div class="info-block info-promote">
+        <div class="info-badge alt">Para quem quer divulgar</div>
+        <h2>Cadastre seu anúncio gratuitamente</h2>
+        <p>
+          Você pode divulgar seu produto, loja ou serviço sem pagar nada.
+          Os planos VIP são opcionais e servem apenas para melhorar o anúncio,
+          liberar recursos extras e aumentar o destaque na plataforma.
+        </p>
+
+        <ul class="info-list">
+          <li>Cadastro gratuito de anúncio</li>
+          <li>Mais chances de ser encontrado por clientes</li>
+          <li>VIP opcional para melhorar apresentação e destaque</li>
+          <li>Mais visibilidade para o seu negócio na plataforma</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- BLOCO GRATUITO -->
+    <section class="section">
+      <div class="highlight">
+        <strong>Anunciar é gratuito.</strong>
+        Você não precisa contratar nenhum plano para cadastrar seu anúncio.
+        Os planos VIP são opcionais e servem apenas para melhorar a apresentação,
+        liberar recursos extras e aumentar o destaque dentro da plataforma.
+      </div>
+    </section>
+
+    <!-- BENEFÍCIOS -->
+    <section class="section">
+      <h2>Por que usar a plataforma?</h2>
+      <p class="section-intro">
+        A plataforma foi pensada para aproximar quem está procurando de quem está divulgando,
+        criando uma experiência mais simples, regional e eficiente para ambos.
+      </p>
+
+      <div class="cards">
+        <div class="card">
+          <strong>🔍 Busca mais inteligente</strong>
+          <p>Pesquise por produtos e serviços na sua região com filtros de localização e resultados mais organizados.</p>
+        </div>
+
+        <div class="card">
+          <strong>📢 Divulgação gratuita</strong>
+          <p>Cadastre seu negócio gratuitamente e comece a aparecer nas buscas da sua região.</p>
+        </div>
+
+        <div class="card">
+          <strong>🚀 Destaque opcional</strong>
+          <p>Os planos VIP ajudam quem quiser investir em mais visibilidade, mas não são obrigatórios.</p>
+        </div>
+
+        <div class="card">
+          <strong>📍 Conexão local</strong>
+          <p>Clientes encontram empresas e profissionais com base na localização e nos detalhes do anúncio.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMO FUNCIONA -->
+    <section class="section">
+      <h2>Como funciona</h2>
+
+      <div class="steps">
+        <div class="step">1. Quem procura usa a busca para encontrar serviços e produtos na região.</div>
+        <div class="step">2. Quem divulga pode cadastrar seu anúncio gratuitamente na plataforma.</div>
+        <div class="step">3. O sistema conecta quem quer encontrar com quem quer anunciar.</div>
+        <div class="step">4. Os planos VIP são opcionais para quem quiser mais destaque e recursos extras.</div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <section class="section final-cta">
+      <h2>Use a plataforma do jeito que fizer mais sentido para você</h2>
+      <p>
+        Seja para encontrar um serviço ou para divulgar seu negócio,
+        a plataforma foi feita para aproximar quem procura de quem oferece.
+      </p>
+
+      <div class="hero-actions">
+        <button class="primary-btn" onclick="window.location.href='/search-page'">Quero encontrar</button>
+        <button class="secondary-btn" onclick="goToCreate()">Quero divulgar</button>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    function goToCreate() {
+      const rawUser = localStorage.getItem("catalogo_user");
+      const user = rawUser ? JSON.parse(rawUser) : null;
+
+      if (user) {
+        window.location.href = "/create-ad-page";
+      } else {
+        window.location.href = "/auth-page";
+      }
+    }
+  </script>
+
+  <script src="{{ url_for('static', filename='common_layout.js') }}"></script>
+
+</body>
+</html>

@@ -43,7 +43,9 @@ body.admin-has-sidebar .vitrine-container {
 .vitrine-item img {
   width: 100%;
   height: 200px;
-  object-fit: cover;
+  object-fit: contain;
+  display: block;
+  background: #fff;
 }
 
 .vitrine-caption {
@@ -69,79 +71,68 @@ body.admin-has-sidebar .vitrine-container {
 }
 
 /* TOPBAR IGUAL SEARCH */
-.topbar {
-  background: #111827;
-  color: white;
-  padding: 14px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
 
-.topbar .logo {
-  font-size: 20px;
-  font-weight: bold;
-}
-
-.top-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.top-actions button {
-  border: none;
-  border-radius: 8px;
-  padding: 10px 14px;
-  cursor: pointer;
-  background: #2563eb;
-  color: white;
-}
-
-.top-actions .vip-btn {
-  background: #f59e0b;
-  color: white;
-  font-weight: bold;
-}
-
-.top-actions button:hover {
-  opacity: 0.9;
-}
 
 @media (max-width: 768px) {
+  body.admin-has-sidebar .vitrine-container,
   .vitrine-container {
     max-width: 100%;
-    margin: 20px auto;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 20px;
+    margin-bottom: 20px;
     padding: 0 16px;
   }
 
   .vitrine-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
 
   .vitrine-item {
-    border-radius: 6px;
-    box-shadow: none;
-  }
+	  border-radius: 8px;
+	  box-shadow: none;
+	  overflow: hidden;
+	}
 
-  .vitrine-item:hover {
-    transform: none;
-  }
+	/* IMAGEM MENOR */
+	.vitrine-item img {
+	  width: 100%;
+	  height: 120px; /* ↓ menor */
+	  object-fit: contain;
+	  display: block;
+	  background: #fff;
+	}
 
-  .vitrine-item img {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    height: auto;
-    object-fit: cover;
-    display: block;
-  }
+	/* LEGENDA MAIS COMPACTA */
+	.vitrine-caption {
+	  display: block;
+	  padding: 6px; /* ↓ menos espaço */
+	  font-size: 11px;
+	  text-align: center;
+	  line-height: 1.2;
+	}
 
-  .vitrine-caption {
-    display: none;
-  }
+	/* TÍTULO MAIS COMPACTO */
+	.vitrine-title {
+	  font-weight: bold;
+	  margin-bottom: 2px;
+	  font-size: 11px;
+	  line-height: 1.2;
+	}
+
+	/* TELEFONE */
+	.vitrine-phone {
+	  margin-bottom: 2px;
+	  font-size: 10px;
+	  line-height: 1.2;
+	}
+
+	/* ENDEREÇO */
+	.vitrine-address {
+	  font-size: 10px;
+	  line-height: 1.2;
+	}
 }
 </style>
 
