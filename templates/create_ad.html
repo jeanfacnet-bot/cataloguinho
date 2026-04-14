@@ -84,6 +84,40 @@
 		font-size: 14px;
 		margin-bottom: 18px;
 	  }
+	  
+		.free-info-banner {
+		  background: linear-gradient(180deg, #ecfdf5 0%, #f0fdf4 100%);
+		  border: 1px solid #86efac;
+		  color: #166534;
+		  border-radius: 18px;
+		  padding: 16px 18px;
+		  margin-bottom: 18px;
+		  font-size: 14px;
+		  line-height: 1.6;
+		  box-shadow: 0 10px 24px rgba(22, 101, 52, 0.08);
+		}
+
+		.free-info-banner strong {
+		  display: inline-block;
+		  margin-bottom: 4px;
+		  font-size: 15px;
+		}
+
+		.free-info-banner span {
+		  color: #166534;
+		}
+		
+		.free-info-side {
+		  background: #f8fafc;
+		  border: 1px solid #dbeafe;
+		  color: #334155;
+		  border-radius: 16px;
+		  padding: 14px 16px;
+		  margin-top: -6px;
+		  margin-bottom: 20px;
+		  font-size: 14px;
+		  line-height: 1.6;
+		}
 
 	  .ad-form {
 		display: grid;
@@ -456,19 +490,20 @@
   {% include "partials/admin_sidebar.html" %}
 
   <main class="page-wrap">
-	  <section class="page-hero">
-		<h1>Crie um anúncio mais forte e mais atrativo</h1>
-		<p>
-		  Cadastre sua loja, serviço ou negócio com uma apresentação mais profissional.
-		  Preencha os dados abaixo e destaque sua presença na busca do sistema.
-		</p>
+		<section class="page-hero">
+		  <h1>Cadastre seu anúncio gratuitamente</h1>
+		  <p>
+			Você pode anunciar sua loja, produto ou serviço sem pagar nada.
+			Os planos VIP são opcionais e servem apenas para melhorar a apresentação,
+			aumentar a visibilidade e liberar recursos extras no anúncio.
+		  </p>
 
-		<div class="hero-badges">
-		  <span class="hero-badge">Cadastro rápido</span>
-		  <span class="hero-badge">Mais visibilidade</span>
-		  <span class="hero-badge">Imagem e vídeo para planos compatíveis</span>
-		</div>
-	  </section>
+		  <div class="hero-badges">
+			<span class="hero-badge">Cadastro gratuito</span>
+			<span class="hero-badge">VIP opcional</span>
+			<span class="hero-badge">Mais destaque para quem quiser melhorar</span>
+		  </div>
+		</section>
 
 	  <div class="ad-layout">
 		<section class="form-card">
@@ -477,6 +512,16 @@
 			Preencha as informações principais do seu anúncio. Quanto mais riquezas de detalhes no endereço e no anúncio,
 			melhor será para os clientes te encontrarem na pesquisa.
 		  </div>
+		  
+			<div class="free-info-banner">
+			  <strong>Cadastro gratuito:</strong>
+			  você pode publicar seu anúncio normalmente sem contratar nenhum plano.
+			  <br>
+			  <span>
+				Os planos VIP são opcionais e servem apenas para liberar recursos extras,
+				como imagem, vídeo e mais destaque na plataforma.
+			  </span>
+			</div>
 
 		  <form id="adForm" class="ad-form">
           <div class="form-section">
@@ -529,10 +574,12 @@
 			</div>
 
 			<div id="imageUpgradeMessage" class="muted" style="display:none;">
-			  Seu plano precisa ser VIP com permissão para usar imagem.
+			  Seu anúncio pode ser cadastrado gratuitamente mesmo sem imagem.
+			  <br>
+			  Se quiser adicionar imagem e melhorar a apresentação, você pode contratar um plano VIP opcional.
 			  <br>
 			  <button type="button" class="vip-btn" onclick="window.location.href='/vip-page'" style="margin-top:8px;">
-				Tornar-se VIP
+				Conhecer planos VIP
 			  </button>
 			</div>
 
@@ -543,10 +590,12 @@
 			</div>
 
 			<div id="videoUpgradeMessage" class="muted" style="display:none;">
-			  Seu plano precisa ser VIP com permissão para usar vídeo.
+			  Seu anúncio pode ser cadastrado gratuitamente mesmo sem vídeo.
+			  <br>
+			  Se quiser adicionar vídeo e dar mais destaque ao anúncio, você pode contratar um plano VIP opcional.
 			  <br>
 			  <button type="button" class="vip-btn" onclick="window.location.href='/vip-page'" style="margin-top:8px;">
-				Tornar-se VIP
+				Conhecer planos VIP
 			  </button>
 			</div>
           
@@ -569,6 +618,12 @@
 		  <div class="account-box">
 			<div id="userInfo" class="muted">Carregando...</div>
 		  </div>
+		  
+			<div class="free-info-side">
+			  Você já pode anunciar com o plano gratuito.
+			  <br>
+			  O VIP é opcional e serve apenas para liberar recursos extras e mais destaque.
+			</div>
 
 			<h2 style="margin-top: 6px;">Meus anúncios</h2>
 			<div class="card-subtitle">Acompanhe, edite ou exclua seus anúncios cadastrados.</div>

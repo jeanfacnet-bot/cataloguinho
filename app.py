@@ -2164,6 +2164,7 @@ def ad_details_page(ad_id):
 
 
 @app.route("/create-ad-page")
+@login_required_page
 def create_ad_page():
     return render_template("create_ad.html")
     
