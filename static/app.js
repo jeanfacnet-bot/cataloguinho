@@ -86,7 +86,24 @@ function renderResults(items) {
 		</div>
 
 		<div id="reportBox-${item.id}" class="report-box">
-		  <textarea id="reportText-${item.id}" maxlength="200" placeholder="Informe o motivo da denúncia"></textarea>
+		  <select id="reportReason-${item.id}" class="report-reason-select">
+			<option value="">Selecione um motivo</option>
+			<option value="Produto ou serviço não existe">Produto ou serviço não existe</option>
+			<option value="Conteúdo inadequado">Conteúdo inadequado</option>
+			<option value="Informações falsas ou enganosas">Informações falsas ou enganosas</option>
+			<option value="Golpe ou tentativa de fraude">Golpe ou tentativa de fraude</option>
+			<option value="Spam ou anúncio repetido">Spam ou anúncio repetido</option>
+			<option value="Telefone ou contato inválido">Telefone ou contato inválido</option>
+			<option value="Endereço incorreto">Endereço incorreto</option>
+			<option value="Outro">Outro</option>
+		  </select>
+
+		  <textarea
+			id="reportText-${item.id}"
+			maxlength="300"
+			placeholder="Descreva melhor o problema (opcional)"
+		  ></textarea>
+
 		  <div class="report-box-actions">
 			<button type="button" class="report-send-btn" onclick="sendReport(${item.id})">Enviar denúncia</button>
 			<button type="button" class="report-cancel-btn" onclick="toggleReportBox(${item.id}, false)">Cancelar</button>
@@ -131,16 +148,25 @@ function toggleReportBox(adId, forceState = null) {
 }
 
 async function sendReport(adId) {
-  if (!requireLogin()) return;
+  if (!(await requireLogin())) return;
 
+  const select = document.getElementById(`reportReason-${adId}`);
   const textArea = document.getElementById(`reportText-${adId}`);
-  if (!textArea) return;
 
-  const reason = textArea.value.trim();
+  if (!select || !textArea) return;
 
-  if (!reason) {
-    alert("Informe o motivo da denúncia.");
+  const selectedReason = select.value.trim();
+  const details = textArea.value.trim();
+
+  if (!selectedReason) {
+    alert("Selecione o motivo da denúncia.");
     return;
+  }
+
+  let finalReason = selectedReason;
+
+  if (details) {
+    finalReason += ` | Detalhes: ${details}`;
   }
 
   try {
@@ -151,7 +177,7 @@ async function sendReport(adId) {
       },
       body: JSON.stringify({
         ad_id: adId,
-        reason
+        reason: finalReason
       })
     });
 
@@ -163,6 +189,7 @@ async function sendReport(adId) {
     }
 
     alert("Denúncia enviada com sucesso.");
+    select.value = "";
     textArea.value = "";
     toggleReportBox(adId, false);
   } catch (error) {

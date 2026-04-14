@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu perfil</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .page-wrap {
+      max-width: 900px;
+      margin: 32px auto;
+      padding: 0 20px 40px;
+    }
+
+    .profile-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+    }
+
+    .profile-card h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      color: #111827;
+    }
+
+    .profile-subtitle {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 22px;
+    }
+
+    .profile-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .form-section {
+      border-top: 1px solid #eef2f7;
+      padding-top: 18px;
+      margin-top: 8px;
+    }
+
+    .form-section:first-of-type {
+      border-top: none;
+      padding-top: 0;
+      margin-top: 0;
+    }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #1d4ed8;
+    }
+
+    .profile-form input {
+      width: 100%;
+      padding: 14px 15px;
+      border-radius: 14px;
+      border: 1px solid #d1d5db;
+      font-size: 15px;
+      box-sizing: border-box;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .profile-form input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+    .profile-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .profile-actions button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    #saveProfileBtn {
+      background: #2563eb;
+      color: white;
+    }
+
+    #backProfileBtn {
+      background: #6b7280;
+      color: white;
+    }
+
+    .profile-message {
+      display: none;
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .profile-message.success {
+      display: block;
+      background: #ecfdf3;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+
+    .profile-message.error {
+      display: block;
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+
+    .admin-sidebar {
+      position: fixed;
+      top: 72px;
+      left: 0;
+      bottom: 0;
+      width: 240px;
+      background: #1f2937;
+      color: white;
+      padding: 20px 16px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 900;
+      overflow-y: auto;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
+    }
+
+    body.admin-has-sidebar .page-wrap {
+      max-width: none;
+      margin-left: 270px;
+      margin-right: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .admin-sidebar {
+        position: static;
+        width: auto;
+        display: none;
+        margin: 0 16px 16px 16px;
+        border-radius: 14px;
+      }
+
+      body.admin-has-sidebar .page-wrap {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .page-wrap {
+        padding: 0 16px 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  {% include "partials/topbar.html" %}
+  {% include "partials/admin_sidebar.html" %}
+
+  <main class="page-wrap">
+    <section class="profile-card">
+      <h1>Meu perfil</h1>
+      <div class="profile-subtitle">
+        Atualize seu nome, seu e-mail e, se quiser, altere sua senha com segurança.
+      </div>
+
+      <form id="profileForm" class="profile-form">
+        <div class="form-section">
+          <div class="section-title">Dados principais</div>
+          <input type="text" id="profileName" placeholder="Seu nome">
+          <input type="email" id="profileEmail" placeholder="Seu e-mail">
+        </div>
+
+        <div class="form-section">
+          <div class="section-title">Alterar senha</div>
+          <input type="password" id="currentPassword" placeholder="Senha atual">
+          <input type="password" id="newPassword" placeholder="Nova senha">
+          <input type="password" id="confirmPassword" placeholder="Confirmar nova senha">
+        </div>
+
+        <div class="profile-actions">
+          <button type="submit" id="saveProfileBtn">Salvar alterações</button>
+          <button type="button" id="backProfileBtn" onclick="window.location.href='/search-page'">Voltar</button>
+        </div>
+      </form>
+
+      <div id="profileMessage" class="profile-message"></div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const adminLayoutUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+      const adminSidebar = document.getElementById("adminSidebar");
+
+      function isAdmin(user) {
+        if (!user) return false;
+        return user.is_admin === true || user.role === "admin";
+      }
+
+      if (isAdmin(adminLayoutUser) && adminSidebar) {
+        document.body.classList.add("admin-has-sidebar");
+        adminSidebar.style.display = "flex";
+      }
+    })();
+  </script>
+
+  <script src="{{ url_for('static', filename='profile.js') }}?v=1"></script>
+  <script src="{{ url_for('static', filename='common_layout.js') }}?v=4"></script>
+</body>
+</html>

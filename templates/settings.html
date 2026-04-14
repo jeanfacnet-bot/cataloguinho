@@ -380,12 +380,7 @@
 	</section>
   </main>
 
-    <script>
-    function logout() {
-      localStorage.removeItem("catalogo_user");
-      window.location.href = "/auth-page";
-    }
-  </script>
+   
   <script src="{{ url_for('static', filename='settings.js') }}?v=2"></script>
    <script>
 	  (function () {
@@ -439,7 +434,7 @@
 		);
 	  })();
 	</script>
-	<script src="{{ url_for('static', filename='common_layout.js') }}"></script>
+	<script src="{{ url_for('static', filename='common_layout.js') }}?v=4"></script>
 	
 </body>
 </html>

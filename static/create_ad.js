@@ -2,6 +2,7 @@ const adForm = document.getElementById("adForm");
 const adMessage = document.getElementById("adMessage");
 const userInfo = document.getElementById("userInfo");
 const myAds = document.getElementById("myAds");
+const adsSummary = document.getElementById("adsSummary");
 
 const stateSelect = document.getElementById("state");
 const citySelect = document.getElementById("city");
@@ -60,6 +61,31 @@ function getCurrentKeywordsLimit() {
   return plansConfig.free?.keywords_limit ?? 3;
 }
 
+function getCurrentAdsLimit() {
+  if (!savedUser || !plansConfig) {
+    return 1;
+  }
+
+  const effectivePlan = getEffectiveUserPlan(savedUser);
+
+  if (effectivePlan === "VIP_BRONZE") {
+    return plansConfig.bronze?.ads_limit ?? 5;
+  }
+
+  if (effectivePlan === "VIP_PRATA") {
+    return plansConfig.prata?.ads_limit ?? 10;
+  }
+
+  if (effectivePlan === "VIP_OURO") {
+    return plansConfig.ouro?.ads_limit ?? 20;
+  }
+
+  if (effectivePlan === "VIP_PREMIUM") {
+    return plansConfig.premium?.ads_limit ?? 50;
+  }
+
+  return plansConfig.free?.ads_limit ?? 1;
+}
 
 function showMessage(message, type) {
   adMessage.innerHTML = message;
@@ -210,6 +236,29 @@ function renderUser() {
 	`;
 }
 
+function renderAdsSummary(items = []) {
+  if (!adsSummary) return;
+
+  const currentUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+
+  if (!currentUser || !plansConfig) {
+    adsSummary.innerHTML = `<div class="muted">Não foi possível carregar o resumo do plano.</div>`;
+    return;
+  }
+
+  const effectivePlan = getEffectiveUserPlan(currentUser);
+  const currentPlanLabel = getPlanLabel(effectivePlan);
+  const adsLimit = getCurrentAdsLimit();
+  const usedAds = Array.isArray(items) ? items.length : 0;
+  const remainingAds = Math.max(adsLimit - usedAds, 0);
+
+  adsSummary.innerHTML = `
+    <strong>Plano atual:</strong> ${currentPlanLabel}<br>
+    <strong>Anúncios cadastrados:</strong> ${usedAds} de ${adsLimit}<br>
+    <strong>Disponíveis para cadastrar:</strong> ${remainingAds}
+  `;
+}
+
 async function refreshSavedUser() {
   if (!savedUser) return;
 
@@ -231,6 +280,7 @@ async function refreshSavedUser() {
 
 function renderMyAds(items) {
   myAds.innerHTML = "";
+  renderAdsSummary(items);
 
   if (!items.length) {
     myAds.innerHTML = `<div class="muted">Você ainda não cadastrou anúncios.</div>`;
@@ -270,10 +320,10 @@ function renderMyAds(items) {
 		}
 		<br>
 
-	  <div style="display:flex;gap:8px;margin-top:8px;">
-		<button type="button" class="edit-btn" data-id="${item.id}">Editar</button>
-		<button type="button" class="delete-btn" data-id="${item.id}">Excluir anúncio</button>
-	  </div>
+		<div class="ad-actions-row">
+		  <button type="button" class="edit-btn" data-id="${item.id}">Editar</button>
+		  <button type="button" class="delete-btn" data-id="${item.id}">Excluir anúncio</button>
+		</div>
 	`;
     myAds.appendChild(div);
   });
@@ -540,9 +590,16 @@ async function loadMyAds() {
     const data = await response.json();
 
     if (!response.ok) {
-      myAds.innerHTML = `<div class="muted">${data.message || "Erro ao carregar anúncios."}</div>`;
-      return;
-    }
+	  myAds.innerHTML = `<div class="muted">${data.message || "Erro ao carregar anúncios."}</div>`;
+
+	  if (adsSummary) {
+		adsSummary.innerHTML = `<div class="muted">Não foi possível carregar o resumo dos anúncios.</div>`;
+	  }
+
+	  return;
+	}
+
+	renderMyAds(data);
 
     renderMyAds(data);
   } catch (error) {
@@ -646,8 +703,14 @@ adForm.addEventListener("submit", async (e) => {
   formData.append("phone", document.getElementById("phone").value.trim());
   formData.append("country", "Brasil");
   formData.append("state", stateSelect.value.trim());
-  formData.append("city", citySelect.value.trim());
-  formData.append("municipality", citySelect.value.trim());
+
+  if (citySelect.value) {
+    formData.append("city", citySelect.value.trim());
+    formData.append("municipality", citySelect.value.trim());
+  } else {
+    formData.append("city", "");
+    formData.append("municipality", "");
+  }
   formData.append("neighborhood", neighborhoodSelect.value.trim());
   formData.append("street", streetSelect.value.trim());
   formData.append("number", document.getElementById("number").value.trim());

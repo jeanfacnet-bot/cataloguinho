@@ -1,5 +1,52 @@
 function getSavedUser() {
-  return JSON.parse(localStorage.getItem("catalogo_user") || "null");
+  try {
+    return JSON.parse(localStorage.getItem("catalogo_user") || "null");
+  } catch (error) {
+    console.error("Erro ao ler catalogo_user do localStorage:", error);
+    localStorage.removeItem("catalogo_user");
+    return null;
+  }
+}
+
+function setSavedUser(user) {
+  if (user) {
+    localStorage.setItem("catalogo_user", JSON.stringify(user));
+    return;
+  }
+
+  localStorage.removeItem("catalogo_user");
+}
+
+async function syncUserWithServerSession() {
+  try {
+    const response = await fetch("/auth/session", {
+      method: "GET",
+      credentials: "same-origin",
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      console.error("Não foi possível validar a sessão atual.");
+      setSavedUser(null);
+      return null;
+    }
+
+    const data = await response.json();
+
+    if (data && data.authenticated && data.user) {
+      setSavedUser(data.user);
+      return data.user;
+    }
+
+    setSavedUser(null);
+    return null;
+  } catch (error) {
+    console.error("Erro ao sincronizar sessão com o servidor:", error);
+    setSavedUser(null);
+    return null;
+  }
 }
 
 function isAdminUser(user) {
@@ -143,7 +190,7 @@ async function logout() {
     console.error("Erro ao fazer logout:", error);
   }
 
-  localStorage.removeItem("catalogo_user");
+  setSavedUser(null);
   window.location.href = "/auth-page";
 }
 
@@ -179,6 +226,21 @@ function getTopbarPlanText(user) {
   return planText;
 }
 
+function getTopbarRemainingDaysText(user) {
+  if (!user || !user.vip_expires_at) return "";
+
+  const now = new Date();
+  const expiresAt = new Date(user.vip_expires_at);
+  const diffMs = expiresAt - now;
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays > 0) {
+    return `${diffDays} dias`;
+  }
+
+  return "Expirado";
+}
+
 function renderSharedTopbar() {
   const topMenu = document.getElementById("topActionsMenu");
   const bottomMenu = document.getElementById("mobileBottomNav");
@@ -193,22 +255,26 @@ function renderSharedTopbar() {
   let authButton = "";
 
   if (savedUser) {
-    userBlock = `
-      <div class="topbar-user-lines">
-        <span>Olá, ${savedUser.name}</span>
-        <span class="topbar-plan-line">${getTopbarPlanText(savedUser)}</span>
-      </div>
-    `;
-    authButton = `<button type="button" onclick="logout()">Sair</button>`;
-  } else {
-    guestMessage = `
-      <div class="topbar-user-lines">
-        <span>Olá, visitante</span>
-        <span class="topbar-plan-line">Faça login para acessar todos os recursos</span>
-      </div>
-    `;
-    authButton = `<button type="button" onclick="window.location.href='/auth-page'">Entrar</button>`;
-  }
+	  const planLabel = savedUser.plan_label || getPlanLabel(savedUser.plan);
+	  const remainingDaysText = getTopbarRemainingDaysText(savedUser);
+
+	  userBlock = `
+		<div class="topbar-user-lines">
+		  <span class="topbar-user-name">${savedUser.name || "Usuário"}</span>
+		  <span class="topbar-plan-line">Plano: ${planLabel}</span>
+		  ${remainingDaysText ? `<span class="topbar-plan-line">${remainingDaysText}</span>` : ""}
+		</div>
+	  `;
+	  authButton = `<button type="button" onclick="logout()">Sair</button>`;
+	} else {
+	  guestMessage = `
+		<div class="topbar-user-lines">
+		  <span>Olá, visitante</span>
+		  <span class="topbar-plan-line">Faça login para acessar todos os recursos</span>
+		</div>
+	  `;
+	  authButton = `<button type="button" onclick="window.location.href='/auth-page'">Entrar</button>`;
+	}
 
   if (isAdminUser(savedUser)) {
     adminButton = `<button type="button" onclick="window.location.href='/admin/dashboard-page'">Admin</button>`;
@@ -222,6 +288,7 @@ function renderSharedTopbar() {
 	  <button type="button" onclick="window.location.href='/vitrine-page'">Vitrine</button>
 	  <button type="button" onclick="window.location.href='/feed-page'">Feed</button>
 	  <button type="button" onclick="window.location.href='/create-ad-page'">Anunciar</button>
+	  ${savedUser ? `<button type="button" onclick="window.location.href='/profile-page'">Perfil</button>` : ""}
 	  <button type="button" class="vip-btn" onclick="window.location.href='/vip-page'">Tornar-se VIP</button>
 	  ${authButton}
 	`;
@@ -231,6 +298,7 @@ function renderSharedTopbar() {
 	  <button type="button" onclick="window.location.href='/vitrine-page'">Vitrine</button>
 	  <button type="button" onclick="window.location.href='/feed-page'">Feed</button>
 	  <button type="button" onclick="window.location.href='/create-ad-page'">Anunciar</button>
+	  ${savedUser ? `<button type="button" onclick="window.location.href='/profile-page'">Perfil</button>` : ""}
 	  <button type="button" class="vip-btn" onclick="window.location.href='/vip-page'">VIP</button>
 	  ${savedUser
 		? `<button type="button" onclick="logout()">Sair</button>`
@@ -239,10 +307,10 @@ function renderSharedTopbar() {
 	`;
 }
 
-function requireLogin() {
-  const savedUser = getSavedUser();
+async function requireLogin() {
+  const user = await syncUserWithServerSession();
 
-  if (savedUser && savedUser.id) {
+  if (user && user.id) {
     return true;
   }
 
@@ -251,7 +319,8 @@ function requireLogin() {
   return false;
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
+  await syncUserWithServerSession();
   renderSharedTopbar();
   applyAdminSidebarLayout();
   bindAdminSidebarMobile();

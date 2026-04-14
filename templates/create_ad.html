@@ -5,291 +5,527 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cadastrar anúncio</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <style>
-    .page-wrap {
-      max-width: 1100px;
-      margin: 30px auto;
-      padding: 0 16px;
-    }
+	<style>
+	  .page-wrap {
+		max-width: 1280px;
+		margin: 32px auto;
+		padding: 0 20px 40px;
+	  }
 
-    .ad-layout {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 20px;
-    }
+	  .page-hero {
+		background: linear-gradient(135deg, #111827 0%, #1d4ed8 100%);
+		color: white;
+		border-radius: 24px;
+		padding: 28px 28px 24px;
+		box-shadow: 0 18px 40px rgba(17, 24, 39, 0.20);
+		margin-bottom: 24px;
+	  }
 
-    .form-card,
-    .side-card {
-      background: white;
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-      border: 1px solid #eee;
-    }
+	  .page-hero h1 {
+		margin: 0 0 10px;
+		font-size: 32px;
+		line-height: 1.15;
+	  }
 
-    .form-card h1,
-    .side-card h2 {
-      margin-bottom: 18px;
-    }
+	  .page-hero p {
+		margin: 0;
+		color: rgba(255, 255, 255, 0.88);
+		font-size: 15px;
+		max-width: 760px;
+	  }
 
-    .ad-form {
-      display: grid;
-      gap: 12px;
-    }
+	  .hero-badges {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
+		margin-top: 18px;
+	  }
 
-    .ad-form input,
-    .ad-form textarea,
-    .ad-form select,
-    .ad-form button {
-      width: 100%;
-      padding: 14px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      font-size: 15px;
-      box-sizing: border-box;
-    }
+	  .hero-badge {
+		background: rgba(255, 255, 255, 0.12);
+		border: 1px solid rgba(255, 255, 255, 0.16);
+		color: white;
+		padding: 10px 14px;
+		border-radius: 999px;
+		font-size: 13px;
+		font-weight: 600;
+		backdrop-filter: blur(4px);
+	  }
 
-    .ad-form textarea {
-      min-height: 110px;
-      resize: vertical;
-    }
+	  .ad-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 1.75fr) minmax(320px, 0.95fr);
+		gap: 24px;
+		align-items: start;
+	  }
 
-    .ad-form button {
-      background: #0d6efd;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-	
-	.topbar {
-	  background: #111827;
-	  color: white;
-	  padding: 14px 20px;
-	  display: flex;
-	  justify-content: space-between;
-	  align-items: center;
-	  gap: 16px;
-	  flex-wrap: wrap;
-	}
+	  .form-card,
+	  .side-card {
+		background: white;
+		border-radius: 24px;
+		padding: 26px;
+		box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+		border: 1px solid #e5e7eb;
+	  }
 
-	.topbar .logo {
-	  font-size: 20px;
-	  font-weight: bold;
-	}
+	  .form-card {
+		overflow: hidden;
+	  }
 
-	.top-actions {
-	  display: flex;
-	  gap: 10px;
-	  flex-wrap: wrap;
-	}
+	  .form-card h2,
+	  .side-card h2 {
+		margin: 0 0 8px;
+		font-size: 22px;
+		color: #111827;
+	  }
 
-	.top-actions button {
-	  border: none;
-	  border-radius: 8px;
-	  padding: 10px 14px;
-	  cursor: pointer;
-	  background: #2563eb;
-	  color: white;
-	}
+	  .card-subtitle {
+		color: #6b7280;
+		font-size: 14px;
+		margin-bottom: 18px;
+	  }
 
-	.top-actions .vip-btn {
-	  background: #f59e0b;
-	  color: white;
-	  font-weight: bold;
-	}
+	  .ad-form {
+		display: grid;
+		gap: 14px;
+	  }
 
-	.top-actions button:hover {
-	  opacity: 0.9;
-	}
+	  .form-section {
+		margin-top: 6px;
+		padding-top: 18px;
+		border-top: 1px solid #eef2f7;
+	  }
 
-    .message-box {
-      margin-top: 12px;
-      padding: 12px;
-      border-radius: 10px;
-      display: none;
-    }
+	  .form-section:first-of-type {
+		border-top: none;
+		padding-top: 0;
+	  }
 
-    .message-box.success {
-      display: block;
-      background: #e8f7ee;
-      color: #155724;
-    }
+	  .section-title {
+		margin: 0 0 12px;
+		font-size: 13px;
+		font-weight: 800;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: #1d4ed8;
+	  }
 
-    .message-box.error {
-      display: block;
-      background: #fdecea;
-      color: #842029;
-    }
-
-    .ads-list {
-      display: grid;
-      gap: 12px;
-      margin-top: 16px;
-    }
-
-    .mini-ad-card {
-      border: 1px solid #eee;
-      border-radius: 12px;
-      padding: 14px;
-      background: #fafafa;
-    }
-
-    .muted {
-      color: #666;
-      font-size: 14px;
-    }
-
-    .section-title {
-      margin-top: 8px;
-      margin-bottom: 4px;
-      font-size: 14px;
-      font-weight: bold;
-      color: #444;
-    }
-	
-	.edit-btn {
-	  background: #0d6efd;
-	  color: white;
-	  border: none;
-	  padding: 10px 14px;
-	  border-radius: 8px;
-	  cursor: pointer;
-	}
-
-	.edit-btn:hover {
-	  opacity: 0.9;
-	}
-	
-	.delete-btn {
-	  background: #dc3545;
-	  color: white;
-	  border: none;
-	  padding: 10px 14px;
-	  border-radius: 8px;
-	  cursor: pointer;
-	}
-
-
-	.delete-btn:hover {
-	  opacity: 0.9;
-	}
-
-    @media (max-width: 900px) {
-      .ad-layout {
-        grid-template-columns: 1fr;
-      }
-	  
-	  
-    }
-	
-	/* ===== SIDEBAR ADMIN ===== */
-	.admin-sidebar {
-	  position: fixed;
-	  top: 72px;
-	  left: 0;
-	  bottom: 0;
-	  width: 240px;
-	  background: #1f2937;
-	  color: white;
-	  padding: 20px 16px;
-	  display: none;
-	  flex-direction: column;
-	  gap: 10px;
-	  z-index: 900;
-	  overflow-y: auto;
-	  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
-	}
-
-	.admin-sidebar-title {
-	  font-size: 18px;
-	  font-weight: bold;
-	  margin-bottom: 8px;
-	}
-
-	.admin-sidebar a {
-	  display: block;
-	  text-decoration: none;
-	  color: white;
-	  padding: 12px 14px;
-	  border-radius: 10px;
-	  transition: 0.2s;
-	}
-
-	.admin-sidebar a:hover {
-	  background: rgba(255, 255, 255, 0.08);
-	}
-
-	.admin-sidebar a.active {
-	  background: #2563eb;
-	  font-weight: bold;
-	}
-
-	body.admin-has-sidebar .page-wrap {
-	  max-width: none;
-	  margin-left: 270px;
-	  margin-right: 24px;
-	}
-
-	@media (max-width: 900px) {
-	  .admin-sidebar {
-		position: static;
-		width: auto;
-		display: none;
-		margin: 0 16px 16px 16px;
+	  .ad-form input,
+	  .ad-form textarea,
+	  .ad-form select,
+	  .ad-form button {
+		width: 100%;
+		padding: 14px 15px;
 		border-radius: 14px;
+		border: 1px solid #d1d5db;
+		font-size: 15px;
+		box-sizing: border-box;
+		transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+	  }
+
+	  .ad-form input:focus,
+	  .ad-form textarea:focus,
+	  .ad-form select:focus {
+		outline: none;
+		border-color: #2563eb;
+		box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+	  }
+
+	  .ad-form textarea {
+		min-height: 120px;
+		resize: vertical;
+	  }
+
+	  .ad-form input[readonly] {
+		background: #f8fafc;
+		color: #475569;
+		font-weight: 600;
+	  }
+
+	  .ad-form button {
+		background: #2563eb;
+		color: white;
+		border: none;
+		cursor: pointer;
+		font-weight: 700;
+	  }
+
+	  .ad-form button:hover {
+		opacity: 0.95;
+		transform: translateY(-1px);
+	  }
+
+	  .primary-actions {
+		display: flex;
+		gap: 10px;
+		flex-wrap: wrap;
+		margin-top: 8px;
+	  }
+
+	  .primary-actions button {
+		flex: 1 1 220px;
+	  }
+
+	  #cancelEditBtn {
+		background: #6b7280 !important;
+	  }
+
+	  .inline-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 12px;
+	  }
+
+	  .triple-grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 12px;
+	  }
+
+	  .upload-card {
+		background: linear-gradient(180deg, #f8fbff 0%, #f9fafb 100%);
+		border: 1px dashed #cbd5e1;
+		border-radius: 18px;
+		padding: 16px;
+	  }
+
+	  .upload-card label {
+		display: block;
+		font-size: 14px;
+		font-weight: 700;
+		color: #0f172a;
+		margin-bottom: 10px;
+	  }
+
+	  .muted {
+		color: #6b7280;
+		font-size: 14px;
+	  }
+
+	  #imageUpgradeMessage,
+	  #videoUpgradeMessage {
+		background: #fff7ed;
+		border: 1px solid #fdba74;
+		border-radius: 16px;
+		padding: 14px;
+		color: #9a3412;
+		font-size: 14px;
+	  }
+
+	  #imageUpgradeMessage .vip-btn,
+	  #videoUpgradeMessage .vip-btn {
+		border: none;
+		border-radius: 10px;
+		padding: 10px 14px;
+		cursor: pointer;
+		background: #f59e0b;
+		color: white;
+		font-weight: 700;
+	  }
+
+	  .message-box {
+		margin-top: 16px;
+		padding: 14px 16px;
+		border-radius: 16px;
+		display: none;
+		font-size: 14px;
+		line-height: 1.5;
+	  }
+
+	  .message-box.success {
+		display: block;
+		background: #ecfdf3;
+		color: #166534;
+		border: 1px solid #86efac;
+	  }
+
+	  .message-box.error {
+		display: block;
+		background: #fef2f2;
+		color: #991b1b;
+		border: 1px solid #fca5a5;
+	  }
+
+	  .side-card {
+		position: sticky;
+		top: 92px;
+	  }
+
+	  .account-box {
+		background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+		border: 1px solid #dbeafe;
+		border-radius: 18px;
+		padding: 16px;
+		margin-bottom: 20px;
+	  }
+
+	  .account-box #userInfo {
+		line-height: 1.6;
+	  }
+
+	  .ads-list {
+		display: grid;
+		gap: 14px;
+		margin-top: 14px;
+	  }
+
+	  .mini-ad-card {
+		border: 1px solid #e5e7eb;
+		border-radius: 18px;
+		padding: 16px;
+		background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+		box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+	  }
+
+	  .mini-ad-card strong:first-child {
+		display: block;
+		font-size: 16px;
+		color: #111827;
+		margin-bottom: 6px;
+	  }
+
+	  .ad-actions-row {
+		display: flex;
+		gap: 8px;
+		margin-top: 12px;
+		flex-wrap: wrap;
+	  }
+
+	  .edit-btn,
+	  .delete-btn {
+		border: none;
+		padding: 10px 14px;
+		border-radius: 10px;
+		cursor: pointer;
+		font-weight: 700;
+	  }
+
+	  .edit-btn {
+		background: #2563eb;
+		color: white;
+	  }
+
+	  .delete-btn {
+		background: #dc2626;
+		color: white;
+	  }
+
+	  .edit-btn:hover,
+	  .delete-btn:hover {
+		opacity: 0.92;
+	  }
+
+	  .topbar {
+		background: #111827;
+		color: white;
+		padding: 14px 20px;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 16px;
+		flex-wrap: wrap;
+	  }
+
+	  .topbar .logo {
+		font-size: 20px;
+		font-weight: bold;
+	  }
+
+	  .top-actions {
+		display: flex;
+		gap: 10px;
+		flex-wrap: wrap;
+	  }
+
+	  .top-actions button {
+		border: none;
+		border-radius: 8px;
+		padding: 10px 14px;
+		cursor: pointer;
+		background: #2563eb;
+		color: white;
+	  }
+
+	  .top-actions .vip-btn {
+		background: #f59e0b;
+		color: white;
+		font-weight: bold;
+	  }
+
+	  .top-actions button:hover {
+		opacity: 0.9;
+	  }
+
+	  .admin-sidebar {
+		position: fixed;
+		top: 72px;
+		left: 0;
+		bottom: 0;
+		width: 240px;
+		background: #1f2937;
+		color: white;
+		padding: 20px 16px;
+		display: none;
+		flex-direction: column;
+		gap: 10px;
+		z-index: 900;
+		overflow-y: auto;
+		box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
+	  }
+
+	  .admin-sidebar-title {
+		font-size: 18px;
+		font-weight: bold;
+		margin-bottom: 8px;
+	  }
+
+	  .admin-sidebar a {
+		display: block;
+		text-decoration: none;
+		color: white;
+		padding: 12px 14px;
+		border-radius: 10px;
+		transition: 0.2s;
+	  }
+
+	  .admin-sidebar a:hover {
+		background: rgba(255, 255, 255, 0.08);
+	  }
+
+	  .admin-sidebar a.active {
+		background: #2563eb;
+		font-weight: bold;
 	  }
 
 	  body.admin-has-sidebar .page-wrap {
-		margin-left: auto;
-		margin-right: auto;
+		max-width: none;
+		margin-left: 270px;
+		margin-right: 24px;
 	  }
-	}
-  </style>
+
+	  @media (max-width: 1100px) {
+		.ad-layout {
+		  grid-template-columns: 1fr;
+		}
+
+		.side-card {
+		  position: static;
+		}
+	  }
+
+	  @media (max-width: 900px) {
+		.admin-sidebar {
+		  position: static;
+		  width: auto;
+		  display: none;
+		  margin: 0 16px 16px 16px;
+		  border-radius: 14px;
+		}
+
+		body.admin-has-sidebar .page-wrap {
+		  margin-left: auto;
+		  margin-right: auto;
+		}
+
+		.page-wrap {
+		  padding: 0 16px 30px;
+		}
+
+		.page-hero {
+		  padding: 22px 18px;
+		  border-radius: 20px;
+		}
+
+		.page-hero h1 {
+		  font-size: 26px;
+		}
+
+		.inline-grid,
+		.triple-grid {
+		  grid-template-columns: 1fr;
+		}
+
+		.primary-actions {
+		  flex-direction: column;
+		}
+	  }
+	</style>
 </head>
 <body>
   {% include "partials/topbar.html" %}
   {% include "partials/admin_sidebar.html" %}
 
   <main class="page-wrap">
-    <div class="ad-layout">
-      <section class="form-card">
-        <h1>Cadastrar produto ou serviço</h1>
+	  <section class="page-hero">
+		<h1>Crie um anúncio mais forte e mais atrativo</h1>
+		<p>
+		  Cadastre sua loja, serviço ou negócio com uma apresentação mais profissional.
+		  Preencha os dados abaixo e destaque sua presença na busca do sistema.
+		</p>
 
-        <form id="adForm" class="ad-form">
-          <input type="text" id="title" placeholder="Nome da sua loja ou serviço" required>
+		<div class="hero-badges">
+		  <span class="hero-badge">Cadastro rápido</span>
+		  <span class="hero-badge">Mais visibilidade</span>
+		  <span class="hero-badge">Imagem e vídeo para planos compatíveis</span>
+		</div>
+	  </section>
+
+	  <div class="ad-layout">
+		<section class="form-card">
+		  <h2>Cadastrar produto ou serviço</h2>
+		  <div class="card-subtitle">
+			Preencha as informações principais do seu anúncio. Quanto mais riquezas de detalhes no endereço e no anúncio,
+			melhor será para os clientes te encontrarem na pesquisa.
+		  </div>
+
+		  <form id="adForm" class="ad-form">
+          <div class="form-section">
+		  <div class="section-title">Informações principais</div>
+
+		  <input type="text" id="title" placeholder="Nome da sua loja ou serviço" required>
 		  <input type="text" id="keywords" placeholder="Palavras-chave dos produtos ou serviços (separe por espaço)">
-          <textarea id="description" placeholder="Descrição do anúncio (Este recurso aparecerá somente para usuários VIP.)"></textarea>
-          <input type="text" id="phone" placeholder="Telefone">
+		  <textarea id="description" placeholder="Descrição do anúncio (Este recurso aparecerá somente para usuários VIP.)"></textarea>
+		  <input type="text" id="phone" placeholder="Telefone">
+		</div>
 
-          <div class="section-title">Localização</div>
+		<div class="form-section">
+		  <div class="section-title">Localização </div>
 
-          <input type="text" id="country" value="Brasil" readonly>
+		  <input type="text" id="country" value="Brasil" readonly>
 
-          <select id="state" required>
-            <option value="">Selecione o estado</option>
-          </select>
-
-          <select id="city" required>
-            <option value="">Selecione a cidade</option>
-          </select>
-
-          <select id="neighborhood">
-            <option value="">Selecione o bairro</option>
-          </select>
-
-            <select id="street">
-			  <option value="">Selecione a rua</option>
+		  <div class="inline-grid">
+			<select id="state" required>
+			  <option value="">Selecione o estado</option>
 			</select>
 
-			<input type="text" id="number" placeholder="Número">
-			<input type="text" id="complement" placeholder="Complemento (Ex: shopping, feira, etc...)">
-			<input type="text" id="zipcode" placeholder="CEP">
+			<select id="city">
+			  <option value="">Selecione a cidade (opcional)</option>
+			</select>
+		  </div>
+              <div class="inline-grid">
+				<select id="neighborhood">
+				  <option value="">Selecione o bairro (opcional)</option>
+				</select>
 
-          <div class="section-title">Detalhes do anúncio</div>
+				<select id="street">
+				  <option value="">Selecione a rua (opcional)</option>
+				</select>
+			  </div>
 
-			<div id="imageUploadBlock">
+			  <div class="triple-grid">
+				<input type="text" id="number" placeholder="Número">
+				<input type="text" id="complement" placeholder="Complemento">
+				<input type="text" id="zipcode" placeholder="CEP">
+			  </div>
+			</div>
+
+			<div class="form-section">
+			  <div class="section-title">Mídia do anúncio</div>
+
+			<div id="imageUploadBlock" class="upload-card">
 			  <label for="mainImage">Foto do anúncio</label>
 			  <input type="file" id="mainImage" accept="image/*">
+			  <div class="muted" style="margin-top:8px;">Use uma imagem clara e chamativa para destacar seu anúncio.</div>
 			</div>
 
 			<div id="imageUpgradeMessage" class="muted" style="display:none;">
@@ -300,9 +536,10 @@
 			  </button>
 			</div>
 
-			<div id="videoUploadBlock">
+			<div id="videoUploadBlock" class="upload-card">
 			  <label for="mainVideo">Vídeo do anúncio (máx. 1 minuto)</label>
 			  <input type="file" id="mainVideo" accept="video/*">
+			  <div class="muted" style="margin-top:8px;">Vídeos curtos e objetivos costumam gerar mais atenção.</div>
 			</div>
 
 			<div id="videoUpgradeMessage" class="muted" style="display:none;">
@@ -314,23 +551,35 @@
 			</div>
           
 
-          <button type="submit">Salvar anúncio</button>
-		  <button type="button" id="cancelEditBtn" style="display:none;background:#6c757d;">
-			  Cancelar edição
-		  </button>
+			<div class="primary-actions">
+			  <button type="submit">Salvar anúncio</button>
+			  <button type="button" id="cancelEditBtn" style="display:none;background:#6c757d;">
+				Cancelar edição
+			  </button>
+			</div>
         </form>
 
         <div id="adMessage" class="message-box"></div>
       </section>
 
       <aside class="side-card">
-        <h2>Minha conta</h2>
-        <div id="userInfo" class="muted">Carregando...</div>
+		  <h2>Minha conta</h2>
+		  <div class="card-subtitle">Resumo rápido da sua conta e dos seus anúncios.</div>
 
-        <h2 style="margin-top: 20px;">Meus anúncios</h2>
-        <div id="myAds" class="ads-list">
-          <div class="muted">Nenhum anúncio carregado.</div>
-        </div>
+		  <div class="account-box">
+			<div id="userInfo" class="muted">Carregando...</div>
+		  </div>
+
+			<h2 style="margin-top: 6px;">Meus anúncios</h2>
+			<div class="card-subtitle">Acompanhe, edite ou exclua seus anúncios cadastrados.</div>
+
+			<div id="adsSummary" class="account-box" style="margin-bottom: 14px;">
+			  <div class="muted">Carregando resumo dos anúncios...</div>
+			</div>
+
+			<div id="myAds" class="ads-list">
+			  <div class="muted">Nenhum anúncio carregado.</div>
+			</div>
       </aside>
     </div>
   </main>

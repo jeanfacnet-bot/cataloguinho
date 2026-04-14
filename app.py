@@ -558,6 +558,36 @@ def plan_priority_case():
         else_=4
     )
     
+def title_match_priority(term):
+    return case(
+        (Ad.title.ilike(f"%{term}%"), 0),
+        else_=1
+    )
+
+def keyword_match_priority(term):
+    return case(
+        (Ad.keywords.any(Keyword.keyword.ilike(f"%{term}%")), 0),
+        else_=1
+    )
+
+def description_match_priority(term):
+    return case(
+        (Ad.description.ilike(f"%{term}%"), 0),
+        else_=1
+    )
+
+def image_priority_case():
+    return case(
+        (Ad.main_image.isnot(None), 0),
+        else_=1
+    )
+
+def video_priority_case():
+    return case(
+        (Ad.main_video.isnot(None), 0),
+        else_=1
+    ) 
+    
 def get_app_settings():
     settings = AppSetting.query.first()
 
@@ -1236,7 +1266,39 @@ def logout():
     session.clear()
     return jsonify({"message": "Logout realizado com sucesso"})    
     
-    
+@app.route("/auth/session", methods=["GET"])
+def get_current_session():
+    user_id = session.get("user_id")
+
+    if not user_id:
+        return jsonify({
+            "authenticated": False,
+            "user": None
+        }), 200
+
+    user = User.query.get(user_id)
+
+    if not user:
+        session.clear()
+        return jsonify({
+            "authenticated": False,
+            "user": None
+        }), 200
+
+    enforce_user_plan(user)
+
+    if user.blocked_until and user.blocked_until > utc_now():
+        return jsonify({
+            "authenticated": True,
+            "user": serialize_user(user),
+            "blocked": True
+        }), 200
+
+    return jsonify({
+        "authenticated": True,
+        "user": serialize_user(user),
+        "blocked": False
+    }), 200    
 
 # =========================
 # SEARCH
@@ -1316,10 +1378,23 @@ def search_ads():
             )
         )
 
-    ads = query.order_by(
-        plan_priority_case(),
-        Ad.created_at.desc()
-    ).all()
+    if term:
+        ads = query.order_by(
+            title_match_priority(term),
+            keyword_match_priority(term),
+            description_match_priority(term),
+            plan_priority_case(),
+            image_priority_case(),
+            video_priority_case(),
+            Ad.created_at.desc()
+        ).all()
+    else:
+        ads = query.order_by(
+            plan_priority_case(),
+            image_priority_case(),
+            video_priority_case(),
+            Ad.created_at.desc()
+        ).all()
 
     return jsonify([serialize_ad(ad) for ad in ads])
 
@@ -2057,8 +2132,13 @@ def get_ad(ad_id):
     if not ad or not ad.is_active:
         return jsonify({"message": "Anúncio não encontrado"}), 404
 
+    current_user = None
+    if session.get("user_id"):
+        current_user = User.query.get(session["user_id"])
+
     if not get_plan_rules(ad.plan)["can_show_full_details"]:
-        return jsonify({"message": "Detalhes disponíveis apenas para anúncios com plano compatível"}), 403
+        if not current_user or not current_user.is_admin:
+            return jsonify({"message": "Detalhes disponíveis apenas para anúncios com plano compatível"}), 403
 
     return jsonify(serialize_ad(ad))
 
@@ -2070,8 +2150,13 @@ def ad_details_page(ad_id):
     if not ad or not ad.is_active:
         return "Anúncio não encontrado", 404
 
+    current_user = None
+    if session.get("user_id"):
+        current_user = User.query.get(session["user_id"])
+
     if not get_plan_rules(ad.plan)["can_show_full_details"]:
-        return "Detalhes disponíveis apenas para anúncios com plano compatível", 403
+        if not current_user or not current_user.is_admin:
+            return "Detalhes disponíveis apenas para anúncios com plano compatível", 403
 
     origin = request.args.get("from", "search")
 
@@ -2081,6 +2166,11 @@ def ad_details_page(ad_id):
 @app.route("/create-ad-page")
 def create_ad_page():
     return render_template("create_ad.html")
+    
+@app.route("/profile-page")
+@login_required_page
+def profile_page():
+    return render_template("profile.html")  
 
 
 @app.route("/ads", methods=["POST"])
@@ -3065,6 +3155,66 @@ def get_user(user_id):
         return jsonify({"message": "Usuário não encontrado"}), 404
 
     return jsonify(serialize_user(user))
+    
+@app.route("/users/<int:user_id>", methods=["PATCH"])
+def update_user_profile(user_id):
+    if not session.get("user_id"):
+        return jsonify({"message": "Faça login para atualizar seus dados."}), 401
+
+    if int(user_id) != int(session["user_id"]):
+        return jsonify({"message": "Acesso negado"}), 403
+
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"message": "Usuário não encontrado"}), 404
+
+    data = request.get_json() or {}
+
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+    current_password = (data.get("current_password") or "").strip()
+    new_password = (data.get("new_password") or "").strip()
+    confirm_password = (data.get("confirm_password") or "").strip()
+
+    if not name:
+        return jsonify({"message": "Informe o nome"}), 400
+
+    if not email:
+        return jsonify({"message": "Informe o e-mail"}), 400
+
+    existing_email = User.query.filter(User.email == email, User.id != user.id).first()
+    if existing_email:
+        return jsonify({"message": "Este e-mail já está em uso por outro usuário"}), 400
+
+    if new_password or confirm_password or current_password:
+        if not current_password:
+            return jsonify({"message": "Informe sua senha atual para alterar a senha"}), 400
+
+        if not check_password_hash(user.password_hash, current_password):
+            return jsonify({"message": "Senha atual incorreta"}), 400
+
+        if not new_password or not confirm_password:
+            return jsonify({"message": "Informe a nova senha e a confirmação"}), 400
+
+        if new_password != confirm_password:
+            return jsonify({"message": "A nova senha e a confirmação não coincidem"}), 400
+
+        if len(new_password) < 6:
+            return jsonify({"message": "A nova senha deve ter pelo menos 6 caracteres"}), 400
+
+        user.password_hash = generate_password_hash(new_password)
+
+    user.name = name
+    user.email = email
+    session["user_name"] = user.name
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Perfil atualizado com sucesso",
+        "user": serialize_user(user)
+    }), 200    
 
 @app.route("/admin/users", methods=["GET"])
 def admin_list_users():
