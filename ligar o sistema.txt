@@ -1,40 +1,4 @@
 git add .
-git commit -m "colaboradores"
+git commit -m "ajuste logo web"
 git push
 
-arrumar a tela de clientes dos gerentes em administrador
-criar sistema de busca em cliente para o gerente
-
-
-Rodando o https://gestao-agenda.onrender.com/login -> https://dashboard.render.com/web/srv-d6cfik8eumvs73baqv70
-
-Armazenando o codigo -> https://github.com/jeanfacnet-bot/gestao-agenda
-
-API do email -> re_JMVG8MPb_HmUbkw8uTjheqvKDrUjpzPhT - https://resend.com/onboarding - 
-
-token mercado pago -> APP_USR-6241241889994754-020601-ede95dc6149fa31eb67500521413fd05-45402160
-
-Senha Registro BR: eqeM9U6mhW=$Tj$
-
-LIGAR O SISTEMA
-
-C:\Users\Patrick\Desktop\gestao_agenda
-CMD
-venv\Scripts\activate
-
-set MP_ACCESS_TOKEN=APP_USR-APP_USR-6241241889994754-020601-ede95dc6149fa31eb67500521413fd05-45402160
-
-python app.py
-
-
-
-CMD
-ngrok http 5000
-
-
-git config --global user.name "patrickaxe"
-git config --global user.email "jean.facnet@gmail.com"
-
-git remote add origin https://github.com/jeanfacnet-bot/gestao-agenda.git
-
-O gerente vai definir o nome dos profissionais ao cadastrar o servico, ao criar a agenda 
