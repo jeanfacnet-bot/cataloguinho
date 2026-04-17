@@ -61,18 +61,42 @@
   color: #842029;
   display: block;
 }
+
+.privacy-consent {
+  margin-top: 8px;
+}
+
+.privacy-consent-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.privacy-consent-label input[type="checkbox"] {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.privacy-consent-label a {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.privacy-consent-label a:hover {
+  text-decoration: underline;
+}
 </style>
 </head>
 
 <body>
 
-<header class="topbar">
-<div class="logo">Catálogo</div>
-<nav class="top-actions">
-<button onclick="window.location.href='/search-page'">Pesquisa</button>
-<button class="vip-btn" onclick="window.location.href='/vip-page'">Tornar-se VIP</button>
-</nav>
-</header>
+{% include "partials/topbar.html" %}
 
 <main class="auth-container">
 
@@ -96,6 +120,18 @@
 
 <input type="password" id="confirmPassword" placeholder="Confirme sua senha" required>
 
+<div class="privacy-consent">
+  <label class="privacy-consent-label">
+    <input type="checkbox" id="acceptedPrivacyPolicy">
+    <span>
+      Li e aceito a
+      <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">
+        Política de Privacidade
+      </a>.
+    </span>
+  </label>
+</div>
+
 <button type="submit">Cadastrar</button>
 
 </form>
@@ -111,6 +147,8 @@
 </main>
 
 <script src="{{ url_for('static', filename='auth.js') }}"></script>
+
+<script src="{{ url_for('static', filename='common_layout.js') }}?v=4"></script>
 
 </body>
 </html>

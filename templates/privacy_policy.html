@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de Privacidade</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <style>
+    .privacy-container {
+      max-width: 900px;
+      margin: 32px auto;
+      padding: 0 16px 40px;
+    }
+
+    .privacy-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    .privacy-card h1 {
+      margin-bottom: 8px;
+      font-size: 30px;
+      color: #111827;
+    }
+
+    .privacy-updated {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .privacy-card h2 {
+      margin-top: 24px;
+      margin-bottom: 10px;
+      font-size: 20px;
+      color: #111827;
+    }
+
+    .privacy-card h3 {
+      margin-top: 18px;
+      margin-bottom: 8px;
+      font-size: 16px;
+      color: #1f2937;
+    }
+
+    .privacy-card p,
+    .privacy-card li {
+      color: #374151;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .privacy-card ul {
+      padding-left: 20px;
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .privacy-actions {
+      margin-top: 28px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .privacy-actions button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .primary-btn {
+      background: #2563eb;
+      color: white;
+    }
+
+    .secondary-btn {
+      background: #6b7280;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  {% include "partials/topbar.html" %}
+
+  <main class="privacy-container">
+    <section class="privacy-card">
+      <h1>Política de Privacidade – CataLogin</h1>
+      <div class="privacy-updated">Última atualização: 16/04/2026</div>
+
+      <p>
+        O CataLogin valoriza a sua privacidade. Esta Política de Privacidade descreve como
+        coletamos, usamos, armazenamos e protegemos suas informações ao utilizar nosso
+        aplicativo e serviços.
+      </p>
+
+      <h2>1. Informações que coletamos</h2>
+
+      <h3>1.1 Informações fornecidas pelo usuário</h3>
+      <ul>
+        <li>Nome</li>
+        <li>Endereço de e-mail</li>
+        <li>Senha armazenada de forma segura e criptografada</li>
+        <li>Informações inseridas ao criar anúncios</li>
+      </ul>
+
+      <h3>1.2 Informações de uso</h3>
+      <ul>
+        <li>Dados de navegação dentro do aplicativo</li>
+        <li>Interações com funcionalidades, como criação de anúncios, buscas e uso de planos</li>
+      </ul>
+
+      <h3>1.3 Informações de pagamento</h3>
+      <ul>
+        <li>Dados relacionados a pagamentos são processados por terceiros, como o Mercado Pago</li>
+        <li>Não armazenamos dados sensíveis de pagamento, como número de cartão</li>
+      </ul>
+
+      <h2>2. Como usamos suas informações</h2>
+      <ul>
+        <li>Criar e gerenciar sua conta</li>
+        <li>Permitir a publicação e gerenciamento de anúncios</li>
+        <li>Processar assinaturas e planos VIP</li>
+        <li>Melhorar a experiência do usuário</li>
+        <li>Enviar comunicações relacionadas ao serviço, suporte e atualizações</li>
+      </ul>
+
+      <h2>3. Compartilhamento de dados</h2>
+      <p>Não vendemos seus dados pessoais.</p>
+      <p>Podemos compartilhar informações com:</p>
+      <ul>
+        <li>Provedores de pagamento, como Mercado Pago, para processar transações</li>
+        <li>Serviços de infraestrutura e hospedagem necessários para funcionamento do sistema</li>
+        <li>Autoridades legais, quando exigido por lei</li>
+      </ul>
+
+      <h2>4. Armazenamento e segurança</h2>
+      <ul>
+        <li>Utilizamos medidas de segurança para proteger seus dados</li>
+        <li>Senhas são armazenadas de forma criptografada</li>
+        <li>Seus dados são armazenados em servidores com proteção adequada</li>
+      </ul>
+
+      <h2>5. Retenção de dados</h2>
+      <p>
+        Mantemos suas informações enquanto sua conta estiver ativa ou conforme necessário
+        para cumprir obrigações legais.
+      </p>
+      <p>Você pode solicitar a exclusão da sua conta a qualquer momento.</p>
+
+      <h2>6. Direitos do usuário</h2>
+      <ul>
+        <li>Acessar seus dados</li>
+        <li>Corrigir informações incorretas</li>
+        <li>Solicitar exclusão da sua conta</li>
+        <li>Revogar consentimento, quando aplicável</li>
+      </ul>
+
+      <h2>7. Serviços de terceiros</h2>
+      <p>Nosso aplicativo pode integrar serviços de terceiros, como:</p>
+      <ul>
+        <li>Mercado Pago, para processamento de pagamentos</li>
+        <li>WhatsApp, para suporte ao usuário</li>
+      </ul>
+      <p>Esses serviços possuem suas próprias políticas de privacidade.</p>
+
+      <h2>8. Privacidade de crianças</h2>
+      <p>
+        Nosso serviço não é destinado a menores de 13 anos. Não coletamos intencionalmente
+        dados de crianças.
+      </p>
+
+      <h2>9. Alterações nesta política</h2>
+      <p>
+        Podemos atualizar esta política periodicamente. Recomendamos revisar esta página
+        regularmente.
+      </p>
+
+      <h2>10. Contato</h2>
+      <ul>
+        <li>E-mail: cataloguinhopk@gmail.com</li>
+        <li>WhatsApp: 5561993703519</li>
+      </ul>
+
+      <div class="privacy-actions">
+        <button type="button" class="secondary-btn" onclick="window.history.back()">Voltar</button>
+        <button type="button" class="primary-btn" onclick="window.location.href='/register-page'">Ir para cadastro</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='common_layout.js') }}?v=4"></script>
+</body>
+</html>

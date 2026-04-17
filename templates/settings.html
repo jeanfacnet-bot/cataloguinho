@@ -68,6 +68,25 @@
 	  margin-top: 0;
 	  margin-bottom: 8px;
 	}
+	
+	.global-settings-card {
+      background: #fafafa;
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      margin-bottom: 20px;
+    }
+
+    .global-settings-card h2 {
+      margin-top: 0;
+      margin-bottom: 14px;
+      font-size: 20px;
+    }
+
+    .global-settings-card .form-group input {
+      width: 220px;
+    }
 
 	.muted {
 	  color: #666;
@@ -202,7 +221,24 @@
   <main class="container">
     <section class="settings-box">
 	  <h1>Ajustes</h1>
-	  <p class="muted">Defina os benefícios de cada plano.</p>
+      <p class="muted">Defina os benefícios de cada plano.</p>
+
+      <div class="global-settings-card">
+        <h2>Configurações globais</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="supportWhatsapp">WhatsApp de suporte</label>
+            <input
+              type="text"
+              id="supportWhatsapp"
+              placeholder="Ex.: 5561999999999"
+            >
+          </div>
+        </div>
+        <p class="muted" style="margin-top:10px; margin-bottom:0;">
+          Informe no formato internacional, somente números. Exemplo: 5561999999999
+        </p>
+      </div>
 
 	  <div class="plans-grid">
 		<div class="plan-card">

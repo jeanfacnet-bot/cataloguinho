@@ -7,6 +7,7 @@ const registerMessage = document.getElementById("registerMessage");
 const loginMessage = document.getElementById("loginMessage");
 const forgotPasswordMessage = document.getElementById("forgotPasswordMessage");
 const resetPasswordMessage = document.getElementById("resetPasswordMessage");
+const acceptedPrivacyPolicy = document.getElementById("acceptedPrivacyPolicy");
 
 function showMessage(element, message, type) {
   if (!element) return;
@@ -66,6 +67,11 @@ if (registerForm) {
 	  showMessage(registerMessage, "Os e-mails não coincidem", "error");
 	  return;
 	}
+	
+	if (acceptedPrivacyPolicy && !acceptedPrivacyPolicy.checked) {
+	  showMessage(registerMessage, "Você precisa aceitar a Política de Privacidade", "error");
+	  return;
+	}
 
 	if (password !== confirmPassword) {
 	  showMessage(registerMessage, "As senhas não coincidem", "error");
@@ -77,7 +83,8 @@ if (registerForm) {
 	  cpf,
 	  email,
 	  phone: document.getElementById("registerPhone").value.trim(),
-	  password
+	  password,
+	  accepted_privacy_policy: acceptedPrivacyPolicy ? acceptedPrivacyPolicy.checked : false
 	};
 
     try {

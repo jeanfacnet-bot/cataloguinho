@@ -167,6 +167,8 @@ class AppSetting(db.Model):
     premium_can_show_full_details = db.Column(db.Boolean, nullable=False, default=True)
     premium_price = db.Column(db.Float, nullable=False, default=99.90)
     premium_can_use_vitrine = db.Column(db.Boolean, nullable=False, default=True)
+    
+    support_whatsapp = db.Column(db.String(30), nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -185,8 +187,31 @@ class User(db.Model):
     blocked_until = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     vip_expires_at = db.Column(db.DateTime, nullable=True)
+    privacy_policy_accepted_at = db.Column(db.DateTime, nullable=True)
 
     ads = db.relationship("Ad", backref="user", lazy=True)
+    
+class VipPurchase(db.Model):
+    __tablename__ = "vip_purchases"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+
+    plan = db.Column(db.String(20), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+
+    payment_id = db.Column(db.String(50), nullable=True, unique=True, index=True)
+    payment_status = db.Column(db.String(30), nullable=False, default="pending")
+    payment_method = db.Column(db.String(30), nullable=False, default="pix")
+
+    external_reference = db.Column(db.String(120), nullable=True, index=True)
+    mp_created_at = db.Column(db.DateTime, nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    expires_at = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", backref="vip_purchases")    
     
 class PasswordResetToken(db.Model):
     __tablename__ = "password_reset_tokens"
@@ -383,6 +408,20 @@ def create_vip_pix():
 
         qr_data = mp_data.get("point_of_interaction", {}).get("transaction_data", {})
 
+        purchase = VipPurchase(
+            user_id=user.id,
+            plan=target_plan,
+            amount=amount,
+            payment_id=str(mp_data.get("id")) if mp_data.get("id") else None,
+            payment_status=(mp_data.get("status") or "pending"),
+            payment_method="pix",
+            external_reference=payment_payload["external_reference"],
+            mp_created_at=utc_now()
+        )
+
+        db.session.add(purchase)
+        db.session.commit()
+
         print("=== SUCESSO create_vip_pix ===", flush=True)
 
         return jsonify({
@@ -476,9 +515,35 @@ def mercadopago_webhook():
         return jsonify({"message": "user not found"}), 200
 
     now = utc_now()
+    expires_at = now + timedelta(days=VIP_PLAN_DAYS[target_plan])
 
     user.plan = target_plan
-    user.vip_expires_at = now + timedelta(days=VIP_PLAN_DAYS[target_plan])
+    user.vip_expires_at = expires_at
+
+    purchase = VipPurchase.query.filter_by(payment_id=str(payment_id)).first()
+
+    if not purchase:
+        purchase = VipPurchase(
+            user_id=user.id,
+            plan=target_plan,
+            amount=float(payment.get("transaction_amount") or 0),
+            payment_id=str(payment_id),
+            payment_status="approved",
+            payment_method=payment.get("payment_method_id") or "pix",
+            external_reference=external_reference,
+            mp_created_at=now,
+            approved_at=now,
+            expires_at=expires_at
+        )
+        db.session.add(purchase)
+    else:
+        purchase.plan = target_plan
+        purchase.amount = float(payment.get("transaction_amount") or purchase.amount or 0)
+        purchase.payment_status = payment.get("status") or "approved"
+        purchase.payment_method = payment.get("payment_method_id") or purchase.payment_method or "pix"
+        purchase.external_reference = external_reference
+        purchase.approved_at = now
+        purchase.expires_at = expires_at
 
     db.session.commit()
 
@@ -512,9 +577,39 @@ def check_payment(payment_id):
             try:
                 parts = dict(item.split(":", 1) for item in external_reference.split("|"))
                 user_id = int(parts.get("user"))
+                target_plan = parts.get("plan")
                 user = User.query.get(user_id)
 
-                if user:
+                if user and target_plan in VIP_PLAN_DAYS:
+                    now = utc_now()
+                    expires_at = now + timedelta(days=VIP_PLAN_DAYS[target_plan])
+
+                    if user.plan != target_plan or not user.vip_expires_at or user.vip_expires_at < now:
+                        user.plan = target_plan
+                        user.vip_expires_at = expires_at
+
+                    purchase = VipPurchase.query.filter_by(payment_id=str(payment_id)).first()
+
+                    if not purchase:
+                        purchase = VipPurchase(
+                            user_id=user.id,
+                            plan=target_plan,
+                            amount=float(payment.get("transaction_amount") or 0),
+                            payment_id=str(payment_id),
+                            payment_status="approved",
+                            payment_method=payment.get("payment_method_id") or "pix",
+                            external_reference=external_reference,
+                            mp_created_at=now,
+                            approved_at=now,
+                            expires_at=expires_at
+                        )
+                        db.session.add(purchase)
+                    else:
+                        purchase.payment_status = status
+                        purchase.approved_at = purchase.approved_at or now
+                        purchase.expires_at = purchase.expires_at or expires_at
+
+                    db.session.commit()
                     user_data = serialize_user(user)
             except Exception:
                 pass
@@ -747,7 +842,22 @@ def serialize_user(user):
         "vip_expires_at": user.vip_expires_at.isoformat() if user.vip_expires_at else None
     }
 
-
+def serialize_vip_purchase(purchase):
+    return {
+        "id": purchase.id,
+        "plan": purchase.plan,
+        "plan_label": get_plan_label(purchase.plan),
+        "amount": purchase.amount,
+        "payment_id": purchase.payment_id,
+        "payment_status": purchase.payment_status,
+        "payment_method": purchase.payment_method,
+        "external_reference": purchase.external_reference,
+        "mp_created_at": purchase.mp_created_at.isoformat() if purchase.mp_created_at else None,
+        "approved_at": purchase.approved_at.isoformat() if purchase.approved_at else None,
+        "expires_at": purchase.expires_at.isoformat() if purchase.expires_at else None,
+        "created_at": purchase.created_at.isoformat() if purchase.created_at else None
+    }
+    
 def fetch_ibge_json(url):
     req = Request(
         url,
@@ -1056,6 +1166,10 @@ def auth_page():
             return redirect(url_for("admin_dashboard_page"))
         return redirect(url_for("search_page"))
     return render_template("auth.html")
+    
+@app.route("/privacy-policy")
+def privacy_policy_page():
+    return render_template("privacy_policy.html")    
 
 
 @app.route("/register-page")
@@ -1093,9 +1207,15 @@ def register():
     email = data.get("email", "").strip().lower()
     phone = data.get("phone", "").strip()
     password = data.get("password", "").strip()
+    accepted_privacy_policy = bool(data.get("accepted_privacy_policy"))
 
     if not name or not cpf or not email or not phone or not password:
         return jsonify({"message": "Preencha todos os campos obrigatórios"}), 400
+
+    if not accepted_privacy_policy:
+        return jsonify({
+            "message": "Você precisa aceitar a Política de Privacidade para se cadastrar."
+        }), 400
 
     if not is_valid_cpf(cpf):
         return jsonify({"message": "CPF inválido"}), 400
@@ -1116,7 +1236,8 @@ def register():
         email=email,
         phone=phone,
         password_hash=password_hash,
-        plan="FREE"
+        plan="FREE",
+        privacy_policy_accepted_at=datetime.utcnow()
     )
 
     db.session.add(user)
@@ -2376,7 +2497,14 @@ def get_plans_config():
         "premium": get_plan_rules("VIP_PREMIUM")
     })    
 
+@app.route("/public/support-whatsapp", methods=["GET"])
+def public_support_whatsapp():
+    settings = get_app_settings()
 
+    return jsonify({
+        "support_whatsapp": settings.support_whatsapp or ""
+    }), 200
+    
 @app.route("/upgrade-vip/<int:user_id>", methods=["PATCH"])
 def upgrade_vip(user_id):
     user = User.query.get(user_id)
@@ -2437,6 +2565,7 @@ def get_admin_settings():
     settings = get_app_settings()
 
     return jsonify({
+        "support_whatsapp": settings.support_whatsapp or "",
         "free": {
             "ads_limit": settings.free_ads_limit,
             "keywords_limit": settings.free_keywords_limit,
@@ -2486,7 +2615,7 @@ def get_admin_settings():
             "can_show_full_details": settings.premium_can_show_full_details,
             "can_use_vitrine": settings.premium_can_use_vitrine
         }
-    })   
+    })
     
 @app.route("/admin/settings", methods=["PATCH"])
 def update_admin_settings():
@@ -2504,6 +2633,8 @@ def update_admin_settings():
     settings = get_app_settings()
 
     try:
+        settings.support_whatsapp = (data.get("support_whatsapp") or "").strip()
+        
         settings.free_ads_limit = int(data["free"]["ads_limit"])
         settings.free_keywords_limit = int(data["free"]["keywords_limit"])
         settings.free_can_use_images = bool(data["free"]["can_use_images"])
@@ -3157,6 +3288,24 @@ def get_user(user_id):
         return jsonify({"message": "Usuário não encontrado"}), 404
 
     return jsonify(serialize_user(user))
+    
+@app.route("/users/<int:user_id>/vip-purchases", methods=["GET"])
+def get_user_vip_purchases(user_id):
+    if not session.get("user_id"):
+        return jsonify({"message": "Faça login para acessar seu histórico de pagamentos."}), 401
+
+    if int(user_id) != int(session["user_id"]) and not session.get("is_admin"):
+        return jsonify({"message": "Acesso negado"}), 403
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"message": "Usuário não encontrado"}), 404
+
+    purchases = VipPurchase.query.filter_by(user_id=user_id)\
+        .order_by(VipPurchase.created_at.desc())\
+        .all()
+
+    return jsonify([serialize_vip_purchase(purchase) for purchase in purchases]), 200    
     
 @app.route("/users/<int:user_id>", methods=["PATCH"])
 def update_user_profile(user_id):

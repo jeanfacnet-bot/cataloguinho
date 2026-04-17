@@ -1,6 +1,7 @@
 const savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
 const saveSettingsBtn = document.getElementById("saveSettingsBtn");
 const settingsStatus = document.getElementById("settingsStatus");
+const supportWhatsapp = document.getElementById("supportWhatsapp");
 
 function isAdmin(user) {
   return !!user && (user.is_admin === true || user.role === "admin");
@@ -68,6 +69,10 @@ async function loadSettings() {
     fillPlan("prata", data.prata);
     fillPlan("ouro", data.ouro);
     fillPlan("premium", data.premium);
+	
+	if (supportWhatsapp) {
+      supportWhatsapp.value = data.support_whatsapp || "";
+    }
 
     setStatus("Ajustes carregados com sucesso.");
   } catch (error) {
@@ -86,8 +91,9 @@ async function saveSettings() {
     saveSettingsBtn.disabled = true;
     setStatus("Salvando...");
 
-    const payload = {
+	const payload = {
       admin_user_id: savedUser.id,
+      support_whatsapp: supportWhatsapp ? supportWhatsapp.value.trim() : "",
       free: collectPlan("free"),
       bronze: collectPlan("bronze"),
       prata: collectPlan("prata"),

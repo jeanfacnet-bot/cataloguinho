@@ -144,6 +144,71 @@
       margin-left: 270px;
       margin-right: 24px;
     }
+	    .vip-history-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .vip-history-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 16px;
+      background: #f9fafb;
+    }
+
+    .vip-history-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .vip-history-plan {
+      font-weight: 800;
+      color: #111827;
+    }
+
+    .vip-history-status {
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 6px 10px;
+      text-transform: uppercase;
+      width: fit-content;
+    }
+
+    .vip-history-status.approved {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .vip-history-status.pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .vip-history-status.cancelled,
+    .vip-history-status.rejected {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .vip-history-meta {
+      display: grid;
+      gap: 6px;
+      font-size: 14px;
+      color: #4b5563;
+    }
+
+    .vip-history-empty {
+      border: 1px dashed #d1d5db;
+      background: #f9fafb;
+      padding: 16px;
+      border-radius: 14px;
+      color: #6b7280;
+    }
 
     @media (max-width: 900px) {
       .admin-sidebar {
@@ -197,6 +262,13 @@
       </form>
 
       <div id="profileMessage" class="profile-message"></div>
+
+      <div class="form-section">
+        <div class="section-title">Histórico de planos e pagamentos</div>
+        <div id="vipHistoryContainer" class="vip-history-list">
+          <div class="vip-history-empty">Carregando histórico...</div>
+        </div>
+      </div>
     </section>
   </main>
 
