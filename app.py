@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import case, or_
@@ -2504,6 +2504,14 @@ def public_support_whatsapp():
     return jsonify({
         "support_whatsapp": settings.support_whatsapp or ""
     }), 200
+    
+@app.route("/manifest.webmanifest")
+def manifest():
+    return send_from_directory("static", "manifest.webmanifest", mimetype="application/manifest+json")
+
+@app.route("/service-worker.js")
+def service_worker():
+    return send_from_directory("static", "service-worker.js", mimetype="application/javascript")    
     
 @app.route("/upgrade-vip/<int:user_id>", methods=["PATCH"])
 def upgrade_vip(user_id):

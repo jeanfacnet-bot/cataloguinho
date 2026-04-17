@@ -479,6 +479,11 @@
 		}
 	  }
 	</style>
+	
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0b1120">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+	
 </head>
 <body>
   {% include "partials/topbar.html" %}
@@ -590,6 +595,15 @@
 	</script>
 	
 	<script src="{{ url_for('static', filename='common_layout.js') }}"></script>
-	
-</body>
-</html>
+
+	<script>
+	  if ("serviceWorker" in navigator) {
+		window.addEventListener("load", () => {
+		  navigator.serviceWorker.register("/service-worker.js")
+			.catch((error) => console.error("Erro ao registrar service worker:", error));
+		});
+	  }
+	</script>
+
+	</body>
+	</html>
