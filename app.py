@@ -3540,7 +3540,25 @@ def admin_dashboard_data():
         "users_by_plan": users_by_plan
     }) 
 
-
+@app.route("/sitemap.xml")
+def sitemap():
+    return """<?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url>
+        <loc>https://www.cataloginpk.com.br/</loc>
+      </url>
+      <url>
+        <loc>https://www.cataloginpk.com.br/search-page</loc>
+      </url>
+      <url>
+        <loc>https://www.cataloginpk.com.br/auth-page</loc>
+      </url>
+      <url>
+        <loc>https://www.cataloginpk.com.br/register-page</loc>
+      </url>
+    </urlset>
+    """, 200, {"Content-Type": "application/xml"}
+    
 # =========================
 # INIT DATABASE
 # =========================
