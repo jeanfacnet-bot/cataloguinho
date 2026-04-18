@@ -24,7 +24,7 @@ load_dotenv()
 app = Flask(__name__)
 
 MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "")
-BASE_URL = os.getenv("BASE_URL", "https://dampishly-unshielded-debbi.ngrok-free.dev")
+BASE_URL = os.getenv("BASE_URL", "https://www.cataloginpk.com.br")
 
 VIP_PLAN_PRICES = {
     "VIP_BRONZE": 19.90,
@@ -3539,24 +3539,6 @@ def admin_dashboard_data():
         "users_by_plan": users_by_plan
     }) 
 
-@app.route("/sitemap.xml")
-def sitemap():
-    return """<?xml version="1.0" encoding="UTF-8"?>
-    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-      <url>
-        <loc>https://www.cataloginpk.com.br/</loc>
-      </url>
-      <url>
-        <loc>https://www.cataloginpk.com.br/search-page</loc>
-      </url>
-      <url>
-        <loc>https://www.cataloginpk.com.br/auth-page</loc>
-      </url>
-      <url>
-        <loc>https://www.cataloginpk.com.br/register-page</loc>
-      </url>
-    </urlset>
-    """, 200, {"Content-Type": "application/xml"}
     
 # =========================
 # INIT DATABASE
