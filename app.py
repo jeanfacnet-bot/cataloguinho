@@ -1135,29 +1135,28 @@ DF_NEIGHBORHOODS = {
 # ROTA DE TESTE
 # =========================
 
-@app.route("/")
-def home():
-    return render_template("home.html")
-
 @app.route("/sitemap.xml")
 def sitemap():
     return """<?xml version="1.0" encoding="UTF-8"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-
-        <url>
-            <loc>https://cataloguinho.onrender.com/</loc>
-        </url>
-
-        <url>
-            <loc>https://cataloguinho.onrender.com/search-page</loc>
-        </url>
-
-        <url>
-            <loc>https://cataloguinho.onrender.com/create-ad-page</loc>
-        </url>
-
+      <url>
+        <loc>https://www.cataloginpk.com.br/</loc>
+      </url>
+      <url>
+        <loc>https://www.cataloginpk.com.br/search-page</loc>
+      </url>
+      <url>
+        <loc>https://www.cataloginpk.com.br/auth-page</loc>
+      </url>
+      <url>
+        <loc>https://www.cataloginpk.com.br/register-page</loc>
+      </url>
+      <url>
+        <loc>https://cataloguinho.onrender.com/create-ad-page</loc>
+      </url>
     </urlset>
-    """, 200, {'Content-Type': 'application/xml'}
+    """, 200, {"Content-Type": "application/xml"}
+
 
 @app.route("/auth-page")
 def auth_page():
