@@ -1,4 +1,4 @@
 git add .
-git commit -m "correcao excluir9"
+git commit -m "ajuste na pesquisa1"
 git push
 

@@ -9,6 +9,13 @@ const resultsContainer = document.getElementById("results");
 const resultCount = document.getElementById("resultCount");
 let currentController = null;
 
+const locationCache = {
+  states: null,
+  cities: new Map(),
+  neighborhoods: new Map(),
+  streets: new Map()
+};
+
 console.log("app.js carregado");
 console.log({
   termInput,
@@ -205,15 +212,27 @@ async function sendReport(adId) {
 
 async function loadStates() {
   try {
+    resetSelect(stateSelect, "Selecione o estado");
+
+    if (Array.isArray(locationCache.states)) {
+      locationCache.states.forEach(state => {
+        const option = document.createElement("option");
+        option.value = state.sigla;
+        option.textContent = `${state.nome} (${state.sigla})`;
+        stateSelect.appendChild(option);
+      });
+      return;
+    }
+
     const response = await fetch("/locations/states");
     const states = await response.json();
-
-    resetSelect(stateSelect, "Selecione o estado");
 
     if (!response.ok || !Array.isArray(states)) {
       console.error("Não foi possível carregar os estados.", states);
       return;
     }
+
+    locationCache.states = states;
 
     states.forEach(state => {
       const option = document.createElement("option");
@@ -228,17 +247,35 @@ async function loadStates() {
 
 async function loadCities(uf) {
   try {
-    const response = await fetch(`/locations/cities?uf=${encodeURIComponent(uf)}`);
-    const cities = await response.json();
-
     resetSelect(citySelect, "Selecione a cidade");
     resetSelect(neighborhoodSelect, "Selecione o bairro");
     resetSelect(streetSelect, "Selecione a rua");
+
+    if (!uf) return;
+
+    const cacheKey = uf;
+
+    if (locationCache.cities.has(cacheKey)) {
+      const cachedCities = locationCache.cities.get(cacheKey);
+
+      cachedCities.forEach(city => {
+        const option = document.createElement("option");
+        option.value = city.nome;
+        option.textContent = city.nome;
+        citySelect.appendChild(option);
+      });
+      return;
+    }
+
+    const response = await fetch(`/locations/cities?uf=${encodeURIComponent(uf)}`);
+    const cities = await response.json();
 
     if (!response.ok || !Array.isArray(cities)) {
       console.error("Não foi possível carregar as cidades.", cities);
       return;
     }
+
+    locationCache.cities.set(cacheKey, cities);
 
     cities.forEach(city => {
       const option = document.createElement("option");
@@ -253,20 +290,38 @@ async function loadCities(uf) {
 
 async function loadNeighborhoods(cityName, stateUf) {
   try {
-    const params = new URLSearchParams();
+    resetSelect(neighborhoodSelect, "Selecione o bairro");
 
+    if (!cityName) return;
+
+    const cacheKey = `${stateUf}::${cityName}`;
+
+    if (locationCache.neighborhoods.has(cacheKey)) {
+      const cachedNeighborhoods = locationCache.neighborhoods.get(cacheKey);
+
+      cachedNeighborhoods.forEach(neighborhood => {
+        const nome = neighborhood.nome || neighborhood;
+        const option = document.createElement("option");
+        option.value = nome;
+        option.textContent = nome;
+        neighborhoodSelect.appendChild(option);
+      });
+      return;
+    }
+
+    const params = new URLSearchParams();
     if (cityName) params.append("city", cityName);
     if (stateUf) params.append("state", stateUf);
 
     const response = await fetch(`/locations/neighborhoods?${params.toString()}`);
     const neighborhoods = await response.json();
 
-    resetSelect(neighborhoodSelect, "Selecione o bairro");
-
     if (!response.ok || !Array.isArray(neighborhoods)) {
       console.error("Não foi possível carregar os bairros.", neighborhoods);
       return;
     }
+
+    locationCache.neighborhoods.set(cacheKey, neighborhoods);
 
     neighborhoods.forEach(neighborhood => {
       const nome = neighborhood.nome || neighborhood;
@@ -282,8 +337,26 @@ async function loadNeighborhoods(cityName, stateUf) {
 
 async function loadStreets(cityName, stateUf, neighborhoodName = "") {
   try {
-    const params = new URLSearchParams();
+    resetSelect(streetSelect, "Selecione a rua");
 
+    if (!cityName) return;
+
+    const cacheKey = `${stateUf}::${cityName}::${neighborhoodName || ""}`;
+
+    if (locationCache.streets.has(cacheKey)) {
+      const cachedStreets = locationCache.streets.get(cacheKey);
+
+      cachedStreets.forEach(street => {
+        const nome = street.nome || street;
+        const option = document.createElement("option");
+        option.value = nome;
+        option.textContent = nome;
+        streetSelect.appendChild(option);
+      });
+      return;
+    }
+
+    const params = new URLSearchParams();
     if (cityName) params.append("city", cityName);
     if (stateUf) params.append("state", stateUf);
     if (neighborhoodName) params.append("neighborhood", neighborhoodName);
@@ -291,12 +364,12 @@ async function loadStreets(cityName, stateUf, neighborhoodName = "") {
     const response = await fetch(`/locations/streets?${params.toString()}`);
     const streets = await response.json();
 
-    resetSelect(streetSelect, "Selecione a rua");
-
     if (!response.ok || !Array.isArray(streets)) {
       console.error("Não foi possível carregar as ruas.", streets);
       return;
     }
+
+    locationCache.streets.set(cacheKey, streets);
 
     streets.forEach(street => {
       const nome = street.nome || street;
@@ -385,8 +458,10 @@ if (citySelect) {
 
     if (!cityName) return;
 
-    await loadNeighborhoods(cityName, stateUf);
-    await loadStreets(cityName, stateUf);
+    await Promise.all([
+	  loadNeighborhoods(cityName, stateUf),
+	  loadStreets(cityName, stateUf)
+	]);
   });
 }
 
