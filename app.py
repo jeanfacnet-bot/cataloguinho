@@ -2366,7 +2366,10 @@ def ad_details_page(ad_id):
 
     return render_template("ad_details.html", ad_id=ad_id, origin=origin)
 
-
+@app.route("/anuncios/<int:ad_id>/page")
+def anuncio_details_page(ad_id):
+    return ad_details_page(ad_id)
+    
 @app.route("/create-ad-page")
 @login_required_page
 def create_ad_page():
