@@ -2886,6 +2886,9 @@ def list_vip_ads():
 
 @app.route("/ads/<int:ad_id>", methods=["DELETE"])
 def delete_ad(ad_id):
+    print(f"=== DELETE_AD INICIO | ad_id={ad_id} ===", flush=True)
+    print("SESSION USER ID:", session.get("user_id"), flush=True)
+    
     if not session.get("user_id"):
         return jsonify({"message": "Faça login para excluir o anúncio"}), 401
 
@@ -2924,6 +2927,11 @@ def delete_ad(ad_id):
 
 @app.route("/ads/<int:ad_id>", methods=["PUT"])
 def update_ad(ad_id):
+    print(f"=== UPDATE_AD INICIO | ad_id={ad_id} ===", flush=True)
+    print("SESSION USER ID:", session.get("user_id"), flush=True)
+    print("FORM UPDATE:", dict(request.form), flush=True)
+    print("FILES UPDATE:", list(request.files.keys()), flush=True)
+    
     if not session.get("user_id"):
         return jsonify({"message": "Faça login para editar o anúncio"}), 401
 
