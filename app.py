@@ -2886,13 +2886,10 @@ def list_vip_ads():
 
 @app.route("/ads/<int:ad_id>", methods=["DELETE"])
 def delete_ad(ad_id):
-    data = request.get_json() or {}
-    user_id = data.get("user_id")
+    if not session.get("user_id"):
+        return jsonify({"message": "Faça login para excluir o anúncio"}), 401
 
-    if not user_id:
-        return jsonify({"message": "Usuário não informado"}), 400
-
-    user = User.query.get(user_id)
+    user = User.query.get(session["user_id"])
     if not user:
         return jsonify({"message": "Usuário não encontrado"}), 404
 
@@ -2902,7 +2899,7 @@ def delete_ad(ad_id):
 
     if ad.user_id != user.id:
         return jsonify({"message": "Você não tem permissão para excluir este anúncio"}), 403
-        
+
     if ad.main_image:
         old_image_path = resolve_media_file_path(ad.main_image)
         if old_image_path and os.path.exists(old_image_path):
@@ -2918,7 +2915,7 @@ def delete_ad(ad_id):
                 os.remove(old_video_path)
             except Exception as e:
                 print(f"Erro ao remover vídeo antigo do anúncio {ad.id}: {e}", flush=True)
-            
+
     db.session.delete(ad)
     db.session.commit()
 
@@ -2927,12 +2924,10 @@ def delete_ad(ad_id):
 
 @app.route("/ads/<int:ad_id>", methods=["PUT"])
 def update_ad(ad_id):
-    user_id = request.form.get("user_id")
+    if not session.get("user_id"):
+        return jsonify({"message": "Faça login para editar o anúncio"}), 401
 
-    if not user_id:
-        return jsonify({"message": "Usuário não informado"}), 400
-
-    user = User.query.get(user_id)
+    user = User.query.get(session["user_id"])
     if not user:
         return jsonify({"message": "Usuário não encontrado"}), 404
 
@@ -3006,9 +3001,12 @@ def update_ad(ad_id):
             return jsonify({"message": "Formato de vídeo inválido."}), 400
 
         if ad.main_video:
-            old_video_path = ad.main_video.lstrip("/")
-            if os.path.exists(old_video_path):
-                os.remove(old_video_path)
+            old_video_path = resolve_media_file_path(ad.main_video)
+            if old_video_path and os.path.exists(old_video_path):
+                try:
+                    os.remove(old_video_path)
+                except Exception as e:
+                    print(f"Erro ao remover vídeo antigo do anúncio {ad.id}: {e}", flush=True)
 
         video_ext = main_video_file.filename.rsplit(".", 1)[1].lower()
         video_filename = f"{uuid.uuid4().hex}.{video_ext}"
