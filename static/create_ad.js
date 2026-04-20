@@ -601,8 +601,7 @@ async function loadMyAds() {
 	  return;
 	}
 
-	renderMyAds(data);
-
+	
     renderMyAds(data);
   } catch (error) {
     console.error("Erro ao carregar anúncios:", error);

@@ -620,16 +620,6 @@
 	
 	<script src="{{ url_for('static', filename='common_layout.js') }}"></script>
 
-	
-	<script>
-	
-	  if ("serviceWorker" in navigator) {
-		window.addEventListener("load", () => {
-		  navigator.serviceWorker.register("/service-worker.js")
-			.catch((error) => console.error("Erro ao registrar service worker:", error));
-		});
-	  }
-	</script>
-	
+		
 	</body>
 	</html>

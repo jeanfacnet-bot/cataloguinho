@@ -659,29 +659,33 @@
 	</script>
 	
 	<script>
-	  if ("serviceWorker" in navigator) {
-		navigator.serviceWorker.getRegistrations().then((registrations) => {
-		  registrations.forEach((registration) => registration.unregister());
-		});
+	  (function () {
+		if (!("serviceWorker" in navigator)) return;
 
-		if (window.caches) {
-		  caches.keys().then((keys) => {
-			keys.forEach((key) => caches.delete(key));
-		  });
-		}
-	  }
+		const alreadyCleaned = sessionStorage.getItem("sw_cleanup_done");
+
+		navigator.serviceWorker.getRegistrations().then(async (registrations) => {
+		  await Promise.all(registrations.map((registration) => registration.unregister()));
+
+		  if (window.caches) {
+			const keys = await caches.keys();
+			await Promise.all(keys.map((key) => caches.delete(key)));
+		  }
+
+		  if (!alreadyCleaned) {
+			sessionStorage.setItem("sw_cleanup_done", "1");
+			window.location.reload();
+		  }
+		});
+	  })();
 	</script>
+	
+	
 	
 	<script src="{{ url_for('static', filename='common_layout.js') }}"></script>
 
 	
-	<script>
-	if ("serviceWorker" in navigator) {
-	  navigator.serviceWorker.getRegistrations().then((registrations) => {
-		registrations.forEach((registration) => registration.unregister());
-	  });
-	}
-	</script>
+	
 
 	</body>
 	</html>
