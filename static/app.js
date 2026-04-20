@@ -8,6 +8,9 @@ const searchBtn = document.getElementById("searchBtn");
 const resultsContainer = document.getElementById("results");
 const resultCount = document.getElementById("resultCount");
 
+let searchTimeout = null;
+let currentController = null;
+
 console.log("app.js carregado");
 console.log({
   termInput,
@@ -128,6 +131,58 @@ function renderResults(items) {
 
     resultsContainer.appendChild(card);
   });
+}
+
+async function performSearch() {
+  if (currentController) {
+    currentController.abort();
+  }
+
+  currentController = new AbortController();
+
+  const term = termInput.value.trim();
+  const state = stateSelect.value;
+  const city = citySelect.value;
+  const neighborhood = neighborhoodSelect.value;
+  const street = streetSelect.value;
+  const complement = complementInput.value.trim();
+
+  const params = new URLSearchParams({
+    term,
+    state,
+    city,
+    neighborhood,
+    street,
+    complement
+  });
+
+  try {
+    const response = await fetch(`/search?${params}`, {
+      signal: currentController.signal
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Erro na busca");
+      return;
+    }
+
+    renderResults(data);
+  } catch (err) {
+    if (err.name === "AbortError") return;
+    console.error("Erro real:", err);
+  }
+}
+
+function debounceSearch() {
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+  }
+
+  searchTimeout = setTimeout(() => {
+    performSearch();
+  }, 400); // tempo ideal: 300–500ms
 }
 
 function toggleReportBox(adId, forceState = null) {
@@ -397,3 +452,10 @@ if (searchBtn) {
 
 loadStates();
 searchAds();
+
+termInput.addEventListener("input", debounceSearch);
+stateSelect.addEventListener("change", debounceSearch);
+citySelect.addEventListener("change", debounceSearch);
+neighborhoodSelect.addEventListener("change", debounceSearch);
+streetSelect.addEventListener("change", debounceSearch);
+complementInput.addEventListener("input", debounceSearch);
