@@ -1,4 +1,4 @@
-const CACHE_NAME = "catalogin-v1";
+const CACHE_NAME = "catalogin-v2";
 const URLS_TO_CACHE = [
   "/",
   "/search-page",
@@ -11,6 +11,8 @@ const URLS_TO_CACHE = [
 ];
 
 self.addEventListener("install", (event) => {
+  self.skipWaiting();
+
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(URLS_TO_CACHE))
   );
@@ -24,7 +26,7 @@ self.addEventListener("activate", (event) => {
           .filter((key) => key !== CACHE_NAME)
           .map((key) => caches.delete(key))
       )
-    )
+    ).then(() => self.clients.claim())
   );
 });
 
@@ -32,12 +34,10 @@ self.addEventListener("fetch", (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // 🔴 NUNCA interceptar métodos não GET
   if (request.method !== "GET") {
     return;
   }
 
-  // 🔴 NÃO interceptar APIs do backend
   if (
     url.pathname.startsWith("/ads") ||
     url.pathname.startsWith("/auth") ||

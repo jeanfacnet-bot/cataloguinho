@@ -621,7 +621,7 @@
 	  })();
 	</script>
 
-	<script src="{{ url_for('static', filename='create_ad.js') }}?v=20260420-1"></script>
+	<script src="{{ url_for('static', filename='create_ad.js') }}?v=20260420-2"></script>
 
 	<script>
 	  (function () {
@@ -658,16 +658,23 @@
 	  })();
 	</script>
 	
-	<script src="{{ url_for('static', filename='common_layout.js') }}"></script>
-
 	<script>
 	  if ("serviceWorker" in navigator) {
-		window.addEventListener("load", () => {
-		  navigator.serviceWorker.register("/service-worker.js")
-			.catch((error) => console.error("Erro ao registrar service worker:", error));
+		navigator.serviceWorker.getRegistrations().then((registrations) => {
+		  registrations.forEach((registration) => registration.unregister());
 		});
+
+		if (window.caches) {
+		  caches.keys().then((keys) => {
+			keys.forEach((key) => caches.delete(key));
+		  });
+		}
 	  }
 	</script>
+	
+	<script src="{{ url_for('static', filename='common_layout.js') }}"></script>
+
+	
 	<script>
 	if ("serviceWorker" in navigator) {
 	  navigator.serviceWorker.getRegistrations().then((registrations) => {
