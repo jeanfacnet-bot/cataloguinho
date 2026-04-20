@@ -80,7 +80,7 @@ function renderResults(items) {
 		<div class="result-actions">
 		  ${
 			  item.can_show_full_details
-				? `<button type="button" onclick="window.location.href='/ads/${item.id}/page?from=search'">Ver detalhes</button>`
+				? `<button type="button" onclick="window.location.href='/anuncios/${item.id}/page?from=search'">Ver detalhes</button>`
 				: ""
 			}
 		</div>

@@ -16,7 +16,7 @@ document.getElementById("searchAds").addEventListener("click", async () => {
         neighborhood
     })
 
-    const response = await fetch(`/ads?${params}`)
+    const response = await fetch(`/anuncios?${params}`)
     const ads = await response.json()
 
     results.innerHTML = ""

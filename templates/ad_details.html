@@ -212,7 +212,7 @@
 
 	  async function loadAd() {
 		try {
-		  const response = await fetch(`/ads/${adId}`);
+		  const response = await fetch(`/anuncios/${adId}`);
 
 		  if (!response.ok) {
 			throw new Error("Anúncio não encontrado");

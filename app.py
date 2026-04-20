@@ -2343,7 +2343,10 @@ def get_ad(ad_id):
 
     return jsonify(serialize_ad(ad))
 
-
+@app.route("/anuncios/<int:ad_id>", methods=["GET"])
+def get_anuncio(ad_id):
+    return get_ad(ad_id)
+    
 @app.route("/ads/<int:ad_id>/page")
 def ad_details_page(ad_id):
     ad = Ad.query.get(ad_id)
@@ -2883,7 +2886,10 @@ def list_vip_ads():
 
     return jsonify([serialize_ad(ad) for ad in ads])
 
-
+@app.route("/anuncios", methods=["GET"])
+def list_anuncios():
+    return get_ads()
+    
 @app.route("/ads/<int:ad_id>", methods=["DELETE"])
 def delete_ad(ad_id):
     try:
