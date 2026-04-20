@@ -2886,43 +2886,63 @@ def list_vip_ads():
 
 @app.route("/ads/<int:ad_id>", methods=["DELETE"])
 def delete_ad(ad_id):
-    print(f"=== DELETE_AD INICIO | ad_id={ad_id} ===", flush=True)
-    print("SESSION USER ID:", session.get("user_id"), flush=True)
-    
-    if not session.get("user_id"):
-        return jsonify({"message": "Faça login para excluir o anúncio"}), 401
+    try:
+        print(f"=== DELETE_AD INICIO | ad_id={ad_id} ===", flush=True)
+        print("SESSION USER ID:", session.get("user_id"), flush=True)
 
-    user = User.query.get(session["user_id"])
-    if not user:
-        return jsonify({"message": "Usuário não encontrado"}), 404
+        if not session.get("user_id"):
+            return jsonify({"message": "Faça login para excluir o anúncio"}), 401
 
-    ad = Ad.query.get(ad_id)
-    if not ad:
-        return jsonify({"message": "Anúncio não encontrado"}), 404
+        user = User.query.get(session["user_id"])
+        if not user:
+            return jsonify({"message": "Usuário não encontrado"}), 404
 
-    if ad.user_id != user.id:
-        return jsonify({"message": "Você não tem permissão para excluir este anúncio"}), 403
+        ad = Ad.query.get(ad_id)
+        if not ad:
+            return jsonify({"message": "Anúncio não encontrado"}), 404
 
-    if ad.main_image:
-        old_image_path = resolve_media_file_path(ad.main_image)
-        if old_image_path and os.path.exists(old_image_path):
-            try:
-                os.remove(old_image_path)
-            except Exception as e:
-                print(f"Erro ao remover imagem antiga do anúncio {ad.id}: {e}", flush=True)
+        print(f"DELETE_AD | ad.user_id={ad.user_id} | user.id={user.id}", flush=True)
+        print(f"DELETE_AD | main_image={ad.main_image}", flush=True)
+        print(f"DELETE_AD | main_video={ad.main_video}", flush=True)
 
-    if ad.main_video:
-        old_video_path = resolve_media_file_path(ad.main_video)
-        if old_video_path and os.path.exists(old_video_path):
-            try:
-                os.remove(old_video_path)
-            except Exception as e:
-                print(f"Erro ao remover vídeo antigo do anúncio {ad.id}: {e}", flush=True)
+        if ad.user_id != user.id:
+            return jsonify({"message": "Você não tem permissão para excluir este anúncio"}), 403
 
-    db.session.delete(ad)
-    db.session.commit()
+        if ad.main_image:
+            old_image_path = resolve_media_file_path(ad.main_image)
+            print(f"DELETE_AD | old_image_path={old_image_path}", flush=True)
 
-    return jsonify({"message": "Anúncio excluído com sucesso"})
+            if old_image_path and os.path.exists(old_image_path):
+                try:
+                    os.remove(old_image_path)
+                except Exception as e:
+                    print(f"Erro ao remover imagem antiga do anúncio {ad.id}: {e}", flush=True)
+
+        if ad.main_video:
+            old_video_path = resolve_media_file_path(ad.main_video)
+            print(f"DELETE_AD | old_video_path={old_video_path}", flush=True)
+
+            if old_video_path and os.path.exists(old_video_path):
+                try:
+                    os.remove(old_video_path)
+                except Exception as e:
+                    print(f"Erro ao remover vídeo antigo do anúncio {ad.id}: {e}", flush=True)
+
+        db.session.delete(ad)
+        db.session.commit()
+
+        print(f"=== DELETE_AD SUCESSO | ad_id={ad_id} ===", flush=True)
+        return jsonify({"message": "Anúncio excluído com sucesso"})
+
+    except Exception as e:
+        import traceback
+        print(f"=== EXCEPTION DELETE_AD | ad_id={ad_id} ===", flush=True)
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({
+            "message": "Erro interno ao excluir anúncio",
+            "error": str(e)
+        }), 500
 
 
 @app.route("/ads/<int:ad_id>", methods=["PUT"])
