@@ -383,7 +383,7 @@ function startEdit(ad) {
     }
 
     neighborhoodSelect.value = ad.neighborhood || "";
-    streetSelect.value = ad.street || "";
+    
   });
 
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -396,7 +396,9 @@ function resetFormMode() {
   document.getElementById("complement").value = "";
   resetSelect(citySelect, "Selecione a cidade");
   resetSelect(neighborhoodSelect, "Selecione o bairro");
-  resetSelect(streetSelect, "Selecione a rua");
+  if (streetSelect) {
+    resetSelect(streetSelect, "Selecione a rua");
+  }
 
   const submitBtn = adForm.querySelector('button[type="submit"]');
   if (submitBtn) {
@@ -529,57 +531,7 @@ async function loadNeighborhoods(cityName, stateUf) {
 }
 
 async function loadStreets(cityName, stateUf, neighborhoodName = "") {
-  try {
-    resetSelect(streetSelect, "Carregando ruas...");
-
-    const tryFetch = async (useNeighborhood) => {
-      const params = new URLSearchParams();
-
-      if (cityName) params.append("city", cityName);
-      if (stateUf) params.append("state", stateUf);
-      if (useNeighborhood && neighborhoodName) {
-        params.append("neighborhood", neighborhoodName);
-      }
-
-      const response = await fetch(`/locations/streets?${params.toString()}`);
-      const streets = await response.json();
-
-      if (!response.ok || !Array.isArray(streets)) {
-        return [];
-      }
-
-      return streets;
-    };
-
-    // 1) tenta com bairro
-    let streets = await tryFetch(true);
-
-    // 2) se não achou nada, tenta sem bairro
-    if (!streets.length) {
-      streets = await tryFetch(false);
-    }
-
-    resetSelect(streetSelect, "Selecione a rua");
-
-    streets.forEach(street => {
-      const option = document.createElement("option");
-      option.value = street.nome || street;
-      option.textContent = street.nome || street;
-      streetSelect.appendChild(option);
-    });
-
-    if (!streets.length) {
-      showMessage(
-        "Nenhuma rua encontrada para essa localidade. Você pode continuar o cadastro normalmente.",
-        "error"
-      );
-    } else {
-      clearMessage();
-    }
-  } catch (error) {
-    console.error("Erro ao carregar ruas:", error);
-    showMessage("Erro ao carregar ruas.", "error");
-  }
+  return;
 }
 
 async function loadMyAds() {
@@ -627,25 +579,22 @@ citySelect.addEventListener("change", async () => {
   const stateUf = stateSelect.value;
 
   resetSelect(neighborhoodSelect, "Selecione o bairro");
-  resetSelect(streetSelect, "Selecione a rua");
+
+  if (streetSelect) {
+    resetSelect(streetSelect, "Selecione a rua");
+  }
 
   if (!cityName) return;
 
   await loadNeighborhoods(cityName, stateUf);
-  await loadStreets(cityName, stateUf);
 });
 
-neighborhoodSelect.addEventListener("change", async () => {
-  clearMessage();	
-  const cityName = citySelect.value;
-  const stateUf = stateSelect.value;
-  const neighborhoodName = neighborhoodSelect.value;
+neighborhoodSelect.addEventListener("change", () => {
+  clearMessage();
 
-  resetSelect(streetSelect, "Selecione a rua");
-
-  if (!cityName) return;
-
-  await loadStreets(cityName, stateUf, neighborhoodName);
+  if (streetSelect) {
+    resetSelect(streetSelect, "Selecione a rua");
+  }
 });
 
 adForm.addEventListener("submit", async (e) => {
@@ -712,7 +661,6 @@ adForm.addEventListener("submit", async (e) => {
     formData.append("municipality", "");
   }
   formData.append("neighborhood", neighborhoodSelect.value.trim());
-  formData.append("street", streetSelect.value.trim());
   formData.append("number", document.getElementById("number").value.trim());
   formData.append("complement", complementInput.value.trim());
   formData.append("zipcode", document.getElementById("zipcode").value.trim());

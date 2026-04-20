@@ -249,7 +249,9 @@ async function loadCities(uf) {
   try {
     resetSelect(citySelect, "Selecione a cidade");
     resetSelect(neighborhoodSelect, "Selecione o bairro");
-    resetSelect(streetSelect, "Selecione a rua");
+    if (streetSelect) {
+	  resetSelect(streetSelect, "Selecione a rua");
+	}
 
     if (!uf) return;
 
@@ -336,51 +338,7 @@ async function loadNeighborhoods(cityName, stateUf) {
 }
 
 async function loadStreets(cityName, stateUf, neighborhoodName = "") {
-  try {
-    resetSelect(streetSelect, "Selecione a rua");
-
-    if (!cityName) return;
-
-    const cacheKey = `${stateUf}::${cityName}::${neighborhoodName || ""}`;
-
-    if (locationCache.streets.has(cacheKey)) {
-      const cachedStreets = locationCache.streets.get(cacheKey);
-
-      cachedStreets.forEach(street => {
-        const nome = street.nome || street;
-        const option = document.createElement("option");
-        option.value = nome;
-        option.textContent = nome;
-        streetSelect.appendChild(option);
-      });
-      return;
-    }
-
-    const params = new URLSearchParams();
-    if (cityName) params.append("city", cityName);
-    if (stateUf) params.append("state", stateUf);
-    if (neighborhoodName) params.append("neighborhood", neighborhoodName);
-
-    const response = await fetch(`/locations/streets?${params.toString()}`);
-    const streets = await response.json();
-
-    if (!response.ok || !Array.isArray(streets)) {
-      console.error("Não foi possível carregar as ruas.", streets);
-      return;
-    }
-
-    locationCache.streets.set(cacheKey, streets);
-
-    streets.forEach(street => {
-      const nome = street.nome || street;
-      const option = document.createElement("option");
-      option.value = nome;
-      option.textContent = nome;
-      streetSelect.appendChild(option);
-    });
-  } catch (error) {
-    console.error("Erro ao carregar ruas:", error);
-  }
+  return;
 }
 
 async function searchAds() {
@@ -393,14 +351,14 @@ async function searchAds() {
     const state = stateSelect?.value.trim() || "";
     const city = citySelect?.value.trim() || "";
     const neighborhood = neighborhoodSelect?.value.trim() || "";
-    const street = streetSelect?.value.trim() || "";
+    const street = "";
 	const complement = complementInput?.value.trim() || "";
 
     if (term) params.append("term", term);
     if (state) params.append("state", state);
     if (city) params.append("city", city);
     if (neighborhood) params.append("neighborhood", neighborhood);
-    if (street) params.append("street", street);
+    
 	if (complement) params.append("complement", complement);
 
     const url = `/search?${params.toString()}`;
@@ -440,7 +398,9 @@ if (stateSelect) {
 
     resetSelect(citySelect, "Selecione a cidade");
     resetSelect(neighborhoodSelect, "Selecione o bairro");
-    resetSelect(streetSelect, "Selecione a rua");
+    if (streetSelect) {
+	  resetSelect(streetSelect, "Selecione a rua");
+	}
 
     if (!uf) return;
 
@@ -454,7 +414,10 @@ if (citySelect) {
     const stateUf = stateSelect.value;
 
     resetSelect(neighborhoodSelect, "Selecione o bairro");
-    resetSelect(streetSelect, "Selecione a rua");
+
+    if (streetSelect) {
+      resetSelect(streetSelect, "Selecione a rua");
+    }
 
     if (!cityName) return;
 
@@ -464,7 +427,9 @@ if (citySelect) {
 
 if (neighborhoodSelect) {
   neighborhoodSelect.addEventListener("change", () => {
-    resetSelect(streetSelect, "Selecione a rua");
+    if (streetSelect) {
+      resetSelect(streetSelect, "Selecione a rua");
+    }
   });
 }
 
