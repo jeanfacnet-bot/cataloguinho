@@ -762,6 +762,14 @@ def resolve_media_file_path(media_url):
         return None
 
     normalized = media_url.replace("\\", "/").strip()
+    
+    if normalized.startswith("/media/images/"):
+        relative_part = normalized[len("/media/images/"):]
+        return os.path.join(UPLOAD_IMAGE_FOLDER, relative_part)
+
+    if normalized.startswith("/media/videos/"):
+        relative_part = normalized[len("/media/videos/"):]
+        return os.path.join(UPLOAD_VIDEO_FOLDER, relative_part)
 
     # Caso já venha como caminho absoluto no servidor
     if os.path.isabs(normalized):
@@ -2466,7 +2474,7 @@ def create_ad():
         image_filename = f"{uuid.uuid4().hex}.{image_ext}"
         image_full_path = os.path.join(UPLOAD_IMAGE_FOLDER, image_filename)
         main_image_file.save(image_full_path)
-        image_path = f"/static/uploads/images/{image_filename}"
+        image_path = f"/media/images/{image_filename}"
 
     if main_video_file and main_video_file.filename:
         if not allowed_file(main_video_file.filename, ALLOWED_VIDEO_EXTENSIONS):
@@ -2489,7 +2497,7 @@ def create_ad():
                 "message": "O vídeo deve ter no máximo 1 minuto."
             }), 400
 
-        video_path = f"/static/uploads/videos/{video_filename}"    
+        video_path = f"/media/videos/{video_filename}"    
 
     ad = Ad(
         user_id=user.id,
@@ -3020,7 +3028,7 @@ def update_ad(ad_id):
             image_full_path = os.path.join(UPLOAD_IMAGE_FOLDER, image_filename)
             main_image_file.save(image_full_path)
 
-            ad.main_image = f"/static/uploads/images/{image_filename}"
+            ad.main_image = f"/media/images/{image_filename}"
 
         elif not plan_rules["can_use_images"]:
             ad.main_image = None
@@ -3052,7 +3060,7 @@ def update_ad(ad_id):
                 os.remove(video_full_path)
                 return jsonify({"message": "O vídeo deve ter no máximo 1 minuto."}), 400
 
-            ad.main_video = f"/static/uploads/videos/{video_filename}"
+            ad.main_video = f"/media/videos/{video_filename}"
 
         elif not plan_rules["can_use_videos"]:
             ad.main_video = None
@@ -3683,7 +3691,14 @@ def admin_dashboard_data():
     },
         "users_by_plan": users_by_plan
     }) 
+    
+@app.route("/media/images/<path:filename>")
+def serve_uploaded_image(filename):
+    return send_from_directory(UPLOAD_IMAGE_FOLDER, filename)
 
+@app.route("/media/videos/<path:filename>")
+def serve_uploaded_video(filename):
+    return send_from_directory(UPLOAD_VIDEO_FOLDER, filename)
     
 # =========================
 # INIT DATABASE
