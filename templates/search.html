@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catálogo - Pesquisa</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=50">
 	<style>
 	  .container {
 		max-width: 1240px;
@@ -159,17 +159,17 @@
 	  }
 
 	  .result-card {
-		display: flex;
-		align-items: stretch;
-		gap: 18px;
-		background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-		border: 1px solid #e5e7eb;
-		border-radius: 22px;
-		padding: 18px;
-		box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
-		position: relative;
-		overflow: hidden;
-		transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+	    display: flex;
+	    align-items: stretch;
+	    gap: 18px;
+	    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+	    border: 1px solid #e5e7eb;
+	    border-radius: 22px;
+	    padding: 18px;
+	    padding-right: 120px; /* NOVO */
+	    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+	    position: relative;
+	    overflow: hidden;
 	  }
 
 	  .result-card:hover {
@@ -184,7 +184,8 @@
 	  }
 
 	  .result-image {
-		flex: 0 0 240px;
+	    flex: 0 0 240px;
+	    margin-left: -180px;
 	  }
 
 	  .result-image img {
@@ -197,11 +198,18 @@
 	  }
 
 	  .result-actions {
-		display: flex;
-		gap: 8px;
-		margin-top: 14px;
-		flex-wrap: wrap;
-	  }
+		  display: flex;
+		  gap: 8px;
+		  margin-top: 14px;
+		  flex-wrap: wrap;
+		  align-items: center;
+		}
+
+		.result-actions 
+		
+		.report-btn {
+		  margin-left: auto;
+		}
 
 	  .result-actions button {
 		background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
@@ -267,10 +275,13 @@
 	  }
 
 	  .report-side {
-		position: absolute;
-		top: 14px;
-		right: 14px;
+	    position: absolute;
+	    top: 14px;
+	    right: 14px;
+	    z-index: 2;
 	  }
+
+	  
 
 	  .report-btn {
 		background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
@@ -460,6 +471,9 @@
 		.result-image {
 		  width: 100%;
 		  flex: 0 0 auto;
+		  position: static;
+		  transform: none;
+		  margin-left: 0;
 		}
 
 		.result-image img {
@@ -471,11 +485,21 @@
 		.report-side {
 		  position: static;
 		  margin-bottom: 8px;
+		  display: flex;
+		  justify-content: flex-end;
+		  width: 100%;
+		  align-self: stretch;
 		}
 
 		.results-header {
 		  flex-direction: column;
 		  align-items: flex-start;
+		}
+		.report-btn {
+		  padding: 4px 8px !important;
+		  font-size: 11px !important;
+		  border-radius: 8px !important;
+		  line-height: 1.1;
 		}
 	  }
 	</style>
@@ -557,7 +581,7 @@
 	  })();
 	</script>
 
-	<script src="{{ url_for('static', filename='app.js') }}?v=2"></script>
+	<script src="{{ url_for('static', filename='app.js') }}?v=50"></script>
 
 	<script>
 	  (function () {
@@ -596,7 +620,9 @@
 	
 	<script src="{{ url_for('static', filename='common_layout.js') }}"></script>
 
+	<!--
 	<script>
+	
 	  if ("serviceWorker" in navigator) {
 		window.addEventListener("load", () => {
 		  navigator.serviceWorker.register("/service-worker.js")
@@ -604,6 +630,6 @@
 		});
 	  }
 	</script>
-
+	-->
 	</body>
 	</html>
