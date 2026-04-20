@@ -1877,114 +1877,19 @@ def get_streets():
             ad_streets.append({"nome": street_name})
 
         
-        # 3) FALLBACK: OpenStreetMap / Overpass
-        nominatim_url = "https://nominatim.openstreetmap.org/search"
-        headers = {
-            "User-Agent": "catalogo-app/1.0"
-        }
-
-        if state == "DF":
-            search_text = f"{city}, Distrito Federal, Brasil"
-        else:
-            search_text = f"{city}, {state}, Brasil" if state else f"{city}, Brasil"
-
-        area_resp = requests.get(
-            nominatim_url,
-            params={
-                "q": search_text,
-                "format": "jsonv2",
-                "limit": 1,
-                "addressdetails": 1
-            },
-            headers=headers,
-            timeout=12
-        )
-        area_resp.raise_for_status()
-        area_data = area_resp.json()
-
-        if not area_data:
-            return jsonify([])
-
-        osm_type = area_data[0].get("osm_type")
-        osm_id = area_data[0].get("osm_id")
-
-        if not osm_type or not osm_id:
-            return jsonify([])
-
-        if osm_type == "relation":
-            area_id = 3600000000 + int(osm_id)
-        elif osm_type == "way":
-            area_id = 2400000000 + int(osm_id)
-        elif osm_type == "node":
-            area_id = 1600000000 + int(osm_id)
-        else:
-            return jsonify([])
-
-        overpass_query = f"""
-        [out:json][timeout:20];
-        area({area_id})->.searchArea;
-        (
-          way["highway"]["name"](area.searchArea);
-        );
-        out tags;
-        """
-
-        overpass_resp = requests.post(
-            "https://overpass-api.de/api/interpreter",
-            data=overpass_query,
-            headers=headers,
-            timeout=25
-        )
-        overpass_resp.raise_for_status()
-        overpass_data = overpass_resp.json()
-
-        ignored_types = {
-            "footway", "cycleway", "path", "steps", "track",
-            "corridor", "bridleway", "pedestrian",
-            "proposed", "construction", "service"
-        }
-
-        names = set()
-
-        for element in overpass_data.get("elements", []):
-            tags = element.get("tags", {})
-            name = (tags.get("name") or "").strip()
-            highway_type = (tags.get("highway") or "").strip()
-
-            if not name:
-                continue
-
-            if highway_type in ignored_types:
-                continue
-
-            if is_blocked_location(
-                state=state,
-                city=city,
-                neighborhood=neighborhood or None,
-                street=name
-            ):
-                continue
-
-            names.add(name)
-
-        # 🔥 AGORA JUNTA TUDO
         all_names = set()
 
-        # Managed
         for item in managed_streets:
             all_names.add(item["nome"])
 
-        # Ads
         for item in ad_streets:
             all_names.add(item["nome"])
-
-        # OpenStreetMap
-        for name in names:
-            all_names.add(name)
 
         streets = [{"nome": name} for name in sorted(all_names)]
 
         return jsonify(streets)
+
+      
 
     except Exception as e:
         print("Erro ao carregar ruas:", e, flush=True)

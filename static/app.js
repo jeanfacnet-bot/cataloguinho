@@ -458,22 +458,27 @@ if (citySelect) {
 
     if (!cityName) return;
 
-    await Promise.all([
-	  loadNeighborhoods(cityName, stateUf),
-	  loadStreets(cityName, stateUf)
-	]);
+    await loadNeighborhoods(cityName, stateUf);
   });
 }
 
 if (neighborhoodSelect) {
-  neighborhoodSelect.addEventListener("change", async () => {
+  neighborhoodSelect.addEventListener("change", () => {
+    resetSelect(streetSelect, "Selecione a rua");
+  });
+}
+
+if (streetSelect) {
+  streetSelect.addEventListener("focus", async () => {
     const cityName = citySelect.value;
     const stateUf = stateSelect.value;
     const neighborhoodName = neighborhoodSelect.value;
 
-    resetSelect(streetSelect, "Selecione a rua");
-
     if (!cityName) return;
+
+    const hasOnlyPlaceholder = streetSelect.options.length <= 1;
+
+    if (!hasOnlyPlaceholder) return;
 
     await loadStreets(cityName, stateUf, neighborhoodName);
   });

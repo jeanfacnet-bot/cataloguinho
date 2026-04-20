@@ -1,4 +1,4 @@
 git add .
-git commit -m "ajuste na pesquisa1"
+git commit -m "ajuste na pesquisa2"
 git push
 
