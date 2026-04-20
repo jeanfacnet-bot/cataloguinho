@@ -3083,6 +3083,14 @@ def update_ad(ad_id):
             "message": "Erro interno ao atualizar anúncio",
             "error": str(e)
         }), 500
+        
+@app.route("/anuncios/<int:ad_id>", methods=["PUT"])
+def update_anuncio(ad_id):
+    return update_ad(ad_id)
+
+@app.route("/anuncios/<int:ad_id>", methods=["DELETE"])
+def delete_anuncio(ad_id):
+    return delete_ad(ad_id)        
     
 @app.errorhandler(413)
 def file_too_large(error):

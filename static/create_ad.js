@@ -755,7 +755,7 @@ adForm.addEventListener("submit", async (e) => {
 	}
 
   try {
-    const url = editingAdId ? `/ads/${editingAdId}` : "/ads";
+    const url = editingAdId ? `/anuncios/${editingAdId}` : "/ads";
     const method = editingAdId ? "PUT" : "POST";
 
     const response = await fetch(url, {
@@ -811,10 +811,10 @@ async function deleteAd(adId) {
   }
 
   try {
-    const response = await fetch(`/ads/${adId}`, {
-      method: "DELETE",
-      credentials: "same-origin"
-    });
+    const response = await fetch(`/anuncios/${adId}`, {
+	  method: "DELETE",
+	  credentials: "same-origin"
+	});
 
     let data = {};
 
