@@ -519,7 +519,6 @@ def mercadopago_webhook():
 
     user.plan = target_plan
     user.vip_expires_at = expires_at
-    sync_user_ads_with_plan(user, target_plan)
 
     purchase = VipPurchase.query.filter_by(payment_id=str(payment_id)).first()
 
@@ -588,8 +587,6 @@ def check_payment(payment_id):
                     if user.plan != target_plan or not user.vip_expires_at or user.vip_expires_at < now:
                         user.plan = target_plan
                         user.vip_expires_at = expires_at
-
-                    sync_user_ads_with_plan(user, target_plan)
 
                     purchase = VipPurchase.query.filter_by(payment_id=str(payment_id)).first()
 
@@ -753,47 +750,7 @@ def ensure_admin_user():
 def allowed_file(filename, allowed_extensions):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed_extensions
 
-def resolve_media_file_path(media_url):
-    if not media_url:
-        return None
 
-    media_url = str(media_url).strip()
-    if not media_url:
-        return None
-
-    normalized = media_url.replace("\\", "/").strip()
-
-    # Caso já venha como caminho absoluto no servidor
-    if os.path.isabs(normalized):
-        return normalized
-
-    # Caso esteja salvo como /static/uploads/...
-    if normalized.startswith("/static/uploads/"):
-        relative_part = normalized[len("/static/uploads/"):]
-        return os.path.join(UPLOAD_BASE, relative_part)
-
-    # Caso esteja salvo como static/uploads/...
-    if normalized.startswith("static/uploads/"):
-        relative_part = normalized[len("static/uploads/"):]
-        return os.path.join(UPLOAD_BASE, relative_part)
-
-    # Caso esteja salvo apenas como uploads/...
-    if normalized.startswith("uploads/"):
-        relative_part = normalized[len("uploads/"):]
-        return os.path.join(UPLOAD_BASE, relative_part)
-
-    # Caso venha só o nome do arquivo, tenta em images e videos
-    image_candidate = os.path.join(UPLOAD_IMAGE_FOLDER, os.path.basename(normalized))
-    if os.path.exists(image_candidate):
-        return image_candidate
-
-    video_candidate = os.path.join(UPLOAD_VIDEO_FOLDER, os.path.basename(normalized))
-    if os.path.exists(video_candidate):
-        return video_candidate
-
-    # fallback
-    return os.path.join(UPLOAD_BASE, normalized.lstrip("/"))
-    
 def get_video_duration(file_path):
     try:
         result = subprocess.run(
@@ -813,43 +770,9 @@ def get_video_duration(file_path):
     except Exception as e:
         print("Erro ao obter duração do vídeo:", e)
         return None
-        
-        
-def sync_user_ads_with_plan(user, target_plan=None):
-    if not user:
-        return
-
-    effective_plan = (target_plan or user.plan or "FREE").strip().upper()
-
-    if effective_plan not in ["FREE", "VIP_BRONZE", "VIP_PRATA", "VIP_OURO", "VIP_PREMIUM"]:
-        effective_plan = "FREE"
-
-    if is_vip_plan(effective_plan):
-        if not user.vip_expires_at or user.vip_expires_at <= utc_now():
-            effective_plan = "FREE"
-            user.plan = "FREE"
-            user.vip_expires_at = None
-            
-    user.plan = effective_plan
-    
-    plan_rules = get_plan_rules(effective_plan)
-    ads_limit = int(plan_rules.get("ads_limit", 0))
-    can_use_images = bool(plan_rules.get("can_use_images", False))
-    can_use_videos = bool(plan_rules.get("can_use_videos", False))
-
-    user_ads = Ad.query.filter_by(user_id=user.id).order_by(Ad.created_at.desc()).all()
-
-    for index, ad in enumerate(user_ads):
-        ad.plan = effective_plan
-        ad.is_active = index < ads_limit
-
-        if not can_use_images:
-            ad.main_image = None
-
-        if not can_use_videos:
-            ad.main_video = None        
 
 def enforce_user_plan(user):
+    plan_rules = get_plan_rules(user.plan)
     if not user:
         return
 
@@ -865,15 +788,19 @@ def enforce_user_plan(user):
     user.plan = "FREE"
     user.vip_expires_at = None
 
-    sync_user_ads_with_plan(user, "FREE")
+    user_ads = Ad.query.filter_by(user_id=user.id).order_by(Ad.created_at.desc()).all()
+
+    free_limit = get_plan_rules("FREE")["ads_limit"]
+
+    for index, ad in enumerate(user_ads):
+        ad.plan = "FREE"
+        ad.main_image = None
+        ad.main_video = None
+        ad.is_active = index < free_limit
+
     db.session.commit()
 
 def serialize_ad(ad):
-    plan_rules = get_plan_rules(ad.plan)
-
-    safe_main_image = ad.main_image if plan_rules.get("can_use_images") else None
-    safe_main_video = ad.main_video if plan_rules.get("can_use_videos") else None
-
     return {
         "id": ad.id,
         "title": ad.title,
@@ -889,11 +816,11 @@ def serialize_ad(ad):
         "complement": ad.complement,
         "zipcode": ad.zipcode,
         "plan": ad.plan,
-        "main_image": safe_main_image,
-        "main_video": safe_main_video,
+        "main_image": ad.main_image,
+        "main_video": ad.main_video,
         "is_active": ad.is_active,
         "plan_label": get_plan_label(ad.plan),
-        "can_show_full_details": plan_rules["can_show_full_details"],
+        "can_show_full_details": get_plan_rules(ad.plan)["can_show_full_details"],
         "blocked_until": ad.blocked_until.isoformat() if ad.blocked_until else None,
         "owner_blocked_until": ad.user.blocked_until.isoformat() if ad.user and ad.user.blocked_until else None,
         "created_at": ad.created_at.isoformat() if ad.created_at else None,
@@ -1230,9 +1157,6 @@ def sitemap():
     </urlset>
     """, 200, {"Content-Type": "application/xml"}
 
-@app.route("/")
-def home():
-    return render_template("home.html")
 
 @app.route("/auth-page")
 def auth_page():
@@ -1338,8 +1262,6 @@ def login():
     
     if user:
         enforce_user_plan(user)
-        sync_user_ads_with_plan(user)
-        db.session.commit()
     
     if not user or not check_password_hash(user.password_hash, password):
         return jsonify({"message": "E-mail ou senha inválidos"}), 401
@@ -1485,8 +1407,6 @@ def get_current_session():
         }), 200
 
     enforce_user_plan(user)
-    sync_user_ads_with_plan(user)
-    db.session.commit()
 
     if user.blocked_until and user.blocked_until > utc_now():
         return jsonify({
@@ -2556,8 +2476,6 @@ def get_my_ads(user_id):
         return jsonify({"message": "Usuário não encontrado"}), 404
         
     enforce_user_plan(user)
-    sync_user_ads_with_plan(user)
-    db.session.commit()
 
     ads = Ad.query.filter_by(user_id=user_id).order_by(Ad.created_at.desc()).all()
 
@@ -2624,7 +2542,14 @@ def upgrade_vip(user_id):
     user.plan = target_plan
     user.vip_expires_at = now + timedelta(days=30)
 
-    sync_user_ads_with_plan(user, target_plan)
+    user_ads = Ad.query.filter_by(user_id=user.id).order_by(Ad.created_at.desc()).all()
+
+    plan_rules = get_plan_rules(target_plan)
+    vip_limit = plan_rules["ads_limit"]
+
+    for index, ad in enumerate(user_ads):
+        ad.plan = target_plan
+        ad.is_active = index < vip_limit
 
     db.session.commit()
 
@@ -2765,18 +2690,6 @@ def update_admin_settings():
 
     db.session.commit()
 
-    all_users = User.query.all()
-
-    for user in all_users:
-        if is_vip_plan(user.plan):
-            if not user.vip_expires_at or user.vip_expires_at <= utc_now():
-                user.plan = "FREE"
-                user.vip_expires_at = None
-
-        sync_user_ads_with_plan(user)
-
-    db.session.commit()
-
     return jsonify({"message": "Ajustes atualizados com sucesso"})
     
 @app.route("/admin/dashboard-page")
@@ -2815,12 +2728,7 @@ def get_feed():
     feed_items = []
 
     for ad in ads:
-        plan_rules = get_plan_rules(ad.plan)
-
-        if not plan_rules.get("can_use_vitrine", False):
-            continue
-
-        if plan_rules.get("can_use_images", False) and ad.main_image:
+        if ad.main_image:
             feed_items.append({
                 "ad_id": ad.id,
                 "title": ad.title,
@@ -2830,7 +2738,7 @@ def get_feed():
                 "created_at": ad.created_at.isoformat() if ad.created_at else None
             })
 
-        if plan_rules.get("can_use_videos", False) and ad.main_video:
+        if ad.main_video:
             feed_items.append({
                 "ad_id": ad.id,
                 "title": ad.title,
@@ -2853,8 +2761,8 @@ def list_vip_ads():
 
     # ✔️ define fora do filter
     allowed_plans = [
-        plan for plan in ["FREE", "VIP_BRONZE", "VIP_PRATA", "VIP_OURO", "VIP_PREMIUM"]
-        if get_plan_rules(plan)["can_appear_in_vip_list"]
+        plan for plan, rules in PLAN_RULES.items()
+        if rules["can_appear_in_vip_list"]
     ]
 
     query = Ad.query.join(User, Ad.user_id == User.id).filter(
@@ -2886,13 +2794,13 @@ def list_vip_ads():
 
 @app.route("/ads/<int:ad_id>", methods=["DELETE"])
 def delete_ad(ad_id):
-    print(f"=== DELETE_AD INICIO | ad_id={ad_id} ===", flush=True)
-    print("SESSION USER ID:", session.get("user_id"), flush=True)
-    
-    if not session.get("user_id"):
-        return jsonify({"message": "Faça login para excluir o anúncio"}), 401
+    data = request.get_json() or {}
+    user_id = data.get("user_id")
 
-    user = User.query.get(session["user_id"])
+    if not user_id:
+        return jsonify({"message": "Usuário não informado"}), 400
+
+    user = User.query.get(user_id)
     if not user:
         return jsonify({"message": "Usuário não encontrado"}), 404
 
@@ -2902,23 +2810,16 @@ def delete_ad(ad_id):
 
     if ad.user_id != user.id:
         return jsonify({"message": "Você não tem permissão para excluir este anúncio"}), 403
-
     if ad.main_image:
-        old_image_path = resolve_media_file_path(ad.main_image)
-        if old_image_path and os.path.exists(old_image_path):
-            try:
-                os.remove(old_image_path)
-            except Exception as e:
-                print(f"Erro ao remover imagem antiga do anúncio {ad.id}: {e}", flush=True)
+        old_image_path = ad.main_image.lstrip("/")
+        if os.path.exists(old_image_path):
+            os.remove(old_image_path)
 
     if ad.main_video:
-        old_video_path = resolve_media_file_path(ad.main_video)
-        if old_video_path and os.path.exists(old_video_path):
-            try:
-                os.remove(old_video_path)
-            except Exception as e:
-                print(f"Erro ao remover vídeo antigo do anúncio {ad.id}: {e}", flush=True)
-
+        old_video_path = ad.main_video.lstrip("/")
+        if os.path.exists(old_video_path):
+            os.remove(old_video_path)
+            
     db.session.delete(ad)
     db.session.commit()
 
@@ -2927,15 +2828,12 @@ def delete_ad(ad_id):
 
 @app.route("/ads/<int:ad_id>", methods=["PUT"])
 def update_ad(ad_id):
-    print(f"=== UPDATE_AD INICIO | ad_id={ad_id} ===", flush=True)
-    print("SESSION USER ID:", session.get("user_id"), flush=True)
-    print("FORM UPDATE:", dict(request.form), flush=True)
-    print("FILES UPDATE:", list(request.files.keys()), flush=True)
-    
-    if not session.get("user_id"):
-        return jsonify({"message": "Faça login para editar o anúncio"}), 401
+    user_id = request.form.get("user_id")
 
-    user = User.query.get(session["user_id"])
+    if not user_id:
+        return jsonify({"message": "Usuário não informado"}), 400
+
+    user = User.query.get(user_id)
     if not user:
         return jsonify({"message": "Usuário não encontrado"}), 404
 
@@ -2987,12 +2885,9 @@ def update_ad(ad_id):
             return jsonify({"message": "Formato de imagem inválido."}), 400
 
         if ad.main_image:
-            old_image_path = resolve_media_file_path(ad.main_image)
-            if old_image_path and os.path.exists(old_image_path):
-                try:
-                    os.remove(old_image_path)
-                except Exception as e:
-                    print(f"Erro ao remover imagem antiga do anúncio {ad.id}: {e}", flush=True)
+            old_image_path = ad.main_image.lstrip("/")
+            if os.path.exists(old_image_path):
+                os.remove(old_image_path)
 
         image_ext = main_image_file.filename.rsplit(".", 1)[1].lower()
         image_filename = f"{uuid.uuid4().hex}.{image_ext}"
@@ -3009,12 +2904,9 @@ def update_ad(ad_id):
             return jsonify({"message": "Formato de vídeo inválido."}), 400
 
         if ad.main_video:
-            old_video_path = resolve_media_file_path(ad.main_video)
-            if old_video_path and os.path.exists(old_video_path):
-                try:
-                    os.remove(old_video_path)
-                except Exception as e:
-                    print(f"Erro ao remover vídeo antigo do anúncio {ad.id}: {e}", flush=True)
+            old_video_path = ad.main_video.lstrip("/")
+            if os.path.exists(old_video_path):
+                os.remove(old_video_path)
 
         video_ext = main_video_file.filename.rsplit(".", 1)[1].lower()
         video_filename = f"{uuid.uuid4().hex}.{video_ext}"
@@ -3391,14 +3283,16 @@ def admin_delete_ad(ad_id):
     
 @app.route("/users/<int:user_id>", methods=["GET"])
 def get_user(user_id):
+    if not session.get("user_id"):
+        return jsonify({"message": "Faça login para acessar os dados do usuário."}), 401
+
+    if int(user_id) != int(session["user_id"]) and not session.get("is_admin"):
+        return jsonify({"message": "Acesso negado"}), 403
+
     user = User.query.get(user_id)
 
     if not user:
         return jsonify({"message": "Usuário não encontrado"}), 404
-
-    enforce_user_plan(user)
-    sync_user_ads_with_plan(user)
-    db.session.commit()
 
     return jsonify(serialize_user(user))
     
