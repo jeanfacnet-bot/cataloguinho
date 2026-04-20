@@ -2901,17 +2901,11 @@ def delete_ad(ad_id):
         if not ad:
             return jsonify({"message": "Anúncio não encontrado"}), 404
 
-        print(f"DELETE_AD | ad.user_id={ad.user_id} | user.id={user.id}", flush=True)
-        print(f"DELETE_AD | main_image={ad.main_image}", flush=True)
-        print(f"DELETE_AD | main_video={ad.main_video}", flush=True)
-
         if ad.user_id != user.id:
             return jsonify({"message": "Você não tem permissão para excluir este anúncio"}), 403
 
         if ad.main_image:
             old_image_path = resolve_media_file_path(ad.main_image)
-            print(f"DELETE_AD | old_image_path={old_image_path}", flush=True)
-
             if old_image_path and os.path.exists(old_image_path):
                 try:
                     os.remove(old_image_path)
@@ -2920,8 +2914,6 @@ def delete_ad(ad_id):
 
         if ad.main_video:
             old_video_path = resolve_media_file_path(ad.main_video)
-            print(f"DELETE_AD | old_video_path={old_video_path}", flush=True)
-
             if old_video_path and os.path.exists(old_video_path):
                 try:
                     os.remove(old_video_path)
@@ -2931,14 +2923,13 @@ def delete_ad(ad_id):
         db.session.delete(ad)
         db.session.commit()
 
-        print(f"=== DELETE_AD SUCESSO | ad_id={ad_id} ===", flush=True)
         return jsonify({"message": "Anúncio excluído com sucesso"})
 
     except Exception as e:
         import traceback
+        db.session.rollback()
         print(f"=== EXCEPTION DELETE_AD | ad_id={ad_id} ===", flush=True)
         traceback.print_exc()
-        db.session.rollback()
         return jsonify({
             "message": "Erro interno ao excluir anúncio",
             "error": str(e)
@@ -2947,140 +2938,151 @@ def delete_ad(ad_id):
 
 @app.route("/ads/<int:ad_id>", methods=["PUT"])
 def update_ad(ad_id):
-    print(f"=== UPDATE_AD INICIO | ad_id={ad_id} ===", flush=True)
-    print("SESSION USER ID:", session.get("user_id"), flush=True)
-    print("FORM UPDATE:", dict(request.form), flush=True)
-    print("FILES UPDATE:", list(request.files.keys()), flush=True)
-    
-    if not session.get("user_id"):
-        return jsonify({"message": "Faça login para editar o anúncio"}), 401
+    try:
+        print(f"=== UPDATE_AD INICIO | ad_id={ad_id} ===", flush=True)
+        print("SESSION USER ID:", session.get("user_id"), flush=True)
+        print("FORM UPDATE:", dict(request.form), flush=True)
+        print("FILES UPDATE:", list(request.files.keys()), flush=True)
 
-    user = User.query.get(session["user_id"])
-    if not user:
-        return jsonify({"message": "Usuário não encontrado"}), 404
+        if not session.get("user_id"):
+            return jsonify({"message": "Faça login para editar o anúncio"}), 401
 
-    ad = Ad.query.get(ad_id)
-    if not ad:
-        return jsonify({"message": "Anúncio não encontrado"}), 404
+        user = User.query.get(session["user_id"])
+        if not user:
+            return jsonify({"message": "Usuário não encontrado"}), 404
 
-    if ad.user_id != user.id:
-        return jsonify({"message": "Você não tem permissão para editar este anúncio"}), 403
+        ad = Ad.query.get(ad_id)
+        if not ad:
+            return jsonify({"message": "Anúncio não encontrado"}), 404
 
-    title = request.form.get("title", "").strip()
-    description = request.form.get("description", "").strip()
-    phone = request.form.get("phone", "").strip()
-    country = request.form.get("country", "Brasil").strip()
-    state = request.form.get("state", "").strip()
-    city = request.form.get("city", "").strip()
-    neighborhood = request.form.get("neighborhood", "").strip()
-    street = request.form.get("street", "").strip()
-    number = request.form.get("number", "").strip()
-    complement = request.form.get("complement", "").strip()
-    zipcode = request.form.get("zipcode", "").strip()
-    keywords = request.form.getlist("keywords")
+        if ad.user_id != user.id:
+            return jsonify({"message": "Você não tem permissão para editar este anúncio"}), 403
 
-    main_image_file = request.files.get("main_image")
-    main_video_file = request.files.get("main_video")
+        title = request.form.get("title", "").strip()
+        description = request.form.get("description", "").strip()
+        phone = request.form.get("phone", "").strip()
+        country = request.form.get("country", "Brasil").strip()
+        state = request.form.get("state", "").strip()
+        city = request.form.get("city", "").strip()
+        neighborhood = request.form.get("neighborhood", "").strip()
+        street = request.form.get("street", "").strip()
+        number = request.form.get("number", "").strip()
+        complement = request.form.get("complement", "").strip()
+        zipcode = request.form.get("zipcode", "").strip()
+        keywords = request.form.getlist("keywords")
 
-    enforce_user_plan(user)
-    plan_rules = get_plan_rules(user.plan)
+        main_image_file = request.files.get("main_image")
+        main_video_file = request.files.get("main_video")
 
-    if (main_image_file and not plan_rules["can_use_images"]) or (main_video_file and not plan_rules["can_use_videos"]):
+        enforce_user_plan(user)
+        plan_rules = get_plan_rules(user.plan)
+
+        if (main_image_file and not plan_rules["can_use_images"]) or (main_video_file and not plan_rules["can_use_videos"]):
+            return jsonify({
+                "message": "Seu plano atual não permite usar imagem e/ou vídeo neste anúncio.",
+                "upgrade": True
+            }), 403
+
+        if not title or not state or not city:
+            return jsonify({"message": "Preencha os campos obrigatórios"}), 400
+
+        max_keywords = plan_rules["keywords_limit"]
+        cleaned_keywords = normalize_keywords(keywords)
+
+        if len(cleaned_keywords) > max_keywords:
+            return jsonify({
+                "message": f"Usuário {user.plan} pode cadastrar até {max_keywords} palavras-chave"
+            }), 400
+
+        if main_image_file and main_image_file.filename:
+            if not allowed_file(main_image_file.filename, ALLOWED_IMAGE_EXTENSIONS):
+                return jsonify({"message": "Formato de imagem inválido."}), 400
+
+            if ad.main_image:
+                old_image_path = resolve_media_file_path(ad.main_image)
+                if old_image_path and os.path.exists(old_image_path):
+                    try:
+                        os.remove(old_image_path)
+                    except Exception as e:
+                        print(f"Erro ao remover imagem antiga: {e}", flush=True)
+
+            image_ext = main_image_file.filename.rsplit(".", 1)[1].lower()
+            image_filename = f"{uuid.uuid4().hex}.{image_ext}"
+            image_full_path = os.path.join(UPLOAD_IMAGE_FOLDER, image_filename)
+            main_image_file.save(image_full_path)
+
+            ad.main_image = f"/static/uploads/images/{image_filename}"
+
+        elif not plan_rules["can_use_images"]:
+            ad.main_image = None
+
+        if main_video_file and main_video_file.filename:
+            if not allowed_file(main_video_file.filename, ALLOWED_VIDEO_EXTENSIONS):
+                return jsonify({"message": "Formato de vídeo inválido."}), 400
+
+            if ad.main_video:
+                old_video_path = resolve_media_file_path(ad.main_video)
+                if old_video_path and os.path.exists(old_video_path):
+                    try:
+                        os.remove(old_video_path)
+                    except Exception as e:
+                        print(f"Erro ao remover vídeo antigo: {e}", flush=True)
+
+            video_ext = main_video_file.filename.rsplit(".", 1)[1].lower()
+            video_filename = f"{uuid.uuid4().hex}.{video_ext}"
+            video_full_path = os.path.join(UPLOAD_VIDEO_FOLDER, video_filename)
+            main_video_file.save(video_full_path)
+
+            duration_seconds = get_video_duration(video_full_path)
+
+            if duration_seconds is None:
+                os.remove(video_full_path)
+                return jsonify({"message": "Não foi possível validar a duração do vídeo."}), 400
+
+            if duration_seconds > 60:
+                os.remove(video_full_path)
+                return jsonify({"message": "O vídeo deve ter no máximo 1 minuto."}), 400
+
+            ad.main_video = f"/static/uploads/videos/{video_filename}"
+
+        elif not plan_rules["can_use_videos"]:
+            ad.main_video = None
+
+        ad.title = title
+        ad.description = description
+        ad.phone = phone
+        ad.country = country
+        ad.state = state
+        ad.city = city
+        ad.municipality = city if state.upper() == "DF" else request.form.get("municipality", "").strip()
+        ad.neighborhood = neighborhood
+        ad.street = street
+        ad.number = number
+        ad.complement = complement
+        ad.zipcode = zipcode
+        ad.plan = user.plan
+
+        Keyword.query.filter_by(ad_id=ad.id).delete()
+
+        for keyword in cleaned_keywords:
+            db.session.add(Keyword(ad_id=ad.id, keyword=keyword))
+
+        db.session.commit()
+
         return jsonify({
-            "message": "Seu plano atual não permite usar imagem e/ou vídeo neste anúncio.",
-            "upgrade": True
-        }), 403
+            "message": "Anúncio atualizado com sucesso",
+            "ad": serialize_ad(ad)
+        })
 
-    if not title or not state or not city:
-        return jsonify({"message": "Preencha os campos obrigatórios"}), 400
-
-    max_keywords = plan_rules["keywords_limit"]
-    cleaned_keywords = normalize_keywords(keywords)
-
-    if len(cleaned_keywords) > max_keywords:
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        print(f"=== EXCEPTION UPDATE_AD | ad_id={ad_id} ===", flush=True)
+        traceback.print_exc()
         return jsonify({
-            "message": f"Usuário {user.plan} pode cadastrar até {max_keywords} palavras-chave"
-        }), 400
-
-    if main_image_file and main_image_file.filename:
-        if not allowed_file(main_image_file.filename, ALLOWED_IMAGE_EXTENSIONS):
-            return jsonify({"message": "Formato de imagem inválido."}), 400
-
-        if ad.main_image:
-            old_image_path = resolve_media_file_path(ad.main_image)
-            if old_image_path and os.path.exists(old_image_path):
-                try:
-                    os.remove(old_image_path)
-                except Exception as e:
-                    print(f"Erro ao remover imagem antiga do anúncio {ad.id}: {e}", flush=True)
-
-        image_ext = main_image_file.filename.rsplit(".", 1)[1].lower()
-        image_filename = f"{uuid.uuid4().hex}.{image_ext}"
-        image_full_path = os.path.join(UPLOAD_IMAGE_FOLDER, image_filename)
-        main_image_file.save(image_full_path)
-
-        ad.main_image = f"/static/uploads/images/{image_filename}"
-
-    elif not plan_rules["can_use_images"]:
-        ad.main_image = None
-
-    if main_video_file and main_video_file.filename:
-        if not allowed_file(main_video_file.filename, ALLOWED_VIDEO_EXTENSIONS):
-            return jsonify({"message": "Formato de vídeo inválido."}), 400
-
-        if ad.main_video:
-            old_video_path = resolve_media_file_path(ad.main_video)
-            if old_video_path and os.path.exists(old_video_path):
-                try:
-                    os.remove(old_video_path)
-                except Exception as e:
-                    print(f"Erro ao remover vídeo antigo do anúncio {ad.id}: {e}", flush=True)
-
-        video_ext = main_video_file.filename.rsplit(".", 1)[1].lower()
-        video_filename = f"{uuid.uuid4().hex}.{video_ext}"
-        video_full_path = os.path.join(UPLOAD_VIDEO_FOLDER, video_filename)
-        main_video_file.save(video_full_path)
-
-        duration_seconds = get_video_duration(video_full_path)
-
-        if duration_seconds is None:
-            os.remove(video_full_path)
-            return jsonify({"message": "Não foi possível validar a duração do vídeo."}), 400
-
-        if duration_seconds > 60:
-            os.remove(video_full_path)
-            return jsonify({"message": "O vídeo deve ter no máximo 1 minuto."}), 400
-
-        ad.main_video = f"/static/uploads/videos/{video_filename}"
-
-    elif not plan_rules["can_use_videos"]:
-        ad.main_video = None
-
-    ad.title = title
-    ad.description = description
-    ad.phone = phone
-    ad.country = country
-    ad.state = state
-    ad.city = city
-    ad.municipality = city if state.upper() == "DF" else request.form.get("municipality", "").strip()
-    ad.neighborhood = neighborhood
-    ad.street = street
-    ad.number = number
-    ad.complement = complement
-    ad.zipcode = zipcode
-    ad.plan = user.plan
-
-    Keyword.query.filter_by(ad_id=ad.id).delete()
-
-    for keyword in cleaned_keywords:
-        db.session.add(Keyword(ad_id=ad.id, keyword=keyword))
-
-    db.session.commit()
-
-    return jsonify({
-        "message": "Anúncio atualizado com sucesso",
-        "ad": serialize_ad(ad)
-    })
+            "message": "Erro interno ao atualizar anúncio",
+            "error": str(e)
+        }), 500
     
 @app.errorhandler(413)
 def file_too_large(error):
