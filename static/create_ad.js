@@ -789,28 +789,22 @@ async function deleteAd(adId) {
 
   try {
     const response = await fetch(`/ads/${adId}`, {
-	  method: "DELETE",
-	  headers: {
-		"Content-Type": "application/json"
-	  },
-	  credentials: "same-origin",
-	  body: JSON.stringify({
-		user_id: savedUser.id
-	  })
-	});
+      method: "DELETE",
+      credentials: "same-origin"
+    });
 
-	let data = {};
+    let data = {};
 
-	try {
-	  data = await response.json();
-	} catch (e) {
-	  data = {};
-	}
+    try {
+      data = await response.json();
+    } catch (e) {
+      data = {};
+    }
 
-	if (!response.ok) {
-	  showMessage(data.message || `Erro ao excluir anúncio. Status ${response.status}`, "error");
-	  return;
-	}
+    if (!response.ok) {
+      showMessage(data.message || `Erro ao excluir anúncio. Status ${response.status}`, "error");
+      return;
+    }
 
     showMessage("Anúncio excluído com sucesso.", "success");
     loadMyAds();
