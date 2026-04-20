@@ -29,11 +29,31 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
+  const request = event.request;
+  const url = new URL(request.url);
+
+  // 🔴 NUNCA interceptar métodos não GET
+  if (request.method !== "GET") {
+    return;
+  }
+
+  // 🔴 NÃO interceptar APIs do backend
+  if (
+    url.pathname.startsWith("/ads") ||
+    url.pathname.startsWith("/auth") ||
+    url.pathname.startsWith("/my-ads") ||
+    url.pathname.startsWith("/users") ||
+    url.pathname.startsWith("/vip") ||
+    url.pathname.startsWith("/reports") ||
+    url.pathname.startsWith("/locations") ||
+    url.pathname.startsWith("/public")
+  ) {
+    return;
+  }
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
+    caches.match(request).then((cachedResponse) => {
+      return cachedResponse || fetch(request);
     })
   );
 });

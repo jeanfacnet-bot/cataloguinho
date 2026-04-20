@@ -323,14 +323,32 @@ function renderMyAds(items) {
 		<br>
 
 		<div class="ad-actions-row">
-		  <button type="button" onclick="handleEditAd(${item.id})">Editar</button>
-		  <button type="button" onclick="handleDeleteAd(${item.id})">Excluir anúncio</button>
+		  <button type="button" class="edit-btn" data-id="${item.id}">Editar</button>
+		  <button type="button" class="delete-btn" data-id="${item.id}">Excluir anúncio</button>
 		</div>
 	`;
     myAds.appendChild(div);
   });
 
-  
+  document.querySelectorAll(".edit-btn").forEach(button => {
+    button.addEventListener("click", () => {
+      const adId = Number(button.dataset.id);
+      const ad = items.find(item => item.id === adId);
+      if (!ad) return;
+      startEdit(ad);
+    });
+  });
+
+  document.querySelectorAll(".delete-btn").forEach(button => {
+    button.addEventListener("click", async () => {
+      const adId = button.dataset.id;
+
+      const confirmed = confirm("Tem certeza que deseja excluir este anúncio?");
+      if (!confirmed) return;
+
+      await deleteAd(adId);
+    });
+  });
 }
 
 function startEdit(ad) {
@@ -583,6 +601,8 @@ async function loadMyAds() {
 	  return;
 	}
 
+	renderMyAds(data);
+
     renderMyAds(data);
   } catch (error) {
     console.error("Erro ao carregar anúncios:", error);
@@ -796,22 +816,6 @@ async function deleteAd(adId) {
   }
 }
 
-window.handleEditAd = function(adId) {
-  const ad = myAdsCache.find(item => Number(item.id) === Number(adId));
-  if (!ad) {
-    showMessage("Anúncio não encontrado para edição.", "error");
-    return;
-  }
-
-  startEdit(ad);
-};
-
-window.handleDeleteAd = async function(adId) {
-  const confirmed = confirm("Tem certeza que deseja excluir este anúncio?");
-  if (!confirmed) return;
-
-  await deleteAd(adId);
-};
 
 (async function initCreateAdPage() {
   await loadPlansConfig();
