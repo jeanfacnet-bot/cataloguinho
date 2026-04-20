@@ -261,19 +261,39 @@ function renderAdsSummary(items = []) {
 }
 
 async function refreshSavedUser() {
-  if (!savedUser) return;
-
   try {
-    const response = await fetch(`/users/${savedUser.id}`);
-    const data = await response.json();
+    let userFromSession = null;
 
-    if (!response.ok) return;
+    if (typeof syncUserWithServerSession === "function") {
+      userFromSession = await syncUserWithServerSession();
+    } else {
+      const response = await fetch("/auth/session", {
+        method: "GET",
+        credentials: "same-origin",
+        headers: { "Accept": "application/json" }
+      });
 
-	localStorage.setItem("catalogo_user", JSON.stringify(data));
-    savedUser = data;
-	renderUser();
-	updateKeywordsPlaceholder();
-	updateMediaAccessUI();
+      const data = await response.json();
+      if (response.ok && data && data.authenticated && data.user) {
+        userFromSession = data.user;
+      }
+    }
+
+    if (!userFromSession) {
+      savedUser = null;
+      localStorage.removeItem("catalogo_user");
+      renderUser();
+      updateKeywordsPlaceholder();
+      updateMediaAccessUI();
+      return;
+    }
+
+    localStorage.setItem("catalogo_user", JSON.stringify(userFromSession));
+    savedUser = userFromSession;
+
+    renderUser();
+    updateKeywordsPlaceholder();
+    updateMediaAccessUI();
   } catch (error) {
     console.error("Erro ao atualizar dados do usuário:", error);
   }
@@ -653,7 +673,9 @@ adForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   clearMessage();
 
-  if (!requireLogin()) return;
+  if (!(await requireLogin())) return;
+
+  await refreshSavedUser();
 
   savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
 
@@ -698,7 +720,7 @@ adForm.addEventListener("submit", async (e) => {
   const mainVideoFile = document.getElementById("mainVideo").files[0];
 
   const formData = new FormData();
-  formData.append("user_id", savedUser.id);
+  
   formData.append("title", document.getElementById("title").value.trim());
   formData.append("description", document.getElementById("description").value.trim());
   formData.append("phone", document.getElementById("phone").value.trim());
@@ -815,17 +837,18 @@ async function deleteAd(adId) {
   }
 }
 
-
 (async function initCreateAdPage() {
   await loadPlansConfig();
+  await refreshSavedUser();
 
   renderUser();
   updateKeywordsPlaceholder();
   updateMediaAccessUI();
-  loadStates();
+  await loadStates();
 
-  if (savedUser) {
-    await refreshSavedUser();
-    loadMyAds();
+  if (savedUser && savedUser.id) {
+    await loadMyAds();
+  } else {
+    myAds.innerHTML = `<div class="muted">Faça login para visualizar seus anúncios.</div>`;
   }
 })();
