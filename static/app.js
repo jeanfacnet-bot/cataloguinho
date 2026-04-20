@@ -491,3 +491,4 @@ if (searchBtn) {
 }
 
 loadStates();
+searchAds();
