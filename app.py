@@ -753,7 +753,47 @@ def ensure_admin_user():
 def allowed_file(filename, allowed_extensions):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed_extensions
 
+def resolve_media_file_path(media_url):
+    if not media_url:
+        return None
 
+    media_url = str(media_url).strip()
+    if not media_url:
+        return None
+
+    normalized = media_url.replace("\\", "/").strip()
+
+    # Caso já venha como caminho absoluto no servidor
+    if os.path.isabs(normalized):
+        return normalized
+
+    # Caso esteja salvo como /static/uploads/...
+    if normalized.startswith("/static/uploads/"):
+        relative_part = normalized[len("/static/uploads/"):]
+        return os.path.join(UPLOAD_BASE, relative_part)
+
+    # Caso esteja salvo como static/uploads/...
+    if normalized.startswith("static/uploads/"):
+        relative_part = normalized[len("static/uploads/"):]
+        return os.path.join(UPLOAD_BASE, relative_part)
+
+    # Caso esteja salvo apenas como uploads/...
+    if normalized.startswith("uploads/"):
+        relative_part = normalized[len("uploads/"):]
+        return os.path.join(UPLOAD_BASE, relative_part)
+
+    # Caso venha só o nome do arquivo, tenta em images e videos
+    image_candidate = os.path.join(UPLOAD_IMAGE_FOLDER, os.path.basename(normalized))
+    if os.path.exists(image_candidate):
+        return image_candidate
+
+    video_candidate = os.path.join(UPLOAD_VIDEO_FOLDER, os.path.basename(normalized))
+    if os.path.exists(video_candidate):
+        return video_candidate
+
+    # fallback
+    return os.path.join(UPLOAD_BASE, normalized.lstrip("/"))
+    
 def get_video_duration(file_path):
     try:
         result = subprocess.run(
@@ -2862,15 +2902,22 @@ def delete_ad(ad_id):
 
     if ad.user_id != user.id:
         return jsonify({"message": "Você não tem permissão para excluir este anúncio"}), 403
+        
     if ad.main_image:
-        old_image_path = ad.main_image.lstrip("/")
-        if os.path.exists(old_image_path):
-            os.remove(old_image_path)
+        old_image_path = resolve_media_file_path(ad.main_image)
+        if old_image_path and os.path.exists(old_image_path):
+            try:
+                os.remove(old_image_path)
+            except Exception as e:
+                print(f"Erro ao remover imagem antiga do anúncio {ad.id}: {e}", flush=True)
 
     if ad.main_video:
-        old_video_path = ad.main_video.lstrip("/")
-        if os.path.exists(old_video_path):
-            os.remove(old_video_path)
+        old_video_path = resolve_media_file_path(ad.main_video)
+        if old_video_path and os.path.exists(old_video_path):
+            try:
+                os.remove(old_video_path)
+            except Exception as e:
+                print(f"Erro ao remover vídeo antigo do anúncio {ad.id}: {e}", flush=True)
             
     db.session.delete(ad)
     db.session.commit()
@@ -2937,9 +2984,12 @@ def update_ad(ad_id):
             return jsonify({"message": "Formato de imagem inválido."}), 400
 
         if ad.main_image:
-            old_image_path = ad.main_image.lstrip("/")
-            if os.path.exists(old_image_path):
-                os.remove(old_image_path)
+            old_image_path = resolve_media_file_path(ad.main_image)
+            if old_image_path and os.path.exists(old_image_path):
+                try:
+                    os.remove(old_image_path)
+                except Exception as e:
+                    print(f"Erro ao remover imagem antiga do anúncio {ad.id}: {e}", flush=True)
 
         image_ext = main_image_file.filename.rsplit(".", 1)[1].lower()
         image_filename = f"{uuid.uuid4().hex}.{image_ext}"
