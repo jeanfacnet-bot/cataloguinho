@@ -388,27 +388,3 @@ document.addEventListener("DOMContentLoaded", async function () {
   applyAdminSidebarLayout();
   bindAdminSidebarMobile();
 });
-
-(function forceCleanServiceWorker() {
-  if (!("serviceWorker" in navigator)) return;
-
-  const cleaned = sessionStorage.getItem("sw_cleaned_global");
-
-  navigator.serviceWorker.getRegistrations().then(async (registrations) => {
-    if (registrations.length === 0) return;
-
-    console.log("Limpando service workers antigos...");
-
-    await Promise.all(registrations.map(r => r.unregister()));
-
-    if (window.caches) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map(k => caches.delete(k)));
-    }
-
-    if (!cleaned) {
-      sessionStorage.setItem("sw_cleaned_global", "1");
-      window.location.reload();
-    }
-  });
-})();

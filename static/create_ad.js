@@ -20,7 +20,6 @@ let savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
 let plansConfig = null;
 let editingAdId = null;
 const cancelEditBtn = document.getElementById("cancelEditBtn");
-let myAdsCache = [];
 
 async function loadPlansConfig() {
   try {
@@ -261,39 +260,19 @@ function renderAdsSummary(items = []) {
 }
 
 async function refreshSavedUser() {
+  if (!savedUser) return;
+
   try {
-    let userFromSession = null;
+    const response = await fetch(`/users/${savedUser.id}`);
+    const data = await response.json();
 
-    if (typeof syncUserWithServerSession === "function") {
-      userFromSession = await syncUserWithServerSession();
-    } else {
-      const response = await fetch("/auth/session", {
-        method: "GET",
-        credentials: "same-origin",
-        headers: { "Accept": "application/json" }
-      });
+    if (!response.ok) return;
 
-      const data = await response.json();
-      if (response.ok && data && data.authenticated && data.user) {
-        userFromSession = data.user;
-      }
-    }
-
-    if (!userFromSession) {
-      savedUser = null;
-      localStorage.removeItem("catalogo_user");
-      renderUser();
-      updateKeywordsPlaceholder();
-      updateMediaAccessUI();
-      return;
-    }
-
-    localStorage.setItem("catalogo_user", JSON.stringify(userFromSession));
-    savedUser = userFromSession;
-
-    renderUser();
-    updateKeywordsPlaceholder();
-    updateMediaAccessUI();
+	localStorage.setItem("catalogo_user", JSON.stringify(data));
+    savedUser = data;
+	renderUser();
+	updateKeywordsPlaceholder();
+	updateMediaAccessUI();
   } catch (error) {
     console.error("Erro ao atualizar dados do usuário:", error);
   }
@@ -302,7 +281,6 @@ async function refreshSavedUser() {
 function renderMyAds(items) {
   myAds.innerHTML = "";
   renderAdsSummary(items);
-  myAdsCache = Array.isArray(items) ? items : [];
 
   if (!items.length) {
     myAds.innerHTML = `<div class="muted">Você ainda não cadastrou anúncios.</div>`;
@@ -621,7 +599,8 @@ async function loadMyAds() {
 	  return;
 	}
 
-	
+	renderMyAds(data);
+
     renderMyAds(data);
   } catch (error) {
     console.error("Erro ao carregar anúncios:", error);
@@ -673,9 +652,7 @@ adForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   clearMessage();
 
-  if (!(await requireLogin())) return;
-
-  await refreshSavedUser();
+  if (!requireLogin()) return;
 
   savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
 
@@ -720,7 +697,7 @@ adForm.addEventListener("submit", async (e) => {
   const mainVideoFile = document.getElementById("mainVideo").files[0];
 
   const formData = new FormData();
-  
+  formData.append("user_id", savedUser.id);
   formData.append("title", document.getElementById("title").value.trim());
   formData.append("description", document.getElementById("description").value.trim());
   formData.append("phone", document.getElementById("phone").value.trim());
@@ -755,7 +732,7 @@ adForm.addEventListener("submit", async (e) => {
 	}
 
   try {
-    const url = editingAdId ? `/anuncios/${editingAdId}` : "/ads";
+    const url = editingAdId ? `/ads/${editingAdId}` : "/ads";
     const method = editingAdId ? "PUT" : "POST";
 
     const response = await fetch(url, {
@@ -811,21 +788,20 @@ async function deleteAd(adId) {
   }
 
   try {
-    const response = await fetch(`/anuncios/${adId}`, {
-	  method: "DELETE",
-	  credentials: "same-origin"
-	});
+    const response = await fetch(`/ads/${adId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        user_id: savedUser.id
+      })
+    });
 
-    let data = {};
-
-    try {
-      data = await response.json();
-    } catch (e) {
-      data = {};
-    }
+    const data = await response.json();
 
     if (!response.ok) {
-      showMessage(data.message || `Erro ao excluir anúncio. Status ${response.status}`, "error");
+      showMessage(data.message || "Erro ao excluir anúncio.", "error");
       return;
     }
 
@@ -837,18 +813,17 @@ async function deleteAd(adId) {
   }
 }
 
+
 (async function initCreateAdPage() {
   await loadPlansConfig();
-  await refreshSavedUser();
 
   renderUser();
   updateKeywordsPlaceholder();
   updateMediaAccessUI();
-  await loadStates();
+  loadStates();
 
-  if (savedUser && savedUser.id) {
-    await loadMyAds();
-  } else {
-    myAds.innerHTML = `<div class="muted">Faça login para visualizar seus anúncios.</div>`;
+  if (savedUser) {
+    await refreshSavedUser();
+    loadMyAds();
   }
 })();
