@@ -7,8 +7,6 @@ const complementInput = document.getElementById("complement");
 const searchBtn = document.getElementById("searchBtn");
 const resultsContainer = document.getElementById("results");
 const resultCount = document.getElementById("resultCount");
-
-let searchTimeout = null;
 let currentController = null;
 
 console.log("app.js carregado");
@@ -49,7 +47,7 @@ function renderResults(items) {
     return;
   }
 
-  resultsContainer.innerHTML = "";
+  resultsContainer.textContent = "";
   resultCount.textContent = `${items.length} encontrados`;
 
   if (!items.length) {
@@ -57,132 +55,84 @@ function renderResults(items) {
     return;
   }
 
-  items.forEach(item => {
-    const card = document.createElement("div");
-    card.className = "result-card";
+	const fragment = document.createDocumentFragment();
 
-    card.innerHTML = `
-	  <div class="result-info">
-		<h3 class="ad-title-row">
-		  ${item.title || ""} ${getPlanStar(item.plan)}
-		</h3>
+	items.forEach(item => {
+	  const card = document.createElement("div");
+	  card.className = "result-card";
 
-		<div class="muted">
-		  ${item.city || ""}
-		  ${item.neighborhood ? " - " + item.neighborhood : ""}
-		  ${item.street ? " - " + item.street : ""}
-		  ${item.number ? ", " + item.number : ""}
-		  ${item.complement ? " - " + item.complement : ""}
-		  ${item.state ? " - " + item.state : ""}
-		</div>
+	  card.innerHTML = `
+		<div class="result-info">
+		  <h3 class="ad-title-row">
+			${item.title || ""} ${getPlanStar(item.plan)}
+		  </h3>
 
-		<div class="muted" style="margin-top: 6px;">
-		  Telefone: ${item.phone || "Não informado"}
-		</div>
+		  <div class="muted">
+			${item.city || ""}
+			${item.neighborhood ? " - " + item.neighborhood : ""}
+			${item.street ? " - " + item.street : ""}
+			${item.number ? ", " + item.number : ""}
+			${item.complement ? " - " + item.complement : ""}
+			${item.state ? " - " + item.state : ""}
+		  </div>
 
-		<div class="result-actions">
-		  ${
+		  <div class="muted" style="margin-top: 6px;">
+			Telefone: ${item.phone || "Não informado"}
+		  </div>
+
+		  <div class="result-actions">
+			${
 			  item.can_show_full_details
 				? `<button type="button" onclick="window.location.href='/ads/${item.id}/page?from=search'">Ver detalhes</button>`
 				: ""
 			}
-		</div>
+		  </div>
 
-		<div id="reportBox-${item.id}" class="report-box">
-		  <select id="reportReason-${item.id}" class="report-reason-select">
-			<option value="">Selecione um motivo</option>
-			<option value="Produto ou serviço não existe">Produto ou serviço não existe</option>
-			<option value="Conteúdo inadequado">Conteúdo inadequado</option>
-			<option value="Informações falsas ou enganosas">Informações falsas ou enganosas</option>
-			<option value="Golpe ou tentativa de fraude">Golpe ou tentativa de fraude</option>
-			<option value="Spam ou anúncio repetido">Spam ou anúncio repetido</option>
-			<option value="Telefone ou contato inválido">Telefone ou contato inválido</option>
-			<option value="Endereço incorreto">Endereço incorreto</option>
-			<option value="Outro">Outro</option>
-		  </select>
+		  <div id="reportBox-${item.id}" class="report-box">
+			<select id="reportReason-${item.id}" class="report-reason-select">
+			  <option value="">Selecione um motivo</option>
+			  <option value="Produto ou serviço não existe">Produto ou serviço não existe</option>
+			  <option value="Conteúdo inadequado">Conteúdo inadequado</option>
+			  <option value="Informações falsas ou enganosas">Informações falsas ou enganosas</option>
+			  <option value="Golpe ou tentativa de fraude">Golpe ou tentativa de fraude</option>
+			  <option value="Spam ou anúncio repetido">Spam ou anúncio repetido</option>
+			  <option value="Telefone ou contato inválido">Telefone ou contato inválido</option>
+			  <option value="Endereço incorreto">Endereço incorreto</option>
+			  <option value="Outro">Outro</option>
+			</select>
 
-		  <textarea
-			id="reportText-${item.id}"
-			maxlength="300"
-			placeholder="Descreva melhor o problema (opcional)"
-		  ></textarea>
+			<textarea
+			  id="reportText-${item.id}"
+			  maxlength="300"
+			  placeholder="Descreva melhor o problema (opcional)"
+			></textarea>
 
-		  <div class="report-box-actions">
-			<button type="button" class="report-send-btn" onclick="sendReport(${item.id})">Enviar denúncia</button>
-			<button type="button" class="report-cancel-btn" onclick="toggleReportBox(${item.id}, false)">Cancelar</button>
+			<div class="report-box-actions">
+			  <button type="button" class="report-send-btn" onclick="sendReport(${item.id})">Enviar denúncia</button>
+			  <button type="button" class="report-cancel-btn" onclick="toggleReportBox(${item.id}, false)">Cancelar</button>
+			</div>
 		  </div>
 		</div>
-	  </div>
 
-	${
-	  item.main_image
-		? `
-		  <div class="result-image">
-			<img src="${item.main_image}" alt="${item.title}">
-		  </div>
-		`
-		: ""
-	}
+		${
+		  item.main_image
+			? `
+			  <div class="result-image">
+				<img src="${item.main_image}" alt="${item.title}" loading="lazy">
+			  </div>
+			`
+			: ""
+		}
 
-	<div class="report-side">
-	  <button type="button" class="report-btn" onclick="toggleReportBox(${item.id})">Denunciar</button>
-	</div>
-	`;
+		<div class="report-side">
+		  <button type="button" class="report-btn" onclick="toggleReportBox(${item.id})">Denunciar</button>
+		</div>
+	  `;
 
-    resultsContainer.appendChild(card);
-  });
-}
+	  fragment.appendChild(card);
+	});
 
-async function performSearch() {
-  if (currentController) {
-    currentController.abort();
-  }
-
-  currentController = new AbortController();
-
-  const term = termInput.value.trim();
-  const state = stateSelect.value;
-  const city = citySelect.value;
-  const neighborhood = neighborhoodSelect.value;
-  const street = streetSelect.value;
-  const complement = complementInput.value.trim();
-
-  const params = new URLSearchParams({
-    term,
-    state,
-    city,
-    neighborhood,
-    street,
-    complement
-  });
-
-  try {
-    const response = await fetch(`/search?${params}`, {
-      signal: currentController.signal
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Erro na busca");
-      return;
-    }
-
-    renderResults(data);
-  } catch (err) {
-    if (err.name === "AbortError") return;
-    console.error("Erro real:", err);
-  }
-}
-
-function debounceSearch() {
-  if (searchTimeout) {
-    clearTimeout(searchTimeout);
-  }
-
-  searchTimeout = setTimeout(() => {
-    performSearch();
-  }, 400); // tempo ideal: 300–500ms
+resultsContainer.appendChild(fragment);
 }
 
 function toggleReportBox(adId, forceState = null) {
@@ -382,8 +332,17 @@ async function searchAds() {
 
     const url = `/search?${params.toString()}`;
     console.log("Buscando:", url);
+	resultsContainer.innerHTML = `<div class="muted">Buscando anúncios...</div>`;
+	resultCount.textContent = "Carregando...";
 
-    const response = await fetch(url);
+	if (currentController) {
+	  currentController.abort();
+	}
+
+	currentController = new AbortController();
+    const response = await fetch(url, {
+	  signal: currentController.signal
+	});
     const data = await response.json();
 
     console.log("Resposta /search:", response.status, data);
@@ -396,7 +355,8 @@ async function searchAds() {
 
     renderResults(data);
   } catch (error) {
-    console.error("Erro ao pesquisar anúncios:", error);
+    if (error.name === "AbortError") return;
+	console.error("Erro ao pesquisar anúncios:", error);
     renderResults([]);
   }
 }
@@ -451,11 +411,3 @@ if (searchBtn) {
 }
 
 loadStates();
-searchAds();
-
-termInput.addEventListener("input", debounceSearch);
-stateSelect.addEventListener("change", debounceSearch);
-citySelect.addEventListener("change", debounceSearch);
-neighborhoodSelect.addEventListener("change", debounceSearch);
-streetSelect.addEventListener("change", debounceSearch);
-complementInput.addEventListener("input", debounceSearch);
