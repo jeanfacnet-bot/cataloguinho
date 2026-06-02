@@ -30,6 +30,7 @@ function fillPlan(prefix, data) {
   getValue(`${prefix}CanAppearInVipList`).checked = !!data.can_appear_in_vip_list;
   getValue(`${prefix}CanShowFullDetails`).checked = !!data.can_show_full_details;
   getValue(`${prefix}CanUseVitrine`).checked = !!data.can_use_vitrine;
+  getValue(`${prefix}CanUseLocation`).checked = !!data.can_use_location;
 }
 
 function collectPlan(prefix) {
@@ -43,7 +44,8 @@ function collectPlan(prefix) {
     can_use_videos: getValue(`${prefix}CanUseVideos`).checked,
     can_appear_in_vip_list: getValue(`${prefix}CanAppearInVipList`).checked,
     can_show_full_details: getValue(`${prefix}CanShowFullDetails`).checked,
-    can_use_vitrine: getValue(`${prefix}CanUseVitrine`).checked
+    can_use_vitrine: getValue(`${prefix}CanUseVitrine`).checked,
+	can_use_location: getValue(`${prefix}CanUseLocation`).checked
   };
 }
 

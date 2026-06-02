@@ -131,6 +131,7 @@ class AppSetting(db.Model):
     free_can_appear_in_vip_list = db.Column(db.Boolean, nullable=False, default=False)
     free_can_show_full_details = db.Column(db.Boolean, nullable=False, default=False)
     free_can_use_vitrine = db.Column(db.Boolean, nullable=False, default=False)
+    free_can_use_location = db.Column(db.Boolean, nullable=False, default=False)
 
     bronze_ads_limit = db.Column(db.Integer, nullable=False, default=5)
     bronze_keywords_limit = db.Column(db.Integer, nullable=False, default=10)
@@ -140,6 +141,7 @@ class AppSetting(db.Model):
     bronze_can_show_full_details = db.Column(db.Boolean, nullable=False, default=True)
     bronze_price = db.Column(db.Float, nullable=False, default=19.90)
     bronze_can_use_vitrine = db.Column(db.Boolean, nullable=False, default=True)
+    bronze_can_use_location = db.Column(db.Boolean, nullable=False, default=False)
 
     prata_ads_limit = db.Column(db.Integer, nullable=False, default=10)
     prata_keywords_limit = db.Column(db.Integer, nullable=False, default=15)
@@ -149,6 +151,7 @@ class AppSetting(db.Model):
     prata_can_show_full_details = db.Column(db.Boolean, nullable=False, default=True)
     prata_price = db.Column(db.Float, nullable=False, default=39.90)
     prata_can_use_vitrine = db.Column(db.Boolean, nullable=False, default=True)
+    prata_can_use_location = db.Column(db.Boolean, nullable=False, default=True)
 
     ouro_ads_limit = db.Column(db.Integer, nullable=False, default=20)
     ouro_keywords_limit = db.Column(db.Integer, nullable=False, default=20)
@@ -158,6 +161,7 @@ class AppSetting(db.Model):
     ouro_can_show_full_details = db.Column(db.Boolean, nullable=False, default=True)
     ouro_price = db.Column(db.Float, nullable=False, default=59.90)
     ouro_can_use_vitrine = db.Column(db.Boolean, nullable=False, default=True)
+    ouro_can_use_location = db.Column(db.Boolean, nullable=False, default=True)
 
     premium_ads_limit = db.Column(db.Integer, nullable=False, default=50)
     premium_keywords_limit = db.Column(db.Integer, nullable=False, default=30)
@@ -167,6 +171,7 @@ class AppSetting(db.Model):
     premium_can_show_full_details = db.Column(db.Boolean, nullable=False, default=True)
     premium_price = db.Column(db.Float, nullable=False, default=99.90)
     premium_can_use_vitrine = db.Column(db.Boolean, nullable=False, default=True)
+    premium_can_use_location = db.Column(db.Boolean, nullable=False, default=True)
     
     support_whatsapp = db.Column(db.String(30), nullable=True)
 
@@ -247,6 +252,8 @@ class Ad(db.Model):
     number = db.Column(db.String(20))
     complement = db.Column(db.String(150))
     zipcode = db.Column(db.String(20))
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
 
     plan = db.Column(db.String(20), default="FREE")
     main_image = db.Column(db.String(500))
@@ -896,6 +903,8 @@ def serialize_ad(ad):
         "number": ad.number,
         "complement": ad.complement,
         "zipcode": ad.zipcode,
+        "latitude": ad.latitude,
+        "longitude": ad.longitude,
         "plan": ad.plan,
         "main_image": safe_main_image,
         "main_video": safe_main_video,
@@ -1092,7 +1101,8 @@ def get_plan_rules(plan):
             "can_use_videos": settings.free_can_use_videos,
             "can_appear_in_vip_list": settings.free_can_appear_in_vip_list,
             "can_show_full_details": settings.free_can_show_full_details,
-            "can_use_vitrine": settings.free_can_use_vitrine
+            "can_use_vitrine": settings.free_can_use_vitrine,
+            "can_use_location": settings.free_can_use_location
         },
         "VIP_BRONZE": {
             "ads_limit": settings.bronze_ads_limit,
@@ -1101,7 +1111,8 @@ def get_plan_rules(plan):
             "can_use_videos": settings.bronze_can_use_videos,
             "can_appear_in_vip_list": settings.bronze_can_appear_in_vip_list,
             "can_show_full_details": settings.bronze_can_show_full_details,
-            "can_use_vitrine": settings.bronze_can_use_vitrine
+            "can_use_vitrine": settings.bronze_can_use_vitrine,
+            "can_use_location": settings.bronze_can_use_location
         },
         "VIP_PRATA": {
             "ads_limit": settings.prata_ads_limit,
@@ -1110,7 +1121,8 @@ def get_plan_rules(plan):
             "can_use_videos": settings.prata_can_use_videos,
             "can_appear_in_vip_list": settings.prata_can_appear_in_vip_list,
             "can_show_full_details": settings.prata_can_show_full_details,
-            "can_use_vitrine": settings.prata_can_use_vitrine
+            "can_use_vitrine": settings.prata_can_use_vitrine,
+            "can_use_location": settings.prata_can_use_location
         },
         "VIP_OURO": {
             "ads_limit": settings.ouro_ads_limit,
@@ -1119,7 +1131,8 @@ def get_plan_rules(plan):
             "can_use_videos": settings.ouro_can_use_videos,
             "can_appear_in_vip_list": settings.ouro_can_appear_in_vip_list,
             "can_show_full_details": settings.ouro_can_show_full_details,
-            "can_use_vitrine": settings.ouro_can_use_vitrine
+            "can_use_vitrine": settings.ouro_can_use_vitrine,
+            "can_use_location": settings.ouro_can_use_location
         },
         "VIP_PREMIUM": {
             "ads_limit": settings.premium_ads_limit,
@@ -1128,7 +1141,8 @@ def get_plan_rules(plan):
             "can_use_videos": settings.premium_can_use_videos,
             "can_appear_in_vip_list": settings.premium_can_appear_in_vip_list,
             "can_show_full_details": settings.premium_can_show_full_details,
-            "can_use_vitrine": settings.premium_can_use_vitrine
+            "can_use_vitrine": settings.premium_can_use_vitrine,
+            "can_use_location": settings.premium_can_use_location
         }
     }
 
@@ -2312,6 +2326,10 @@ def create_ad():
     number = request.form.get("number", "").strip()
     complement = request.form.get("complement", "").strip()
     zipcode = request.form.get("zipcode", "").strip()
+    latitude_raw = request.form.get("latitude", "").strip()
+    longitude_raw = request.form.get("longitude", "").strip()
+    latitude = None
+    longitude = None
 
     keywords = request.form.getlist("keywords")
 
@@ -2335,6 +2353,14 @@ def create_ad():
     enforce_user_plan(user)
     
     plan_rules = get_plan_rules(user.plan)
+    
+    if plan_rules.get("can_use_location"):
+        try:
+            if latitude_raw and longitude_raw:
+                latitude = float(latitude_raw)
+                longitude = float(longitude_raw)
+        except ValueError:
+            return jsonify({"message": "Localização inválida."}), 400
 
     if (main_image_file and not plan_rules["can_use_images"]) or (main_video_file and not plan_rules["can_use_videos"]):
         return jsonify({
@@ -2418,6 +2444,8 @@ def create_ad():
         number=number,
         complement=complement,
         zipcode=zipcode,
+        latitude=latitude,
+        longitude=longitude,
         plan=user.plan,
         main_image=image_path if plan_rules["can_use_images"] else None,
         main_video=video_path if plan_rules["can_use_videos"] else None,
@@ -2574,7 +2602,8 @@ def get_admin_settings():
             "can_use_videos": settings.free_can_use_videos,
             "can_appear_in_vip_list": settings.free_can_appear_in_vip_list,
             "can_show_full_details": settings.free_can_show_full_details,
-            "can_use_vitrine": settings.free_can_use_vitrine
+            "can_use_vitrine": settings.free_can_use_vitrine,
+            "can_use_location": settings.free_can_use_location
         },
         "bronze": {
             "ads_limit": settings.bronze_ads_limit,
@@ -2584,7 +2613,8 @@ def get_admin_settings():
             "can_use_videos": settings.bronze_can_use_videos,
             "can_appear_in_vip_list": settings.bronze_can_appear_in_vip_list,
             "can_show_full_details": settings.bronze_can_show_full_details,
-            "can_use_vitrine": settings.bronze_can_use_vitrine
+            "can_use_vitrine": settings.free_can_use_vitrine,
+            "can_use_location": settings.free_can_use_location
         },
         "prata": {
             "ads_limit": settings.prata_ads_limit,
@@ -2594,7 +2624,8 @@ def get_admin_settings():
             "can_use_videos": settings.prata_can_use_videos,
             "can_appear_in_vip_list": settings.prata_can_appear_in_vip_list,
             "can_show_full_details": settings.prata_can_show_full_details,
-            "can_use_vitrine": settings.prata_can_use_vitrine
+            "can_use_vitrine": settings.free_can_use_vitrine,
+            "can_use_location": settings.free_can_use_location
         },
         "ouro": {
             "ads_limit": settings.ouro_ads_limit,
@@ -2604,7 +2635,8 @@ def get_admin_settings():
             "can_use_videos": settings.ouro_can_use_videos,
             "can_appear_in_vip_list": settings.ouro_can_appear_in_vip_list,
             "can_show_full_details": settings.ouro_can_show_full_details,
-            "can_use_vitrine": settings.ouro_can_use_vitrine
+            "can_use_vitrine": settings.free_can_use_vitrine,
+            "can_use_location": settings.free_can_use_location
         },
         "premium": {
             "ads_limit": settings.premium_ads_limit,
@@ -2614,7 +2646,8 @@ def get_admin_settings():
             "can_use_videos": settings.premium_can_use_videos,
             "can_appear_in_vip_list": settings.premium_can_appear_in_vip_list,
             "can_show_full_details": settings.premium_can_show_full_details,
-            "can_use_vitrine": settings.premium_can_use_vitrine
+            "can_use_vitrine": settings.free_can_use_vitrine,
+            "can_use_location": settings.free_can_use_location
         }
     })
     
@@ -2643,6 +2676,7 @@ def update_admin_settings():
         settings.free_can_appear_in_vip_list = bool(data["free"]["can_appear_in_vip_list"])
         settings.free_can_show_full_details = bool(data["free"]["can_show_full_details"])
         settings.free_can_use_vitrine = bool(data["free"]["can_use_vitrine"])
+        settings.free_can_use_location = bool(data["free"]["can_use_location"])
 
         settings.bronze_ads_limit = int(data["bronze"]["ads_limit"])
         settings.bronze_keywords_limit = int(data["bronze"]["keywords_limit"])
@@ -2652,6 +2686,7 @@ def update_admin_settings():
         settings.bronze_can_show_full_details = bool(data["bronze"]["can_show_full_details"])
         settings.bronze_price = float(data["bronze"]["price"])
         settings.bronze_can_use_vitrine = bool(data["bronze"]["can_use_vitrine"])
+        settings.bronze_can_use_location = bool(data["bronze"]["can_use_location"])
 
         settings.prata_ads_limit = int(data["prata"]["ads_limit"])
         settings.prata_keywords_limit = int(data["prata"]["keywords_limit"])
@@ -2661,6 +2696,7 @@ def update_admin_settings():
         settings.prata_can_show_full_details = bool(data["prata"]["can_show_full_details"])
         settings.prata_price = float(data["prata"]["price"])
         settings.prata_can_use_vitrine = bool(data["prata"]["can_use_vitrine"])
+        settings.prata_can_use_location = bool(data["prata"]["can_use_location"])
 
         settings.ouro_ads_limit = int(data["ouro"]["ads_limit"])
         settings.ouro_keywords_limit = int(data["ouro"]["keywords_limit"])
@@ -2670,6 +2706,7 @@ def update_admin_settings():
         settings.ouro_can_show_full_details = bool(data["ouro"]["can_show_full_details"])
         settings.ouro_price = float(data["ouro"]["price"])
         settings.ouro_can_use_vitrine = bool(data["ouro"]["can_use_vitrine"])
+        settings.ouro_can_use_location = bool(data["ouro"]["can_use_location"])
 
         settings.premium_ads_limit = int(data["premium"]["ads_limit"])
         settings.premium_keywords_limit = int(data["premium"]["keywords_limit"])
@@ -2679,6 +2716,7 @@ def update_admin_settings():
         settings.premium_can_show_full_details = bool(data["premium"]["can_show_full_details"])
         settings.premium_price = float(data["premium"]["price"])
         settings.premium_can_use_vitrine = bool(data["premium"]["can_use_vitrine"])
+        settings.premium_can_use_location = bool(data["premium"]["can_use_location"])
     except (KeyError, TypeError, ValueError):
         return jsonify({"message": "Valores inválidos"}), 400
 
@@ -2891,6 +2929,10 @@ def update_ad(ad_id):
         number = request.form.get("number", "").strip()
         complement = request.form.get("complement", "").strip()
         zipcode = request.form.get("zipcode", "").strip()
+        latitude_raw = request.form.get("latitude", "").strip()
+        longitude_raw = request.form.get("longitude", "").strip()
+        latitude = None
+        longitude = None
         keywords = request.form.getlist("keywords")
 
         main_image_file = request.files.get("main_image")
@@ -2898,6 +2940,14 @@ def update_ad(ad_id):
 
         enforce_user_plan(user)
         plan_rules = get_plan_rules(user.plan)
+        
+        if plan_rules.get("can_use_location"):
+            try:
+                if latitude_raw and longitude_raw:
+                    latitude = float(latitude_raw)
+                    longitude = float(longitude_raw)
+            except ValueError:
+                return jsonify({"message": "Localização inválida."}), 400
 
         if (main_image_file and not plan_rules["can_use_images"]) or (main_video_file and not plan_rules["can_use_videos"]):
             return jsonify({
@@ -2982,6 +3032,12 @@ def update_ad(ad_id):
         ad.number = number
         ad.complement = complement
         ad.zipcode = zipcode
+        if plan_rules.get("can_use_location"):
+            ad.latitude = latitude
+            ad.longitude = longitude
+        else:
+            ad.latitude = None
+            ad.longitude = None
         ad.plan = user.plan
 
         Keyword.query.filter_by(ad_id=ad.id).delete()

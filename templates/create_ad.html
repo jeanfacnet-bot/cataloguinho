@@ -396,6 +396,67 @@
 		margin-left: 270px;
 		margin-right: 24px;
 	  }
+	  
+		.keyword-box {
+		  background: #f8fafc;
+		  border: 1px solid #dbeafe;
+		  border-radius: 18px;
+		  padding: 14px;
+		}
+
+		.keyword-input-row {
+		  display: flex;
+		  gap: 10px;
+		  align-items: stretch;
+		}
+
+		.keyword-input-row input {
+		  flex: 1;
+		}
+
+		.keyword-input-row button {
+		  width: auto;
+		  white-space: nowrap;
+		  padding-left: 18px;
+		  padding-right: 18px;
+		}
+
+		.keyword-tags {
+		  display: flex;
+		  flex-wrap: wrap;
+		  gap: 8px;
+		  margin-top: 12px;
+		}
+
+		.keyword-tag {
+		  display: inline-flex;
+		  align-items: center;
+		  gap: 8px;
+		  background: #eff6ff;
+		  color: #1d4ed8;
+		  border: 1px solid #bfdbfe;
+		  border-radius: 999px;
+		  padding: 8px 12px;
+		  font-size: 14px;
+		  font-weight: 700;
+		}
+
+		.keyword-remove {
+		  border: none !important;
+		  background: transparent !important;
+		  color: #1d4ed8 !important;
+		  width: auto !important;
+		  padding: 0 !important;
+		  cursor: pointer;
+		  font-size: 16px !important;
+		  line-height: 1;
+		}
+
+		.keyword-help {
+		  margin-top: 8px;
+		  color: #6b7280;
+		  font-size: 13px;
+		}
 
 	  @media (max-width: 1100px) {
 		.ad-layout {
@@ -448,6 +509,15 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#0b1120">
 <link rel="apple-touch-icon" href="/static/icons/icon-192.png">	
+
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
 	
 </head>
 <body>
@@ -493,7 +563,28 @@
 		  <div class="section-title">Informações principais</div>
 
 		  <input type="text" id="title" placeholder="Nome da sua loja ou serviço" required>
-		  <input type="text" id="keywords" placeholder="Palavras-chave dos produtos ou serviços (separe por espaço)">
+		  <div class="keyword-box">
+			  <label for="keywordInput" style="display:block;font-weight:700;margin-bottom:8px;">
+				Palavras-chave dos produtos ou serviços (Para a pesquisa)
+			  </label>
+
+			  <div class="keyword-input-row">
+				<input
+				  type="text"
+				  id="keywordInput"
+				  placeholder="Digite uma palavra. Ex: pizza"
+				>
+				<button type="button" id="addKeywordBtn">Adicionar</button>
+			  </div>
+
+			  <input type="hidden" id="keywords">
+
+			  <div id="keywordTags" class="keyword-tags"></div>
+
+			  <div id="keywordHelp" class="keyword-help">
+				Adicione uma palavra por vez. Ex: pizza, marmita, lanche.
+			  </div>
+			</div>
 		  <textarea id="description" placeholder="Descrição do anúncio (Este recurso aparecerá somente para usuários VIP.)"></textarea>
 		  <input type="text" id="phone" placeholder="Telefone">
 		</div>
@@ -527,6 +618,29 @@
 				<input type="text" id="complement" placeholder="Complemento. Ex: Rua">
 				<input type="text" id="zipcode" placeholder="CEP">
 			  </div>
+				<div id="mapLocationBlock" class="upload-card" style="margin-top:14px; display:none;">
+				  <label>Marque a localização no mapa</label>
+
+				  <div
+					id="adMap"
+					style="height:320px; border-radius:16px; overflow:hidden; border:1px solid #d1d5db;">
+				  </div>
+
+				  <input type="hidden" id="latitude">
+				  <input type="hidden" id="longitude">
+
+				  <div id="mapLocationStatus" class="muted" style="margin-top:8px;">
+					Clique no mapa para marcar a localização do anúncio.
+				  </div>
+				</div>
+
+				<div id="mapLocationUpgradeMessage" class="muted" style="display:none;">
+				  Seu plano atual não permite marcar localização no mapa.
+				  <br>
+				  <button type="button" class="vip-btn" onclick="window.location.href='/vip-page'" style="margin-top:8px;">
+					Conhecer planos VIP
+				  </button>
+				</div>
 			</div>
 
 			<div class="form-section">

@@ -49,6 +49,12 @@ function buildPlanFeatures(planName, rules) {
   if (rules.can_use_vitrine) {
     features.push("Aparece na vitrine");
   } 
+  
+  if (rules.can_use_location) {
+	features.push("Pode marcar localização no mapa");
+  } else {
+	features.push("Sem localização no mapa");
+  }
 
   return features.map(item => `<li>${item}</li>`).join("");
 }

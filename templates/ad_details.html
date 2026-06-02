@@ -76,6 +76,68 @@
 	  border-radius: 12px;
 	  background: #000;
 	}
+	
+	.location-actions {
+	  display: flex;
+	  gap: 12px;
+	  flex-wrap: wrap;
+	  margin-top: 14px;
+	}
+
+	.location-btn {
+	  display: inline-flex;
+	  align-items: center;
+	  gap: 8px;
+	  text-decoration: none;
+	  color: white;
+	  padding: 12px 16px;
+	  border-radius: 12px;
+	  font-weight: 700;
+	  transition: 0.2s;
+	}
+
+	.location-btn:hover {
+	  transform: translateY(-1px);
+	}
+
+	.maps-btn {
+	  background: #4285F4;
+	}
+
+	.waze-btn {
+	  background: #33CCFF;
+	}
+	
+	.contact-actions {
+	  display: flex;
+	  gap: 12px;
+	  flex-wrap: wrap;
+	  margin-top: 12px;
+	}
+
+	.contact-btn {
+	  display: inline-flex;
+	  align-items: center;
+	  gap: 8px;
+	  text-decoration: none;
+	  color: white;
+	  padding: 12px 16px;
+	  border-radius: 12px;
+	  font-weight: 700;
+	  transition: 0.2s;
+	}
+
+	.contact-btn:hover {
+	  transform: translateY(-1px);
+	}
+
+	.whatsapp-btn {
+	  background: #25D366;
+	}
+
+	.call-btn {
+	  background: #2563eb;
+	}
   </style>
 </head>
 <body>
@@ -151,10 +213,127 @@
 		  backLink.href = "/search-page";
 		  backLink.textContent = "← Voltar para pesquisa";
 		}
+		
+	  function buildLocationSection(ad) {
+		  const locationText = `
+			${ad.country || ""}
+			${ad.state ? " / " + ad.state : ""}
+			${ad.city ? " / " + ad.city : ""}
+			${ad.municipality ? " / " + ad.municipality : ""}
+			${ad.neighborhood ? " / " + ad.neighborhood : ""}
+		  `;
+
+		  let navigationHtml = "";
+
+		  if (
+			ad.latitude !== null &&
+			ad.latitude !== undefined &&
+			ad.longitude !== null &&
+			ad.longitude !== undefined
+		  ) {
+			const mapsUrl =
+			  `https://www.google.com/maps/search/?api=1&query=${ad.latitude},${ad.longitude}`;
+
+			const wazeUrl =
+			  `https://waze.com/ul?ll=${ad.latitude},${ad.longitude}&navigate=yes`;
+
+			navigationHtml = `
+			  <div class="location-actions">
+				<a
+				  href="${mapsUrl}"
+				  target="_blank"
+				  class="location-btn maps-btn"
+				>
+				  📍 Abrir no Google Maps
+				</a>
+
+				<a
+				  href="${wazeUrl}"
+				  target="_blank"
+				  class="location-btn waze-btn"
+				>
+				  🚗 Abrir no Waze
+				</a>
+			  </div>
+			`;
+		  }
+
+		  return `
+			<div class="details-section">
+			  <h3>Localização</h3>
+
+			  <p>${locationText}</p>
+
+			  ${navigationHtml}
+			</div>
+		  `;
+		}	
+
+		function onlyDigits(value) {
+		  return String(value || "").replace(/\D/g, "");
+		}
+
+		function buildWhatsAppPhone(phone) {
+		  const digits = onlyDigits(phone);
+
+		  if (!digits) return "";
+
+		  if (digits.startsWith("55")) {
+			return digits;
+		  }
+
+		  return `55${digits}`;
+		}
+
+		function buildContactSection(ad) {
+		  const rawPhone = ad.phone || "";
+		  const phoneDigits = onlyDigits(rawPhone);
+		  const whatsappPhone = buildWhatsAppPhone(rawPhone);
+
+		  if (!phoneDigits) {
+			return `
+			  <div class="details-section">
+				<h3>Contato</h3>
+				<p>Telefone não informado</p>
+			  </div>
+			`;
+		  }
+
+		  const message = encodeURIComponent(
+			`Olá, vi seu anúncio "${ad.title}" no Catálogo e gostaria de mais informações.`
+		  );
+
+		  const whatsappUrl = `https://wa.me/${whatsappPhone}?text=${message}`;
+		  const callUrl = `tel:${phoneDigits}`;
+
+		  return `
+			<div class="details-section">
+			  <h3>Contato</h3>
+
+			  <p><strong>Telefone:</strong> ${rawPhone}</p>
+
+			  <div class="contact-actions">
+				<a
+				  href="${whatsappUrl}"
+				  target="_blank"
+				  class="contact-btn whatsapp-btn"
+				>
+				  💬 Conversar no WhatsApp
+				</a>
+
+				<a
+				  href="${callUrl}"
+				  class="contact-btn call-btn"
+				>
+				  📞 Ligar agora
+				</a>
+			  </div>
+			</div>
+		  `;
+		}
 
 	  function renderAd(ad) {
-		  const planClass = ad.plan === "FREE" ? "free" : "vip";
-
+		  
 		  const imageHtml = ad.main_image
 			? `<img class="details-image" src="${ad.main_image}" alt="${ad.title}">`
 			: "";
@@ -180,28 +359,15 @@
 			`
 			: "";
 
-		  adContent.className = `details-card ${planClass}`;
+		  adContent.className = "details-card";
 		  adContent.innerHTML = `
 			<div class="details-title-row">
 			  <h1>${ad.title}</h1>
-			  <span class="badge ${planClass}">${ad.plan}</span>
 			</div>
 
-			<div class="details-section">
-			  <h3>Contato</h3>
-			  <p><strong>Telefone:</strong> ${ad.phone || "Não informado"}</p>
-			</div>
+			${buildContactSection(ad)}
 
-			<div class="details-section">
-			  <h3>Localização</h3>
-			  <p>
-				${ad.country || ""}
-				${ad.state ? " / " + ad.state : ""}
-				${ad.city ? " / " + ad.city : ""}
-				${ad.municipality ? " / " + ad.municipality : ""}
-				${ad.neighborhood ? " / " + ad.neighborhood : ""}
-			  </p>
-			</div>
+			${buildLocationSection(ad)}
 
 			${descriptionHtml}
 

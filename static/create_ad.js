@@ -15,6 +15,20 @@ const imageUploadBlock = document.getElementById("imageUploadBlock");
 const videoUploadBlock = document.getElementById("videoUploadBlock");
 const imageUpgradeMessage = document.getElementById("imageUpgradeMessage");
 const videoUpgradeMessage = document.getElementById("videoUpgradeMessage");
+const mapLocationBlock = document.getElementById("mapLocationBlock");
+const mapLocationUpgradeMessage = document.getElementById("mapLocationUpgradeMessage");
+const mapLocationStatus = document.getElementById("mapLocationStatus");
+const latitudeInput = document.getElementById("latitude");
+const longitudeInput = document.getElementById("longitude");
+const keywordInput = document.getElementById("keywordInput");
+const addKeywordBtn = document.getElementById("addKeywordBtn");
+const keywordTags = document.getElementById("keywordTags");
+const keywordsHiddenInput = document.getElementById("keywords");
+
+let selectedKeywords = [];
+
+let adMap = null;
+let adMapMarker = null;
 
 let savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
 let plansConfig = null;
@@ -96,6 +110,107 @@ function clearMessage() {
   adMessage.textContent = "";
   adMessage.innerHTML = "";
   adMessage.className = "message-box";
+}
+
+function normalizeKeywordValue(value) {
+  return String(value || "").trim().replace(/\s+/g, " ");
+}
+
+function syncKeywordsHiddenInput() {
+  if (keywordsHiddenInput) {
+    keywordsHiddenInput.value = selectedKeywords.join(",");
+  }
+}
+
+function renderKeywordTags() {
+  if (!keywordTags) return;
+
+  keywordTags.innerHTML = "";
+
+  selectedKeywords.forEach((keyword, index) => {
+    const tag = document.createElement("span");
+    tag.className = "keyword-tag";
+
+    tag.innerHTML = `
+      ${keyword}
+      <button type="button" class="keyword-remove" data-index="${index}" title="Remover palavra-chave">×</button>
+    `;
+
+    keywordTags.appendChild(tag);
+  });
+
+  document.querySelectorAll(".keyword-remove").forEach(button => {
+    button.addEventListener("click", () => {
+      const index = Number(button.dataset.index);
+      selectedKeywords.splice(index, 1);
+      syncKeywordsHiddenInput();
+      renderKeywordTags();
+      updateKeywordsPlaceholder();
+    });
+  });
+
+  syncKeywordsHiddenInput();
+}
+
+function addKeywordFromInput() {
+  if (!keywordInput) return;
+
+  clearMessage();
+
+  const rawValue = normalizeKeywordValue(keywordInput.value);
+
+  if (!rawValue) return;
+
+  const values = rawValue
+    .split(",")
+    .flatMap(part => part.trim().split(/\s+/))
+    .map(item => normalizeKeywordValue(item))
+    .filter(Boolean);
+
+  const maxKeywords = getCurrentKeywordsLimit();
+
+  for (const value of values) {
+    const exists = selectedKeywords.some(
+      item => item.toLowerCase() === value.toLowerCase()
+    );
+
+    if (exists) continue;
+
+    if (selectedKeywords.length >= maxKeywords) {
+      showMessage(
+        `Seu plano ${getPlanLabel(savedUser?.plan)} permite até ${maxKeywords} palavras-chave.`,
+        "error"
+      );
+      break;
+    }
+
+    selectedKeywords.push(value);
+  }
+
+  keywordInput.value = "";
+  renderKeywordTags();
+  updateKeywordsPlaceholder();
+}
+
+function setKeywordsFromArray(items) {
+  selectedKeywords = [];
+
+  (items || []).forEach(item => {
+    const value = normalizeKeywordValue(item);
+
+    if (!value) return;
+
+    const exists = selectedKeywords.some(
+      keyword => keyword.toLowerCase() === value.toLowerCase()
+    );
+
+    if (!exists) {
+      selectedKeywords.push(value);
+    }
+  });
+
+  renderKeywordTags();
+  updateKeywordsPlaceholder();
 }
 
 function getPlanLabel(plan) {
@@ -207,6 +322,69 @@ function updateMediaAccessUI() {
   }
 }
 
+function updateLocationAccessUI() {
+  const currentUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+  const rules = getEffectivePlanRulesForUser(currentUser);
+  const canUseLocation = !!rules.can_use_location;
+
+  if (mapLocationBlock) {
+    mapLocationBlock.style.display = canUseLocation ? "block" : "none";
+  }
+
+  if (mapLocationUpgradeMessage) {
+    mapLocationUpgradeMessage.style.display = canUseLocation ? "none" : "block";
+  }
+
+  if (!canUseLocation) {
+    if (latitudeInput) latitudeInput.value = "";
+    if (longitudeInput) longitudeInput.value = "";
+    return;
+  }
+
+  setTimeout(initAdMap, 200);
+}
+
+function initAdMap() {
+  if (!document.getElementById("adMap")) return;
+  if (adMap) {
+    adMap.invalidateSize();
+    return;
+  }
+
+  adMap = L.map("adMap").setView([-15.7801, -47.9292], 5);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "&copy; OpenStreetMap"
+  }).addTo(adMap);
+
+  adMap.on("click", function (event) {
+    setMapMarker(event.latlng.lat, event.latlng.lng);
+  });
+}
+
+function setMapMarker(lat, lng) {
+  if (!adMap) return;
+
+  const safeLat = Number(lat);
+  const safeLng = Number(lng);
+
+  if (!Number.isFinite(safeLat) || !Number.isFinite(safeLng)) return;
+
+  if (adMapMarker) {
+    adMapMarker.setLatLng([safeLat, safeLng]);
+  } else {
+    adMapMarker = L.marker([safeLat, safeLng]).addTo(adMap);
+  }
+
+  latitudeInput.value = safeLat.toFixed(7);
+  longitudeInput.value = safeLng.toFixed(7);
+
+  if (mapLocationStatus) {
+    mapLocationStatus.textContent = `Localização marcada: ${safeLat.toFixed(7)}, ${safeLng.toFixed(7)}`;
+  }
+}
+
 function resetSelect(selectElement, placeholder) {
   selectElement.innerHTML = `<option value="">${placeholder}</option>`;
 }
@@ -273,6 +451,7 @@ async function refreshSavedUser() {
 	renderUser();
 	updateKeywordsPlaceholder();
 	updateMediaAccessUI();
+	updateLocationAccessUI();
   } catch (error) {
     console.error("Erro ao atualizar dados do usuário:", error);
   }
@@ -359,9 +538,20 @@ function startEdit(ad) {
   document.getElementById("number").value = ad.number || "";
   document.getElementById("complement").value = ad.complement || "";
   document.getElementById("zipcode").value = ad.zipcode || "";
-  document.getElementById("keywords").value = (ad.keywords || []).join(", ");
+  setKeywordsFromArray(ad.keywords || []);
 
   stateSelect.value = ad.state || "";
+  
+	if (latitudeInput) latitudeInput.value = ad.latitude || "";
+	if (longitudeInput) longitudeInput.value = ad.longitude || "";
+
+	if (ad.latitude && ad.longitude) {
+	  setTimeout(() => {
+		initAdMap();
+		setMapMarker(ad.latitude, ad.longitude);
+		adMap.setView([ad.latitude, ad.longitude], 16);
+	  }, 300);
+	}
 
   const submitBtn = adForm.querySelector('button[type="submit"]');
   if (submitBtn) {
@@ -389,9 +579,27 @@ function startEdit(ad) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+	if (addKeywordBtn) {
+	  addKeywordBtn.addEventListener("click", addKeywordFromInput);
+	}
+
+	if (keywordInput) {
+	  keywordInput.addEventListener("keydown", (event) => {
+		if (event.key === "Enter" || event.key === ",") {
+		  event.preventDefault();
+		  addKeywordFromInput();
+		}
+	  });
+
+	  keywordInput.addEventListener("blur", () => {
+		addKeywordFromInput();
+	  });
+	}
+
 function resetFormMode() {
   editingAdId = null;
   adForm.reset();
+  setKeywordsFromArray([]);
   document.getElementById("country").value = "Brasil";
   document.getElementById("complement").value = "";
   resetSelect(citySelect, "Selecione a cidade");
@@ -415,6 +623,18 @@ if (cancelEditBtn) {
     resetFormMode();
     clearMessage();
   });
+}
+
+if (latitudeInput) latitudeInput.value = "";
+if (longitudeInput) longitudeInput.value = "";
+
+if (adMapMarker && adMap) {
+  adMap.removeLayer(adMapMarker);
+  adMapMarker = null;
+}
+
+if (mapLocationStatus) {
+  mapLocationStatus.textContent = "Clique no mapa para marcar a localização do anúncio.";
 }
 
 async function loadStates() {
@@ -442,36 +662,28 @@ async function loadStates() {
 }
 
 function updateKeywordsPlaceholder() {
-  const input = document.getElementById("keywords");
-
-  if (!input || !plansConfig) return;
+  if (!plansConfig) return;
 
   const currentUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+  const maxKeywords = getCurrentKeywordsLimit();
+  const used = selectedKeywords.length;
+  const remaining = Math.max(maxKeywords - used, 0);
 
-  if (!currentUser || !currentUser.plan) {
-    const freeLimit = plansConfig.free?.keywords_limit ?? 3;
-    input.placeholder = `Palavras-chave dos produtos ou serviços (separe por espaço) FREE: até ${freeLimit}`;
-    return;
+  if (keywordInput) {
+    keywordInput.placeholder = `Digite uma palavra-chave (${remaining} restantes)`;
+    keywordInput.disabled = remaining <= 0;
   }
 
-  let currentPlanLabel = "FREE";
-  let currentLimit = plansConfig.free?.keywords_limit ?? 3;
+  const keywordHelp = document.getElementById("keywordHelp");
 
-  if (currentUser.plan === "VIP_BRONZE") {
-    currentPlanLabel = "VIP Bronze";
-    currentLimit = plansConfig.bronze?.keywords_limit ?? 10;
-  } else if (currentUser.plan === "VIP_PRATA") {
-    currentPlanLabel = "VIP Prata";
-    currentLimit = plansConfig.prata?.keywords_limit ?? 15;
-  } else if (currentUser.plan === "VIP_OURO") {
-    currentPlanLabel = "VIP Ouro";
-    currentLimit = plansConfig.ouro?.keywords_limit ?? 20;
-  } else if (currentUser.plan === "VIP_PREMIUM") {
-    currentPlanLabel = "VIP Premium";
-    currentLimit = plansConfig.premium?.keywords_limit ?? 30;
+  if (keywordHelp) {
+    keywordHelp.textContent = `Você adicionou ${used} de ${maxKeywords} palavras-chave permitidas pelo seu plano.`;
   }
 
-  input.placeholder = `Palavras-chave dos produtos ou serviços (separe por espaço) ${currentPlanLabel}: até ${currentLimit}`;
+  if (addKeywordBtn) {
+    addKeywordBtn.disabled = remaining <= 0;
+    addKeywordBtn.textContent = remaining <= 0 ? "Limite atingido" : "Adicionar";
+  }
 }
 
 async function loadCities(uf) {
@@ -618,19 +830,11 @@ adForm.addEventListener("submit", async (e) => {
     return;
   }
 
-  const keywordsRaw = document.getElementById("keywords").value.trim();
+	addKeywordFromInput();
 
-  const keywordsList = keywordsRaw
-    ? keywordsRaw
-        .split(",")
-        .flatMap(part => part.trim().split(/\s+/))
-        .map(k => k.trim())
-        .filter(Boolean)
-    : [];
-
-  const uniqueKeywords = [...new Map(
-    keywordsList.map(k => [k.toLowerCase(), k])
-  ).values()];
+	const uniqueKeywords = [...new Map(
+	  selectedKeywords.map(k => [k.toLowerCase(), k])
+	).values()];
 
   const maxKeywords = getCurrentKeywordsLimit();
 
@@ -682,6 +886,13 @@ adForm.addEventListener("submit", async (e) => {
   try {
     const url = editingAdId ? `/anuncios/${editingAdId}` : "/ads";
     const method = editingAdId ? "PUT" : "POST";
+	
+	const rules = getEffectivePlanRulesForUser(savedUser);
+
+	if (rules.can_use_location && latitudeInput && longitudeInput) {
+	  formData.append("latitude", latitudeInput.value);
+	  formData.append("longitude", longitudeInput.value);
+	}
 
     const response = await fetch(url, {
       method,
@@ -727,6 +938,7 @@ adForm.addEventListener("submit", async (e) => {
     console.error("Erro ao salvar anúncio:", error);
     showMessage("Erro ao salvar anúncio.", "error");
   }
+	
 });
 
 async function deleteAd(adId) {
@@ -768,6 +980,7 @@ async function deleteAd(adId) {
   renderUser();
   updateKeywordsPlaceholder();
   updateMediaAccessUI();
+  updateLocationAccessUI();
   loadStates();
 
   if (savedUser) {
