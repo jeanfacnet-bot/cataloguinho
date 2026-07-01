@@ -8,6 +8,9 @@ const searchBtn = document.getElementById("searchBtn");
 const resultsContainer = document.getElementById("results");
 const resultCount = document.getElementById("resultCount");
 let currentController = null;
+let lastSearchResults = [];
+
+const SEARCH_STATE_KEY = "catalogo_search_state";
 
 const locationCache = {
   states: null,
@@ -41,6 +44,91 @@ function getPlanStar(plan) {
 }
 
 const savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+
+function getSearchFormState() {
+  return {
+    term: termInput ? termInput.value.trim() : "",
+    state: stateSelect ? stateSelect.value.trim() : "",
+    city: citySelect ? citySelect.value.trim() : "",
+    neighborhood: neighborhoodSelect ? neighborhoodSelect.value.trim() : "",
+    complement: complementInput ? complementInput.value.trim() : "",
+    scrollY: window.scrollY || 0
+  };
+}
+
+function saveSearchState(results = lastSearchResults) {
+  const state = {
+    filters: getSearchFormState(),
+    results: Array.isArray(results) ? results : [],
+    savedAt: Date.now()
+  };
+
+  sessionStorage.setItem(SEARCH_STATE_KEY, JSON.stringify(state));
+}
+
+async function restoreSearchStateIfAny() {
+  const rawState = sessionStorage.getItem(SEARCH_STATE_KEY);
+
+  if (!rawState) {
+    return false;
+  }
+
+  let savedState = null;
+
+  try {
+    savedState = JSON.parse(rawState);
+  } catch (error) {
+    sessionStorage.removeItem(SEARCH_STATE_KEY);
+    return false;
+  }
+
+  const filters = savedState.filters || {};
+  const results = Array.isArray(savedState.results) ? savedState.results : [];
+
+  await loadStates();
+
+  if (termInput) {
+    termInput.value = filters.term || "";
+  }
+
+  if (stateSelect) {
+    stateSelect.value = filters.state || "";
+  }
+
+  if (filters.state) {
+    await loadCities(filters.state);
+  }
+
+  if (citySelect) {
+    citySelect.value = filters.city || "";
+  }
+
+  if (filters.city) {
+    await loadNeighborhoods(filters.city, filters.state || "");
+  }
+
+  if (neighborhoodSelect) {
+    neighborhoodSelect.value = filters.neighborhood || "";
+  }
+
+  if (complementInput) {
+    complementInput.value = filters.complement || "";
+  }
+
+  lastSearchResults = results;
+  renderResults(results);
+
+  setTimeout(() => {
+    window.scrollTo(0, Number(filters.scrollY || 0));
+  }, 100);
+
+  return true;
+}
+
+function openAdDetailsFromSearch(adId) {
+  saveSearchState(lastSearchResults);
+  window.location.href = `/ads/${adId}/page?from=search`;
+}
 
 
 function resetSelect(selectElement, placeholder) {
@@ -90,7 +178,7 @@ function renderResults(items) {
 		  <div class="result-actions">
 			${
 			  item.can_show_full_details
-				? `<button type="button" onclick="window.location.href='/ads/${item.id}/page?from=search'">Ver detalhes</button>`
+				? `<button type="button" onclick="openAdDetailsFromSearch(${item.id})">Ver detalhes</button>`
 				: ""
 			}
 		  </div>
@@ -378,13 +466,34 @@ async function searchAds() {
 
     console.log("Resposta /search:", response.status, data);
 
-    if (!response.ok || !Array.isArray(data)) {
-      console.error("Erro na pesquisa:", data);
-      renderResults([]);
-      return;
-    }
+	if (!response.ok || !Array.isArray(data)) {
+	  console.error("Erro na pesquisa:", data);
+	  lastSearchResults = [];
+	  renderResults([]);
+	  saveSearchState([]);
+	  return;
+	}
 
-    renderResults(data);
+	lastSearchResults = data;
+	renderResults(data);
+	saveSearchState(data);
+
+	setTimeout(() => {
+	  const firstResult = document.querySelector(".result-card");
+
+	  if (firstResult) {
+		firstResult.scrollIntoView({
+		  behavior: "smooth",
+		  block: "start"
+		});
+	  } else if (resultsContainer) {
+		resultsContainer.scrollIntoView({
+		  behavior: "smooth",
+		  block: "start"
+		});
+	  }
+	}, 100);
+
   } catch (error) {
     if (error.name === "AbortError") return;
 	console.error("Erro ao pesquisar anúncios:", error);
@@ -455,5 +564,15 @@ if (searchBtn) {
   console.error("searchBtn não encontrado");
 }
 
-loadStates();
-searchAds();
+async function initSearchPage() {
+  const restored = await restoreSearchStateIfAny();
+
+  if (restored) {
+    return;
+  }
+
+  await loadStates();
+  await searchAds();
+}
+
+initSearchPage();

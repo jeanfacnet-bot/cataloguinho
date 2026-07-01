@@ -168,11 +168,12 @@
     gap: 12px;
   }
 
-  .form-grid input {
-    padding: 12px;
-    border: 1px solid #dcdcdc;
-    border-radius: 10px;
-  }
+  .form-grid input,
+  .form-grid select {
+      padding: 12px;
+      border: 1px solid #dcdcdc;
+      border-radius: 10px;
+    }
 
   .modal-actions {
     display: flex;
@@ -318,6 +319,17 @@
 		  <input type="email" id="newUserEmail" placeholder="E-mail">
 		  <input type="text" id="newUserPhone" placeholder="Telefone">
 		  <input type="password" id="newUserPassword" placeholder="Senha">
+
+		  <select id="newUserPlan">
+			<option value="FREE">FREE</option>
+			<option value="VIP_BRONZE">VIP Bronze</option>
+			<option value="VIP_PRATA">VIP Prata</option>
+			<option value="VIP_OURO">VIP Ouro</option>
+			<option value="VIP_PREMIUM">VIP Premium</option>
+			<option value="ADMIN">Administrador</option>
+		  </select>
+
+		  <input type="date" id="newUserVipExpiration" title="Vencimento do VIP">
 		</div>
 
 		<div id="createUserMessage" class="muted" style="margin-top: 10px;"></div>
@@ -360,6 +372,7 @@ function getPlanLabel(plan) {
 
 function getPlanBadge(plan) {
   const badges = {
+    ADMIN: "👑 Administrador",
     FREE: "🆓 FREE",
     VIP_BRONZE: "🥉 VIP Bronze",
     VIP_PRATA: "🥈 VIP Prata",
@@ -421,13 +434,12 @@ function renderUsers(filter) {
           <strong>${u.name || "-"}</strong><br>
           <span class="muted">${u.email || "-"}</span><br>
           <span class="muted">CPF: ${u.cpf || "-"}</span><br>
-          ${getPlanBadge(u.plan)}
-          ${u.is_admin ? "<br>👑 Admin" : ""}
+          ${u.is_admin ? "👑 Administrador" : getPlanBadge(u.plan)}
           ${u.is_blocked ? "<br>🚫 Bloqueado" : ""}
           ${u.blocked_until ? `<br><span class="muted">Bloqueado até: ${new Date(u.blocked_until).toLocaleString("pt-BR")}</span>` : ""}
           ${u.block_reason ? `<br><span class="muted">Motivo: ${u.block_reason}</span>` : ""}
 
-          <div style="margin-top:12px;">
+          <div style="margin-top:12px; display:${u.is_admin ? "none" : "block"};">
             <label style="display:block; font-weight:600; margin-bottom:6px;">Alterar plano</label>
             <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
               <select
@@ -556,6 +568,8 @@ saveNewUserBtn.addEventListener("click", async function () {
   const email = document.getElementById("newUserEmail").value.trim();
   const phone = document.getElementById("newUserPhone").value.trim();
   const password = document.getElementById("newUserPassword").value.trim();
+  const plan = document.getElementById("newUserPlan").value;
+  const vip_expires_at = document.getElementById("newUserVipExpiration").value;
 
   createUserMessage.textContent = "";
 
@@ -565,12 +579,14 @@ saveNewUserBtn.addEventListener("click", async function () {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      name,
-      cpf,
-      email,
-      phone,
-      password
-    })
+	  name,
+	  cpf,
+	  email,
+	  phone,
+	  password,
+	  plan,
+	  vip_expires_at
+	})
   });
 
   const data = await res.json();
@@ -587,6 +603,8 @@ saveNewUserBtn.addEventListener("click", async function () {
   document.getElementById("newUserEmail").value = "";
   document.getElementById("newUserPhone").value = "";
   document.getElementById("newUserPassword").value = "";
+  document.getElementById("newUserPlan").value = "FREE";
+  document.getElementById("newUserVipExpiration").value = "";
 
   await loadUsers();
 });

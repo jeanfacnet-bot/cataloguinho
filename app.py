@@ -748,7 +748,8 @@ def ensure_admin_user():
         email=admin_email,
         phone="(00) 00000-0000",
         password_hash=generate_password_hash(admin_password),
-        plan="VIP_PREMIUM",
+        plan="ADMIN",
+        vip_expires_at=None,
         is_admin=True
     )
 
@@ -833,6 +834,17 @@ def get_video_duration(file_path):
 def sync_user_ads_with_plan(user, target_plan=None):
     if not user:
         return
+        
+    if getattr(user, "is_admin", False):
+        user.plan = "ADMIN"
+        user.vip_expires_at = None
+
+        user_ads = Ad.query.filter_by(user_id=user.id).all()
+        for ad in user_ads:
+            ad.plan = "ADMIN"
+            ad.is_active = True
+
+        return    
 
     effective_plan = (target_plan or user.plan or "FREE").strip().upper()
 
@@ -867,6 +879,11 @@ def sync_user_ads_with_plan(user, target_plan=None):
 def enforce_user_plan(user):
     if not user:
         return
+        
+    if getattr(user, "is_admin", False):
+        user.plan = "ADMIN"
+        user.vip_expires_at = None
+        return    
 
     if not is_vip_plan(user.plan):
         return
@@ -884,7 +901,14 @@ def enforce_user_plan(user):
     db.session.commit()
 
 def serialize_ad(ad):
-    plan_rules = get_plan_rules(ad.plan)
+    if ad.plan == "ADMIN":
+        plan_rules = {
+            "can_use_images": True,
+            "can_use_videos": True,
+            "can_show_full_details": True
+        }
+    else:
+        plan_rules = get_plan_rules(ad.plan)
 
     safe_main_image = ad.main_image if plan_rules.get("can_use_images") else None
     safe_main_video = ad.main_video if plan_rules.get("can_use_videos") else None
@@ -2351,8 +2375,20 @@ def create_ad():
         return jsonify({"message": "Usuário não encontrado"}), 404
     
     enforce_user_plan(user)
-    
-    plan_rules = get_plan_rules(user.plan)
+
+    if user.is_admin:
+        plan_rules = {
+            "ads_limit": 999999,
+            "keywords_limit": 999999,
+            "can_use_images": True,
+            "can_use_videos": True,
+            "can_appear_in_vip_list": False,
+            "can_show_full_details": True,
+            "can_use_vitrine": True,
+            "can_use_location": True
+        }
+    else:
+        plan_rules = get_plan_rules(user.plan)
     
     if plan_rules.get("can_use_location"):
         try:
@@ -2368,20 +2404,20 @@ def create_ad():
             "upgrade": True
         }), 403
 
-    plan_rules = get_plan_rules(user.plan)
-    max_ads = plan_rules["ads_limit"]
-    current_ads_count = Ad.query.filter_by(user_id=user.id).count()
+    if not user.is_admin:
+        max_ads = plan_rules["ads_limit"]
+        current_ads_count = Ad.query.filter_by(user_id=user.id).count()
 
-    if current_ads_count >= max_ads:
-        if user.plan == "FREE":
+        if current_ads_count >= max_ads:
+            if user.plan == "FREE":
+                return jsonify({
+                    "message": "Torne-se VIP para anunciar mais produtos ou serviços",
+                    "upgrade": True
+                }), 400
+
             return jsonify({
-                "message": "Torne-se VIP para anunciar mais produtos ou serviços",
-                "upgrade": True
+                "message": f"Você atingiu o limite de {max_ads} anúncios do seu plano"
             }), 400
-
-        return jsonify({
-            "message": "Você atingiu o limite de 5 anúncios VIP"
-        }), 400
 
     if not title or not state or not city:
         return jsonify({"message": "Preencha os campos obrigatórios"}), 400
@@ -2446,7 +2482,7 @@ def create_ad():
         zipcode=zipcode,
         latitude=latitude,
         longitude=longitude,
-        plan=user.plan,
+        plan="ADMIN" if user.is_admin else user.plan,
         main_image=image_path if plan_rules["can_use_images"] else None,
         main_video=video_path if plan_rules["can_use_videos"] else None,
         is_active=True
@@ -3538,12 +3574,26 @@ def admin_create_user():
     email = data.get("email", "").strip().lower()
     phone = data.get("phone", "").strip()
     password = data.get("password", "").strip()
+    selected_plan = (data.get("plan") or "FREE").strip().upper()
+    vip_expires_at_raw = (data.get("vip_expires_at") or "").strip()
+
+    allowed_plans = [
+        "FREE",
+        "VIP_BRONZE",
+        "VIP_PRATA",
+        "VIP_OURO",
+        "VIP_PREMIUM",
+        "ADMIN"
+    ]
+
+    if selected_plan not in allowed_plans:
+        return jsonify({"message": "Tipo de usuário inválido"}), 400
 
     if not name or not cpf or not email or not phone or not password:
         return jsonify({"message": "Preencha nome, CPF, e-mail, telefone e senha"}), 400
-        
+
     if not is_valid_cpf(cpf):
-        return jsonify({"message": "CPF inválido"}), 400    
+        return jsonify({"message": "CPF inválido"}), 400
 
     existing_email = User.query.filter_by(email=email).first()
     if existing_email:
@@ -3553,19 +3603,41 @@ def admin_create_user():
     if existing_cpf:
         return jsonify({"message": "CPF já cadastrado"}), 400
 
+    is_admin_user = selected_plan == "ADMIN"
+
+    vip_plans = ["VIP_BRONZE", "VIP_PRATA", "VIP_OURO", "VIP_PREMIUM"]
+    vip_expires_at = None
+
+    if selected_plan in vip_plans:
+        if vip_expires_at_raw:
+            try:
+                vip_expires_at = datetime.strptime(vip_expires_at_raw, "%Y-%m-%d")
+            except ValueError:
+                return jsonify({"message": "Data de vencimento VIP inválida"}), 400
+        else:
+            vip_expires_at = utc_now() + timedelta(days=30)
+
+    if selected_plan == "FREE":
+        vip_expires_at = None
+
+    if selected_plan == "ADMIN":
+        vip_expires_at = None
+
     user = User(
         name=name,
         cpf=cpf,
         email=email,
         phone=phone,
         password_hash=generate_password_hash(password),
-        plan="FREE"
+        plan=selected_plan,
+        vip_expires_at=vip_expires_at,
+        is_admin=is_admin_user
     )
 
     db.session.add(user)
     db.session.commit()
 
-    return jsonify({"message": "Usuário cadastrado com sucesso"}) 
+    return jsonify({"message": "Usuário cadastrado com sucesso"})
 
 
     

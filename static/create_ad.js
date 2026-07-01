@@ -35,6 +35,10 @@ let plansConfig = null;
 let editingAdId = null;
 const cancelEditBtn = document.getElementById("cancelEditBtn");
 
+function isAdminUser(user) {
+  return user && (user.is_admin === true || user.role === "admin" || user.plan === "ADMIN");
+}
+
 async function loadPlansConfig() {
   try {
     const response = await fetch("/plans-config");
@@ -52,6 +56,10 @@ async function loadPlansConfig() {
 }
 
 function getCurrentKeywordsLimit() {
+  if (isAdminUser(savedUser)) {
+    return Infinity;
+  }
+
   if (!savedUser || !plansConfig) {
     return 3;
   }
@@ -76,6 +84,10 @@ function getCurrentKeywordsLimit() {
 }
 
 function getCurrentAdsLimit() {
+  if (isAdminUser(savedUser)) {
+    return Infinity;
+  }
+
   if (!savedUser || !plansConfig) {
     return 1;
   }
@@ -215,6 +227,7 @@ function setKeywordsFromArray(items) {
 
 function getPlanLabel(plan) {
   const labels = {
+    ADMIN: "Administrador",
     FREE: "FREE",
     VIP_BRONZE: "VIP Bronze",
     VIP_PRATA: "VIP Prata",
@@ -226,6 +239,10 @@ function getPlanLabel(plan) {
 
 function getVipStatusText(user) {
   if (!user) return "";
+  
+  if (isAdminUser(user)) {
+    return "Tipo de conta: Administrador";
+  }  
 
   const currentPlanLabel = user.plan_label || getPlanLabel(user.plan);
 
@@ -275,10 +292,24 @@ function getEffectiveUserPlan(user) {
 }
 
 function getEffectivePlanRulesForUser(user) {
+  if (isAdminUser(user)) {
+    return {
+      ads_limit: Infinity,
+      keywords_limit: Infinity,
+      can_use_images: true,
+      can_use_videos: true,
+      can_appear_in_vip_list: false,
+      can_show_full_details: true,
+      can_use_vitrine: true,
+      can_use_location: true
+    };
+  }
+
   if (!plansConfig) {
     return {
       can_use_images: false,
-      can_use_videos: false
+      can_use_videos: false,
+      can_use_location: false
     };
   }
 
@@ -424,17 +455,27 @@ function renderAdsSummary(items = []) {
     return;
   }
 
-  const effectivePlan = getEffectiveUserPlan(currentUser);
-  const currentPlanLabel = getPlanLabel(effectivePlan);
-  const adsLimit = getCurrentAdsLimit();
   const usedAds = Array.isArray(items) ? items.length : 0;
-  const remainingAds = Math.max(adsLimit - usedAds, 0);
 
-  adsSummary.innerHTML = `
-    <strong>Plano atual:</strong> ${currentPlanLabel}<br>
-    <strong>Anúncios cadastrados:</strong> ${usedAds} de ${adsLimit}<br>
-    <strong>Disponíveis para cadastrar:</strong> ${remainingAds}
-  `;
+	if (isAdminUser(currentUser)) {
+	  adsSummary.innerHTML = `
+		<strong>Tipo de conta:</strong> Administrador<br>
+		<strong>Anúncios cadastrados:</strong> ${usedAds}<br>
+		<strong>Limite:</strong> ilimitado
+	  `;
+	  return;
+	}
+
+	const effectivePlan = getEffectiveUserPlan(currentUser);
+	const currentPlanLabel = getPlanLabel(effectivePlan);
+	const adsLimit = getCurrentAdsLimit();
+	const remainingAds = Math.max(adsLimit - usedAds, 0);
+
+	adsSummary.innerHTML = `
+	  <strong>Plano atual:</strong> ${currentPlanLabel}<br>
+	  <strong>Anúncios cadastrados:</strong> ${usedAds} de ${adsLimit}<br>
+	  <strong>Disponíveis para cadastrar:</strong> ${remainingAds}
+	`;
 }
 
 async function refreshSavedUser() {

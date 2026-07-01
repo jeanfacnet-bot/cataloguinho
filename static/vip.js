@@ -11,6 +11,7 @@ const premiumPlanFeatures = document.getElementById("premiumPlanFeatures");
 
 function getPlanLabel(plan) {
   const labels = {
+    ADMIN: "Administrador",
     FREE: "FREE",
     VIP_BRONZE: "VIP Bronze",
     VIP_PRATA: "VIP Prata",
@@ -116,6 +117,10 @@ function showMessage(message, type) {
 
 function getVipStatusText(user) {
   if (!user) return "";
+  
+  if (user.is_admin === true || user.role === "admin" || user.plan === "ADMIN") {
+    return "Tipo de conta: Administrador";
+  }
 
   const currentPlanLabel = user.plan_label || getPlanLabel(user.plan);
 
@@ -146,6 +151,14 @@ function getVipStatusText(user) {
 function updateButtonsState() {
   upgradeButtons.forEach((button) => {
     const targetPlan = button.dataset.plan;
+	
+	if (savedUser && (savedUser.is_admin === true || savedUser.role === "admin" || savedUser.plan === "ADMIN")) {
+      button.disabled = true;
+      button.textContent = "Administrador";
+      button.style.opacity = "0.6";
+      button.style.cursor = "not-allowed";
+      return;
+    }
 
     if (!savedUser) {
       const originalTextMap = {
