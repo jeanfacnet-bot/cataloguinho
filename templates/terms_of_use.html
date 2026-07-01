@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Termos de Uso</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <style>
+    .terms-container {
+      max-width: 900px;
+      margin: 32px auto;
+      padding: 0 16px 40px;
+    }
+
+    .terms-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    .terms-card h1 {
+      margin-bottom: 8px;
+      font-size: 30px;
+      color: #111827;
+    }
+
+    .terms-updated {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .terms-card h2 {
+      margin-top: 24px;
+      margin-bottom: 10px;
+      font-size: 20px;
+      color: #111827;
+    }
+
+    .terms-card h3 {
+      margin-top: 18px;
+      margin-bottom: 8px;
+      font-size: 16px;
+      color: #1f2937;
+    }
+
+    .terms-card p,
+    .terms-card li {
+      color: #374151;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .terms-card ul {
+      padding-left: 20px;
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .terms-alert {
+      background: #fff8e1;
+      border: 2px solid #f59e0b;
+      border-radius: 16px;
+      padding: 16px;
+      margin: 18px 0;
+      color: #92400e;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .terms-actions {
+      margin-top: 28px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .terms-actions button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .primary-btn {
+      background: #2563eb;
+      color: white;
+    }
+
+    .secondary-btn {
+      background: #6b7280;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  {% include "partials/topbar.html" %}
+
+  <main class="terms-container">
+    <section class="terms-card">
+      <h1>Termos de Uso – CataLogin</h1>
+      <div class="terms-updated">Última atualização: 30/06/2026</div>
+
+      <p>
+        Estes Termos de Uso regulam o acesso e a utilização da plataforma CataLogin,
+        destinada à divulgação de produtos e serviços por usuários anunciantes e à
+        pesquisa desses anúncios por usuários interessados.
+      </p>
+
+      <div class="terms-alert">
+        <strong>Aviso importante:</strong> o CataLogin é apenas uma plataforma de divulgação.
+        Não vendemos produtos, não prestamos os serviços anunciados, não intermediamos pagamentos
+        entre usuários e não participamos das negociações realizadas entre anunciantes e interessados.
+      </div>
+
+      <h2>1. Aceitação dos Termos</h2>
+      <p>
+        Ao acessar, cadastrar-se, publicar anúncios, pesquisar produtos ou serviços ou utilizar
+        qualquer funcionalidade do CataLogin, o usuário declara que leu, compreendeu e aceitou
+        estes Termos de Uso e a Política de Privacidade da plataforma.
+      </p>
+      <p>
+        Caso não concorde com estes Termos, o usuário não deverá utilizar os serviços do CataLogin.
+      </p>
+
+      <h2>2. Definições</h2>
+      <ul>
+        <li><strong>CataLogin:</strong> plataforma digital de divulgação de produtos e serviços.</li>
+        <li><strong>Usuário:</strong> pessoa que acessa, pesquisa, anuncia ou utiliza a plataforma.</li>
+        <li><strong>Anunciante:</strong> usuário que cadastra produtos ou serviços na plataforma.</li>
+        <li><strong>Interessado:</strong> usuário que pesquisa anúncios e entra em contato com anunciantes.</li>
+        <li><strong>Anúncio:</strong> conteúdo publicado por usuário contendo produto, serviço, contato, descrição, localização, imagem, vídeo ou outras informações.</li>
+        <li><strong>Administrador:</strong> usuário autorizado a gerenciar anúncios, usuários, denúncias e configurações da plataforma.</li>
+      </ul>
+
+      <h2>3. Objeto da Plataforma</h2>
+      <p>
+        O CataLogin tem como objetivo facilitar o encontro entre pessoas interessadas em produtos
+        ou serviços e anunciantes que desejam divulgar suas ofertas.
+      </p>
+      <p>
+        A plataforma atua somente como meio de exposição e busca de anúncios, não sendo parte
+        das negociações realizadas entre usuários.
+      </p>
+
+      <h2>4. Cadastro de Usuários</h2>
+      <p>
+        Para utilizar determinadas funcionalidades, como publicar anúncios, denunciar conteúdos
+        ou contratar planos, o usuário poderá precisar criar uma conta.
+      </p>
+      <p>Ao criar uma conta, o usuário compromete-se a:</p>
+      <ul>
+        <li>fornecer informações verdadeiras, completas e atualizadas;</li>
+        <li>manter seus dados de contato atualizados;</li>
+        <li>não utilizar dados de terceiros sem autorização;</li>
+        <li>proteger sua senha e não compartilhá-la com terceiros;</li>
+        <li>responsabilizar-se por todas as ações realizadas em sua conta.</li>
+      </ul>
+
+      <h2>5. Responsabilidade do Anunciante</h2>
+      <p>
+        O anunciante é o único responsável pelas informações, imagens, vídeos, contatos, localização,
+        preços, descrições e demais dados inseridos nos anúncios.
+      </p>
+      <p>O anunciante declara que:</p>
+      <ul>
+        <li>possui autorização para divulgar o produto ou serviço anunciado;</li>
+        <li>as informações publicadas são verdadeiras e não enganosas;</li>
+        <li>não publicará conteúdo ilícito, fraudulento, ofensivo ou proibido;</li>
+        <li>cumprirá todas as obrigações assumidas com o interessado;</li>
+        <li>responderá diretamente por reclamações, vícios, defeitos, atrasos, descumprimentos ou danos decorrentes da negociação.</li>
+      </ul>
+
+      <h2>6. Responsabilidade do Interessado</h2>
+      <p>
+        O interessado deve agir com cautela antes de contratar serviços, comprar produtos,
+        realizar pagamentos ou fornecer informações pessoais a anunciantes.
+      </p>
+      <p>Recomenda-se que o usuário:</p>
+      <ul>
+        <li>verifique a identidade e a reputação do anunciante;</li>
+        <li>confirme telefones, endereços e demais informações fornecidas;</li>
+        <li>desconfie de ofertas muito abaixo do valor de mercado;</li>
+        <li>evite pagamentos antecipados sem segurança;</li>
+        <li>guarde comprovantes e registros da negociação;</li>
+        <li>utilize o botão de denúncia ao identificar anúncio suspeito.</li>
+      </ul>
+
+      <h2>7. Responsabilidade sobre Negociações</h2>
+      <p>
+        Toda negociação realizada a partir de anúncios encontrados no CataLogin ocorre
+        exclusivamente entre anunciante e interessado.
+      </p>
+      <p>
+        O CataLogin não participa, não acompanha, não valida, não garante e não fiscaliza
+        as negociações realizadas entre usuários.
+      </p>
+      <p>
+        O CataLogin não recebe pagamentos referentes às compras, contratações ou acordos
+        realizados diretamente entre usuários, salvo pagamentos feitos à própria plataforma
+        referentes a planos ou funcionalidades internas.
+      </p>
+
+      <h2>8. Limitação de Responsabilidade</h2>
+      <p>
+        O CataLogin não se responsabiliza por golpes, fraudes, perdas financeiras, danos materiais,
+        danos morais, inadimplemento contratual, vícios de produtos, má prestação de serviços,
+        atrasos, cancelamentos, descumprimento de acordos ou quaisquer prejuízos decorrentes
+        de negociações realizadas entre usuários.
+      </p>
+      <p>
+        O CataLogin também não garante a veracidade, autenticidade, qualidade, disponibilidade,
+        legalidade, segurança, preço ou idoneidade dos produtos, serviços ou anunciantes divulgados
+        na plataforma.
+      </p>
+
+      <h2>9. Produtos, Serviços e Conteúdos Proibidos</h2>
+      <p>É proibida a publicação de anúncios que envolvam:</p>
+      <ul>
+        <li>produtos ou serviços ilícitos;</li>
+        <li>golpes, fraudes, pirâmides financeiras ou promessas enganosas;</li>
+        <li>documentos falsos ou falsificados;</li>
+        <li>armas, munições ou itens proibidos por lei;</li>
+        <li>drogas, substâncias ilícitas ou produtos controlados sem autorização;</li>
+        <li>produtos roubados, furtados, falsificados ou de origem duvidosa;</li>
+        <li>conteúdo pornográfico, exploração sexual ou material ofensivo;</li>
+        <li>discriminação, ameaças, violência, discurso de ódio ou assédio;</li>
+        <li>qualquer conteúdo contrário à legislação brasileira.</li>
+      </ul>
+
+      <h2>10. Denúncias e Moderação</h2>
+      <p>
+        O CataLogin disponibiliza ferramenta de denúncia para que usuários comuniquem anúncios
+        suspeitos, ofensivos, falsos, irregulares ou contrários a estes Termos.
+      </p>
+      <p>
+        A equipe administrativa poderá analisar denúncias e adotar medidas como remoção de anúncios,
+        bloqueio temporário, suspensão de usuários, exclusão de contas ou outras providências cabíveis.
+      </p>
+      <p>
+        O CataLogin poderá remover anúncios ou restringir contas a qualquer momento, com ou sem aviso
+        prévio, especialmente quando houver suspeita de violação destes Termos ou da legislação aplicável.
+      </p>
+
+      <h2>11. Planos FREE e VIP</h2>
+      <p>
+        O CataLogin poderá oferecer diferentes modalidades de uso, incluindo plano gratuito e planos VIP.
+      </p>
+      <p>
+        Os planos podem conceder benefícios como maior quantidade de anúncios, maior número de palavras-chave,
+        uso de imagens, vídeos, localização, vitrine, destaque na busca ou outras funcionalidades.
+      </p>
+      <p>
+        Os benefícios, limites, valores e regras dos planos podem ser alterados pela plataforma conforme
+        necessidade operacional, comercial ou técnica.
+      </p>
+
+      <h2>12. Pagamentos de Planos</h2>
+      <p>
+        Pagamentos referentes a planos VIP ou recursos internos da plataforma poderão ser processados por
+        serviços de terceiros, como Mercado Pago.
+      </p>
+      <p>
+        O CataLogin não armazena dados sensíveis de pagamento, como número completo de cartão ou códigos
+        de segurança.
+      </p>
+      <p>
+        A ativação de planos poderá depender da confirmação de pagamento pelo provedor responsável.
+      </p>
+
+      <h2>13. Administradores da Plataforma</h2>
+      <p>
+        Usuários administradores possuem permissões especiais para gerenciamento da plataforma, podendo
+        cadastrar, editar, remover ou bloquear anúncios e usuários, analisar denúncias, configurar planos
+        e executar ações necessárias à manutenção do sistema.
+      </p>
+      <p>
+        O administrador não é classificado como usuário FREE ou VIP, possuindo permissões próprias de gestão.
+      </p>
+
+      <h2>14. Propriedade Intelectual</h2>
+      <p>
+        A marca, identidade visual, layout, textos, códigos, funcionalidades e demais elementos do CataLogin
+        pertencem à plataforma ou a seus respectivos titulares.
+      </p>
+      <p>
+        O usuário não poderá copiar, reproduzir, modificar, explorar comercialmente ou utilizar indevidamente
+        qualquer elemento da plataforma sem autorização.
+      </p>
+
+      <h2>15. Disponibilidade da Plataforma</h2>
+      <p>
+        O CataLogin poderá passar por manutenções, atualizações, instabilidades ou interrupções temporárias.
+      </p>
+      <p>
+        A plataforma não garante funcionamento ininterrupto, livre de falhas ou permanentemente disponível.
+      </p>
+
+      <h2>16. Suspensão e Exclusão de Conta</h2>
+      <p>
+        O CataLogin poderá suspender, bloquear ou excluir contas que violem estes Termos, publiquem conteúdos
+        proibidos, pratiquem fraudes, prejudiquem outros usuários ou comprometam a segurança da plataforma.
+      </p>
+      <p>
+        O usuário também poderá solicitar a exclusão de sua conta, observadas eventuais obrigações legais,
+        registros necessários e regras previstas na Política de Privacidade.
+      </p>
+
+      <h2>17. Privacidade e Proteção de Dados</h2>
+      <p>
+        O tratamento de dados pessoais realizado pelo CataLogin está descrito na Política de Privacidade,
+        que integra estes Termos de Uso.
+      </p>
+      <p>
+        Ao utilizar a plataforma, o usuário declara estar ciente da coleta e tratamento de dados necessários
+        ao funcionamento do serviço.
+      </p>
+
+      <h2>18. Alterações destes Termos</h2>
+      <p>
+        O CataLogin poderá alterar estes Termos de Uso a qualquer momento para refletir mudanças legais,
+        técnicas, comerciais ou operacionais.
+      </p>
+      <p>
+        Recomenda-se que o usuário revise este documento periodicamente.
+      </p>
+
+      <h2>19. Legislação Aplicável</h2>
+      <p>
+        Estes Termos serão interpretados de acordo com a legislação brasileira.
+      </p>
+
+      <h2>20. Contato</h2>
+      <p>
+        Em caso de dúvidas, solicitações ou comunicações relacionadas a estes Termos, o usuário poderá entrar
+        em contato pelos canais oficiais da plataforma.
+      </p>
+      <ul>
+        <li>E-mail: cataloguinhopk@gmail.com</li>
+        <li>WhatsApp: 5561993703519</li>
+      </ul>
+
+      <div class="terms-actions">
+        <button type="button" class="secondary-btn" onclick="window.history.back()">Voltar</button>
+        <button type="button" class="primary-btn" onclick="window.location.href='/register-page'">Ir para cadastro</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='common_layout.js') }}?v=4"></script>
+</body>
+</html>

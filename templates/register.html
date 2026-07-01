@@ -91,6 +91,32 @@
 .privacy-consent-label a:hover {
   text-decoration: underline;
 }
+
+.register-legal-notice {
+
+  margin-top: 12px;
+
+  padding: 14px;
+
+  background: #f8fafc;
+
+  border: 1px solid #dbeafe;
+
+  border-left: 5px solid #2563eb;
+
+  border-radius: 10px;
+
+  font-size: 13px;
+
+  color: #475569;
+
+  line-height: 1.7;
+}
+
+.register-legal-notice strong {
+
+  color: #1e3a8a;
+}
 </style>
 
 <link rel="manifest" href="/manifest.webmanifest">
@@ -126,15 +152,32 @@
 <input type="password" id="confirmPassword" placeholder="Confirme sua senha" required>
 
 <div class="privacy-consent">
+
   <label class="privacy-consent-label">
+
     <input type="checkbox" id="acceptedPrivacyPolicy">
+
     <span>
       Li e aceito a
       <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">
         Política de Privacidade
-      </a>.
+      </a>
+      e os
+      <a href="/terms-of-use" target="_blank" rel="noopener noreferrer">
+        Termos de Uso
+      </a>
+      do CataLogin.
     </span>
+
   </label>
+
+  <div class="register-legal-notice">
+    Ao criar uma conta, você declara que leu, compreendeu e concorda com a
+    Política de Privacidade e os Termos de Uso do CataLogin, comprometendo-se
+    a utilizar a plataforma de forma ética, responsável e em conformidade com
+    a legislação brasileira.
+  </div>
+
 </div>
 
 <button type="submit">Cadastrar</button>

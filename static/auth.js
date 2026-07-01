@@ -69,7 +69,11 @@ if (registerForm) {
 	}
 	
 	if (acceptedPrivacyPolicy && !acceptedPrivacyPolicy.checked) {
-	  showMessage(registerMessage, "Você precisa aceitar a Política de Privacidade", "error");
+	  showMessage(
+		registerMessage,
+		"Você precisa aceitar a Política de Privacidade e os Termos de Uso.",
+		"error"
+	  );
 	  return;
 	}
 
@@ -84,7 +88,8 @@ if (registerForm) {
 	  email,
 	  phone: document.getElementById("registerPhone").value.trim(),
 	  password,
-	  accepted_privacy_policy: acceptedPrivacyPolicy ? acceptedPrivacyPolicy.checked : false
+	  accepted_privacy_policy: acceptedPrivacyPolicy ? acceptedPrivacyPolicy.checked : false,
+	  accepted_terms_of_use: acceptedPrivacyPolicy ? acceptedPrivacyPolicy.checked : false
 	};
 
     try {

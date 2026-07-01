@@ -1290,7 +1290,11 @@ def auth_page():
     
 @app.route("/privacy-policy")
 def privacy_policy_page():
-    return render_template("privacy_policy.html")    
+    return render_template("privacy_policy.html") 
+
+@app.route("/terms-of-use")
+def terms_of_use_page():
+    return render_template("terms_of_use.html")    
 
 
 @app.route("/register-page")
@@ -1329,13 +1333,14 @@ def register():
     phone = data.get("phone", "").strip()
     password = data.get("password", "").strip()
     accepted_privacy_policy = bool(data.get("accepted_privacy_policy"))
+    accepted_terms_of_use = bool(data.get("accepted_terms_of_use"))
 
     if not name or not cpf or not email or not phone or not password:
         return jsonify({"message": "Preencha todos os campos obrigatórios"}), 400
 
-    if not accepted_privacy_policy:
+    if not accepted_privacy_policy or not accepted_terms_of_use:
         return jsonify({
-            "message": "Você precisa aceitar a Política de Privacidade para se cadastrar."
+            "message": "Você precisa aceitar a Política de Privacidade e os Termos de Uso para se cadastrar."
         }), 400
 
     if not is_valid_cpf(cpf):
@@ -1368,6 +1373,7 @@ def register():
         "message": "Usuário cadastrado com sucesso",
         "user": serialize_user(user)
     }), 201
+    
 
 
 @app.route("/login", methods=["POST"])
