@@ -283,7 +283,7 @@ function createInstallButton() {
   if (isAppInstalled()) return "";
 
   return `
-    <button type="button" id="installAppBtn" style="display:none;">
+    <button type="button" id="installAppBtn">
       📲 Instalar App
     </button>
   `;
@@ -298,11 +298,23 @@ function bindInstallAppButton() {
     installBtn.style.display = "inline-flex";
   }
 
-  installBtn.addEventListener("click", async () => {
-    if (!deferredInstallPrompt) {
-      alert("Se a opção de instalação não aparecer, use o menu do navegador e escolha 'Adicionar à tela inicial' ou 'Instalar app'.");
-      return;
-    }
+  if (!deferredInstallPrompt) {
+	  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+	  const isAndroid = /android/i.test(navigator.userAgent);
+
+	  if (isIOS) {
+		alert("Para instalar no iPhone: toque no botão Compartilhar do Safari e escolha 'Adicionar à Tela de Início'.");
+		return;
+	  }
+
+	  if (isAndroid) {
+		alert("Para instalar no Android: toque nos três pontinhos do navegador e escolha 'Instalar app' ou 'Adicionar à tela inicial'.");
+		return;
+	  }
+
+	  alert("Para instalar: use o menu do navegador e escolha 'Instalar app' ou 'Adicionar à tela inicial'.");
+	  return;
+	}
 
     deferredInstallPrompt.prompt();
 

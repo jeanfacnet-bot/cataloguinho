@@ -738,18 +738,18 @@
 	  })();
 	</script>
 	
-	<script src="{{ url_for('static', filename='common_layout.js') }}?v=5"></script>
+	<script src="{{ url_for('static', filename='common_layout.js') }}?v=52"></script>
 
 	
 	<script>
 	  if ("serviceWorker" in navigator) {
-		  window.addEventListener("load", () => {
-			navigator.serviceWorker
-			  .register("/service-worker.js")
-			  .then(() => console.log("Service Worker registrado"))
-			  .catch((err) => console.error("Erro ao registrar Service Worker:", err));
-		  });
-		}
+		window.addEventListener("load", () => {
+		  navigator.serviceWorker
+			.register("/service-worker.js")
+			.then(() => console.log("Service Worker registrado"))
+			.catch((err) => console.error("Erro ao registrar Service Worker:", err));
+		});
+	  }
 	</script>
 	</body>
 	</html>
