@@ -1,3 +1,5 @@
+let deferredInstallPrompt = null;
+
 function getSavedUser() {
   try {
     return JSON.parse(localStorage.getItem("catalogo_user") || "null");
@@ -273,6 +275,65 @@ function buildWhatsappLink(rawNumber) {
   return `https://wa.me/${digits}?text=${encodedMessage}`;
 }
 
+function isAppInstalled() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function createInstallButton() {
+  if (isAppInstalled()) return "";
+
+  return `
+    <button type="button" id="installAppBtn" style="display:none;">
+      📲 Instalar App
+    </button>
+  `;
+}
+
+function bindInstallAppButton() {
+  const installBtn = document.getElementById("installAppBtn");
+
+  if (!installBtn) return;
+
+  if (deferredInstallPrompt) {
+    installBtn.style.display = "inline-flex";
+  }
+
+  installBtn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) {
+      alert("Se a opção de instalação não aparecer, use o menu do navegador e escolha 'Adicionar à tela inicial' ou 'Instalar app'.");
+      return;
+    }
+
+    deferredInstallPrompt.prompt();
+
+    const choiceResult = await deferredInstallPrompt.userChoice;
+
+    deferredInstallPrompt = null;
+    installBtn.style.display = "none";
+
+    console.log("Resultado da instalação:", choiceResult.outcome);
+  });
+}
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+
+  const installBtn = document.getElementById("installAppBtn");
+  if (installBtn && !isAppInstalled()) {
+    installBtn.style.display = "inline-flex";
+  }
+});
+
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+
+  const installBtn = document.getElementById("installAppBtn");
+  if (installBtn) {
+    installBtn.style.display = "none";
+  }
+});
+
 async function renderSharedTopbar() {
   const topMenu = document.getElementById("topActionsMenu");
   const bottomMenu = document.getElementById("mobileBottomNav");
@@ -306,6 +367,7 @@ async function renderSharedTopbar() {
   let guestMessage = "";
   let adminButton = "";
   let authButton = "";
+  const installButton = createInstallButton();
 
   if (savedUser) {
     const planLabel = savedUser.plan_label || getPlanLabel(savedUser.plan);
@@ -345,6 +407,7 @@ async function renderSharedTopbar() {
   userInfo.innerHTML = savedUser ? userBlock : guestMessage;
 
   topMenu.innerHTML = `
+    ${installButton}
     ${adminButton}
     <button type="button" onclick="window.location.href='/search-page'">Pesquisa</button>
     <button type="button" onclick="window.location.href='/vitrine-page'">Vitrine</button>
@@ -368,6 +431,8 @@ async function renderSharedTopbar() {
         : `<button type="button" onclick="window.location.href='/auth-page'">Entrar</button>`
     }
   `;
+  
+  bindInstallAppButton();  
 }
 
 async function requireLogin() {
