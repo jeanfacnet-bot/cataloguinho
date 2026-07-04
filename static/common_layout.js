@@ -283,7 +283,7 @@ function createInstallButton() {
   if (isAppInstalled()) return "";
 
   return `
-    <button type="button" id="installAppBtn">
+    <button type="button" id="installAppBtn" class="vip-btn">
       📲 Instalar App
     </button>
   `;
@@ -294,36 +294,30 @@ function bindInstallAppButton() {
 
   if (!installBtn) return;
 
-  if (deferredInstallPrompt) {
-    installBtn.style.display = "inline-flex";
-  }
+  installBtn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) {
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      const isAndroid = /android/i.test(navigator.userAgent);
 
-  if (!deferredInstallPrompt) {
-	  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-	  const isAndroid = /android/i.test(navigator.userAgent);
+      if (isIOS) {
+        alert("Para instalar no iPhone: toque em Compartilhar no Safari e escolha 'Adicionar à Tela de Início'.");
+        return;
+      }
 
-	  if (isIOS) {
-		alert("Para instalar no iPhone: toque no botão Compartilhar do Safari e escolha 'Adicionar à Tela de Início'.");
-		return;
-	  }
+      if (isAndroid) {
+        alert("Para instalar no Android: toque nos três pontinhos do navegador e escolha 'Instalar app' ou 'Adicionar à tela inicial'.");
+        return;
+      }
 
-	  if (isAndroid) {
-		alert("Para instalar no Android: toque nos três pontinhos do navegador e escolha 'Instalar app' ou 'Adicionar à tela inicial'.");
-		return;
-	  }
-
-	  alert("Para instalar: use o menu do navegador e escolha 'Instalar app' ou 'Adicionar à tela inicial'.");
-	  return;
-	}
+      alert("Para instalar: use o menu do navegador e escolha 'Instalar app' ou 'Adicionar à tela inicial'.");
+      return;
+    }
 
     deferredInstallPrompt.prompt();
-
-    const choiceResult = await deferredInstallPrompt.userChoice;
+    await deferredInstallPrompt.userChoice;
 
     deferredInstallPrompt = null;
     installBtn.style.display = "none";
-
-    console.log("Resultado da instalação:", choiceResult.outcome);
   });
 }
 
