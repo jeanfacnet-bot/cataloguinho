@@ -422,93 +422,70 @@
 		margin-right: 24px;
 	  }
 	  
-	  .catalog-warning{
-			display:flex;
-			gap:20px;
-			align-items:flex-start;
-
-			margin-bottom:22px;
-
-			padding:24px;
-
-			background:#fff8e1;
-
-			border:2px solid #f59e0b;
-
-			border-radius:20px;
-
-			box-shadow:0 8px 24px rgba(0,0,0,.08);
+	  .catalog-warning {
+		  display: flex;
+		  gap: 14px;
+		  align-items: flex-start;
+		  margin-bottom: 18px;
+		  padding: 16px 18px;
+		  background: #fff8e1;
+		  border: 1px solid #f59e0b;
+		  border-radius: 16px;
+		  box-shadow: 0 6px 18px rgba(0,0,0,.06);
 		}
 
-		.catalog-warning-icon{
-
-			font-size:42px;
-
-			line-height:1;
-
-			flex-shrink:0;
+		.catalog-warning-icon {
+		  font-size: 26px;
+		  line-height: 1;
+		  flex-shrink: 0;
 		}
 
-		.catalog-warning-content h2{
-
-			margin:0 0 12px;
-
-			color:#b45309;
-
-			font-size:24px;
+		.catalog-warning-content h2 {
+		  margin: 0 0 6px;
+		  color: #92400e;
+		  font-size: 18px;
 		}
 
-		.catalog-warning-content p{
-
-			margin:0 0 12px;
-
-			line-height:1.7;
-
-			color:#444;
-
-			font-size:15px;
+		.catalog-warning-content p {
+		  margin: 0 0 8px;
+		  line-height: 1.5;
+		  color: #444;
+		  font-size: 14px;
 		}
 
-		@media (max-width:760px){
-
-		.catalog-warning{
-
-			flex-direction:column;
-
-			padding:18px;
+		.catalog-warning-content p:last-child {
+		  margin-bottom: 0;
 		}
 
-		.catalog-warning-icon{
-
-			font-size:34px;
-		}
-		}
-
-	  @media (max-width: 900px) {
-		.admin-sidebar {
-		  position: static;
-		  width: auto;
-		  display: none;
-		  margin: 0 16px 16px 16px;
-		  border-radius: 14px;
+		.warning-links {
+		  font-size: 13px !important;
+		  color: #78350f !important;
 		}
 
-		body.admin-has-sidebar .container,
-		body.admin-has-sidebar .page-wrap,
-		body.admin-has-sidebar .vip-container,
-		body.admin-has-sidebar .feed-container {
-		  margin-left: auto;
-		  margin-right: auto;
+		.warning-links a {
+		  color: #b45309;
+		  font-weight: 800;
+		  text-decoration: underline;
 		}
 
-		.form-grid {
-		  grid-template-columns: 1fr;
-		}
+		@media (max-width:760px) {
+		  .catalog-warning {
+			padding: 14px;
+			gap: 10px;
+		  }
 
-		.search-wide {
-		  grid-column: span 1;
+		  .catalog-warning-icon {
+			font-size: 22px;
+		  }
+
+		  .catalog-warning-content h2 {
+			font-size: 16px;
+		  }
+
+		  .catalog-warning-content p {
+			font-size: 13px;
+		  }
 		}
-	  }
 
 	  @media (max-width: 760px) {
 		.container {
@@ -618,57 +595,22 @@
       </div>
     </section>
 
-	<section class="catalog-warning">
-	  <div class="catalog-warning-icon">
-		⚠️
-	  </div>
+	<section class="catalog-warning compact-warning">
+	  <div class="catalog-warning-icon">⚠️</div>
 
 	  <div class="catalog-warning-content">
-		<h2>Aviso importante aos usuários</h2>
+		<h2>Aviso de segurança</h2>
 
 		<p>
-		  <strong>
-			O CataLogin não se responsabiliza por negociações realizadas entre as partes,
-			nem por eventuais golpes, fraudes, prejuízos financeiros ou descumprimento de
-			acordos comerciais.
-		  </strong>
+		  O CataLogin apenas divulga anúncios e não participa das negociações.
+		  Antes de comprar ou contratar, verifique o anunciante e desconfie de ofertas suspeitas.
 		</p>
 
-		<p style="margin-bottom:0;">
-		  Ao utilizar a busca e navegar pelos anúncios, você declara estar ciente e de acordo com os
-		  <a href="/terms-of-use" target="_blank" rel="noopener noreferrer" style="color:#b45309;font-weight:800;text-decoration:underline;">
-			Termos de Uso
-		  </a>
-		  e com a
-		  <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" style="color:#b45309;font-weight:800;text-decoration:underline;">
-			Política de Privacidade
-		  </a>
-		  do CataLogin.
-		</p>
-
-		<p>
-		  O CataLogin <strong>não vende produtos</strong>, <strong>não intermedeia pagamentos</strong>,
-		  <strong>não participa das negociações</strong> e <strong>não garante a idoneidade</strong>
-		  dos anunciantes.
-		</p>
-
-		<p>
-		  Antes de comprar qualquer produto ou contratar qualquer serviço,
-		  recomendamos que o usuário verifique cuidadosamente a reputação do anunciante,
-		  confirme os dados informados e desconfie de ofertas muito abaixo do valor de mercado.
-		</p>
-
-		<p>
-		  Caso identifique anúncios suspeitos, utilize o botão
-		  <strong>"Denunciar"</strong> para que nossa equipe possa analisar o conteúdo.
-		</p>
-
-		<p style="margin-bottom:0;">
-		  <strong>
-			O CataLogin não se responsabiliza por negociações realizadas entre as partes,
-			nem por eventuais golpes, fraudes, prejuízos financeiros ou descumprimento de
-			acordos comerciais.
-		  </strong>
+		<p class="warning-links">
+		  Ao usar a plataforma, você concorda com os
+		  <a href="/terms-of-use" target="_blank" rel="noopener noreferrer">Termos de Uso</a>
+		  e a
+		  <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">Política de Privacidade</a>.
 		</p>
 	  </div>
 	</section>
