@@ -209,7 +209,7 @@ body {
   }
 
   .topbar-main {
-    min-height: 118px !important;
+    min-height: 100px !important;
     grid-template-columns: 104px 1fr 104px !important;
     grid-template-rows: 78px 40px !important;
     grid-template-areas:
