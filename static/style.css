@@ -11,91 +11,125 @@ body {
 }
 
 /* =========================
-   TOPBAR GLOBAL
+   TOPBAR GLOBAL - LAYOUT FINAL
 ========================= */
 
 .topbar {
   position: sticky;
   top: 0;
   z-index: 1000;
-
-  min-height: 132px;
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-
-  background-color: #0b1120;
-
+  min-height: 250px;
+  padding: 0;
+  display: block;
+  background: linear-gradient(180deg, #06122f 0%, #071a3d 100%);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   overflow: hidden;
 }
 
-.topbar::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: url('/static/images/cataloguinho-logo.jpeg');
-  background-repeat: no-repeat;
-  background-position: center center;
-  background-size: 30%;
-  pointer-events: none;
-  z-index: 0;
-}
-
-
 .topbar-main {
   position: relative;
   z-index: 1;
-
   width: 100%;
+  min-height: 250px;
+  display: grid;
+  grid-template-columns: 300px 1fr 300px;
+  grid-template-areas:
+    "left logo user"
+    "menu menu menu";
+  grid-template-rows: 168px 82px;
+  align-items: center;
+}
+
+.topbar-left-actions {
+  grid-area: left;
   display: flex;
   align-items: center;
-  gap: 18px;
+  justify-content: center;
+  gap: 16px;
+  padding-left: 34px;
+  z-index: 3;
+}
+
+.topbar-left-actions button,
+.topbar-left-actions a {
+  width: 120px;
+  height: 112px;
+  border-radius: 16px;
+  border: 1px solid rgba(96, 165, 250, 0.55);
+  background: rgba(6, 22, 61, 0.88);
+  color: white;
+  font-weight: 800;
+  text-decoration: none;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.15;
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+}
+
+#installAppBtn {
+  font-size: 15px;
+}
+
+#installAppBtn::before {
+  content: "⬇";
+  display: block;
+  font-size: 38px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.topbar-left-actions .topbar-whatsapp-link {
+  font-size: 0;
+  padding: 0;
+}
+
+.topbar-left-actions .topbar-whatsapp-link::after {
+  content: "WhatsApp\A Suporte";
+  white-space: pre;
+  font-size: 15px;
+  line-height: 1.15;
+  margin-top: 8px;
+}
+
+.topbar-left-actions .topbar-whatsapp-link svg {
+  width: 42px;
+  height: 42px;
+  fill: #22c55e;
 }
 
 .logo {
-  flex: 1 1 auto;
-  min-width: 220px;
-  height: 96px;
+  grid-area: logo;
+  justify-self: center;
+  width: 560px;
+  max-width: 100%;
+  height: 150px;
+  background-image: url('/static/images/cataloguinho-logo.jpeg');
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: contain;
+  z-index: 2;
 }
 
-/* bloco usuário no topo */
 .topbar-user-info {
+  grid-area: user;
+  justify-self: end;
   display: flex;
   align-items: center;
-  margin-left: auto;
-  margin-right: 10px;
+  justify-content: flex-end;
+  padding-right: 34px;
+  text-align: right;
+  margin: 0;
+  z-index: 3;
 }
 
 .topbar-user-summary {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.topbar-whatsapp-link {
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
-  border-radius: 999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #25d366;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.18);
-  text-decoration: none;
-  transition: transform 0.18s ease, opacity 0.18s ease;
-}
-
-.topbar-whatsapp-link:hover {
-  opacity: 0.95;
-  transform: translateY(-1px);
-}
-
-.topbar-whatsapp-link svg {
-  width: 22px;
-  height: 22px;
-  fill: white;
+  justify-content: flex-end;
 }
 
 .topbar-user-lines {
@@ -103,56 +137,185 @@ body {
   flex-direction: column;
   gap: 2px;
   color: white;
-  font-size: 14px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  font-size: 18px;
+  line-height: 1.35;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
 }
 
 .topbar-user-name {
-  font-weight: bold;
-  font-size: 15px;
+  font-size: 22px;
+  font-weight: 900;
 }
 
 .topbar-plan-line {
-  font-size: 12px;
+  font-size: 16px;
   color: #e5e7eb;
 }
 
-/* botões da topbar desktop */
+.topbar-plan-line:first-of-type {
+  color: #facc15;
+  font-weight: 900;
+}
+
 .top-actions {
+  grid-area: menu;
+  height: 82px;
+  width: 100%;
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
-  position: relative;
-  z-index: 1;
+  gap: 70px;
+  flex-wrap: wrap;
+  background: rgba(3, 15, 42, 0.94);
+  border-top: 1px solid rgba(96, 165, 250, 0.25);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+  z-index: 3;
 }
 
 .top-actions button {
-  padding: 10px 14px;
+  background: transparent;
+  color: white;
   border: none;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #111827;
-  font-weight: 700;
+  box-shadow: none;
+  font-size: 18px;
+  font-weight: 900;
+  padding: 10px 4px;
+  border-radius: 0;
   cursor: pointer;
-  transition: opacity 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.14);
 }
 
 .top-actions button:hover {
-  opacity: 0.96;
   transform: translateY(-1px);
+  opacity: 0.9;
+  box-shadow: none;
 }
 
 .top-actions .vip-btn {
-  background: #f59e0b;
-  color: white;
-  font-weight: bold;
+  background: transparent;
+  color: #facc15;
 }
 
-/* navegação inferior mobile */
 .mobile-bottom-nav {
   display: none;
+}
+
+/* =========================
+   MOBILE - TOPBAR FINAL
+========================= */
+
+@media (max-width: 768px) {
+  .topbar {
+    min-height: 180px;
+  }
+
+  .topbar-main {
+    min-height: 180px;
+    grid-template-columns: 118px 1fr 118px;
+    grid-template-rows: 118px 62px;
+    grid-template-areas:
+      "left logo user"
+      "menu menu menu";
+  }
+
+  .topbar-left-actions {
+    gap: 6px;
+    padding-left: 8px;
+    justify-content: flex-start;
+  }
+
+  .topbar-left-actions button,
+  .topbar-left-actions a {
+    width: 52px;
+    height: 70px;
+    border-radius: 12px;
+    font-size: 9px;
+    padding: 4px;
+  }
+
+  #installAppBtn::before {
+    font-size: 24px;
+    margin-bottom: 4px;
+  }
+
+  .topbar-left-actions .topbar-whatsapp-link::after {
+    font-size: 9px;
+    margin-top: 4px;
+  }
+
+  .topbar-left-actions .topbar-whatsapp-link svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .logo {
+    width: 100%;
+    height: 92px;
+  }
+
+  .topbar-user-info {
+    padding-right: 8px;
+    max-width: 118px;
+  }
+
+  .topbar-user-lines {
+    align-items: flex-end;
+    text-align: right;
+    font-size: 11px;
+    width: 100%;
+  }
+
+  .topbar-user-lines span {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  .topbar-user-name {
+    font-size: 13px;
+  }
+
+  .topbar-plan-line {
+    font-size: 10px;
+  }
+
+  .top-actions {
+    display: none !important;
+  }
+
+  .mobile-bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
+    background: #111827;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
+  }
+
+  .mobile-bottom-nav button {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 6px;
+    font-size: 12px;
+    cursor: pointer;
+    background: #2563eb;
+    color: white;
+    white-space: nowrap;
+  }
+
+  .mobile-bottom-nav .vip-btn {
+    background: #f59e0b;
+    color: white;
+    font-weight: bold;
+  }
+
+  body {
+    padding-bottom: 84px;
+  }
 }
 
 /* =========================
@@ -293,7 +456,7 @@ body {
 
 .admin-sidebar {
   position: fixed;
-  top: 132px;
+  top: 250px;
   left: 0;
   bottom: 0;
   width: 240px;
@@ -436,123 +599,5 @@ body {
 
   body.admin-has-sidebar .admin-sidebar-overlay.open {
     display: block;
-  }
-}
-
-/* =========================
-   MOBILE
-========================= */
-
-@media (max-width: 768px) {
-  .topbar {
-    min-height: 98px;
-    padding: 0 14px;
-    background-position: 25% center;
-    background-size: 40%;
-    background-repeat: no-repeat;
-    background-color: #0b1120;
-  }
-
-  .topbar-main {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    width: 100%;
-  }
-
-  .logo {
-    min-width: 90px;
-    height: 68px;
-  }
-
-  .topbar-user-info {
-	  display: flex;
-	  align-items: center;
-	  justify-content: flex-end;
-	  margin-left: auto;
-	  margin-right: 0;
-	  max-width: calc(100% - 100px);
-	  text-align: right;
-	}
-	
-  .topbar-user-summary {
-    justify-content: flex-end;
-    gap: 8px;
-    width: 100%;
-  }
-
-  .topbar-whatsapp-link {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-  }
-
-  .topbar-whatsapp-link svg {
-    width: 18px;
-    height: 18px;
-  }
-
-	.topbar-user-lines {
-	  display: flex;
-	  flex-direction: column;
-	  align-items: flex-end;
-	  text-align: right;
-	  font-size: 12px;
-	  width: 100%;
-	}
-
-	.topbar-user-lines span {
-	  white-space: normal; /* PERMITE QUEBRAR LINHA */
-	  overflow: visible;
-	  text-overflow: unset;
-	}
-
-	.topbar-user-name {
-	  font-size: 13px;
-	}
-
-	.topbar-plan-line {
-	  font-size: 11px;
-	}
-
-  .top-actions {
-    display: none !important;
-  }
-
-  .mobile-bottom-nav {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 9999;
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 6px;
-    padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
-    background: #111827;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
-  }
-
-  .mobile-bottom-nav button {
-    border: none;
-    border-radius: 10px;
-    padding: 10px 6px;
-    font-size: 12px;
-    cursor: pointer;
-    background: #2563eb;
-    color: white;
-    white-space: nowrap;
-  }
-
-  .mobile-bottom-nav .vip-btn {
-    background: #f59e0b;
-    color: white;
-    font-weight: bold;
-  }
-
-  body {
-    padding-bottom: 84px;
   }
 }

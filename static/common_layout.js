@@ -344,9 +344,10 @@ async function renderSharedTopbar() {
   const topMenu = document.getElementById("topActionsMenu");
   const bottomMenu = document.getElementById("mobileBottomNav");
   const userInfo = document.getElementById("topbarUserInfo");
+  const leftActions = document.getElementById("topbarLeftActions");
   const savedUser = getSavedUser();
 
-  if (!topMenu || !bottomMenu || !userInfo) return;
+  if (!topMenu || !bottomMenu || !userInfo || !leftActions) return;
 
   const supportWhatsapp = await getSupportWhatsapp();
   const whatsappLink = buildWhatsappLink(supportWhatsapp);
@@ -374,6 +375,11 @@ async function renderSharedTopbar() {
   let adminButton = "";
   let authButton = "";
   const installButton = createInstallButton();
+  
+  leftActions.innerHTML = `
+	  ${installButton}
+	  ${whatsappIcon}
+	`;
 
   if (savedUser) {
     const planLabel = savedUser.plan_label || getPlanLabel(savedUser.plan);
@@ -381,8 +387,7 @@ async function renderSharedTopbar() {
 
 	userBlock = `
       <div class="topbar-user-summary">
-        ${whatsappIcon}
-        <div class="topbar-user-lines">
+		<div class="topbar-user-lines">
           <span class="topbar-user-name">${savedUser.name || "Usuário"}</span>
           <span class="topbar-plan-line">Plano: ${planLabel}</span>
           ${remainingDaysText ? `<span class="topbar-plan-line">${remainingDaysText}</span>` : ""}
@@ -394,8 +399,7 @@ async function renderSharedTopbar() {
   } else {
 	guestMessage = `
       <div class="topbar-user-summary">
-        ${whatsappIcon}
-        <div class="topbar-user-lines">
+		<div class="topbar-user-lines">
           <span>Olá, visitante</span>
           <span class="topbar-plan-line">
             Faça login para acessar<br>todos os recursos do app
@@ -413,7 +417,6 @@ async function renderSharedTopbar() {
   userInfo.innerHTML = savedUser ? userBlock : guestMessage;
 
   topMenu.innerHTML = `
-    ${installButton}
     ${adminButton}
     <button type="button" onclick="window.location.href='/search-page'">Pesquisa</button>
     <button type="button" onclick="window.location.href='/vitrine-page'">Vitrine</button>
