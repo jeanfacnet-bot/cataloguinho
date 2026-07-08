@@ -205,77 +205,68 @@ body {
 
 @media (max-width: 768px) {
   .topbar {
-    min-height: 180px;
+    min-height: 118px !important;
   }
 
   .topbar-main {
-    min-height: 180px;
-    grid-template-columns: 118px 1fr 118px;
-    grid-template-rows: 118px 62px;
+    min-height: 118px !important;
+    grid-template-columns: 104px 1fr 104px !important;
+    grid-template-rows: 78px 40px !important;
     grid-template-areas:
       "left logo user"
       "menu menu menu";
   }
 
   .topbar-left-actions {
-    gap: 6px;
-    padding-left: 8px;
-    justify-content: flex-start;
+    gap: 5px !important;
+    padding-left: 6px !important;
+    justify-content: flex-start !important;
   }
 
   .topbar-left-actions button,
   .topbar-left-actions a {
-    width: 52px;
-    height: 70px;
-    border-radius: 12px;
-    font-size: 9px;
-    padding: 4px;
+    width: 48px !important;
+    height: 58px !important;
+    border-radius: 10px !important;
+    font-size: 8px !important;
+    padding: 4px !important;
   }
 
   #installAppBtn::before {
-    font-size: 24px;
-    margin-bottom: 4px;
+    font-size: 22px !important;
+    margin-bottom: 3px !important;
   }
 
   .topbar-left-actions .topbar-whatsapp-link::after {
-    font-size: 9px;
-    margin-top: 4px;
+    font-size: 8px !important;
+    margin-top: 3px !important;
   }
 
   .topbar-left-actions .topbar-whatsapp-link svg {
-    width: 24px;
-    height: 24px;
+    width: 22px !important;
+    height: 22px !important;
   }
 
   .logo {
-    width: 100%;
-    height: 92px;
+    width: 100% !important;
+    height: 64px !important;
   }
 
   .topbar-user-info {
-    padding-right: 8px;
-    max-width: 118px;
+    padding-right: 6px !important;
+    max-width: 104px !important;
   }
 
   .topbar-user-lines {
-    align-items: flex-end;
-    text-align: right;
-    font-size: 11px;
-    width: 100%;
-  }
-
-  .topbar-user-lines span {
-    white-space: normal;
-    overflow: visible;
-    text-overflow: unset;
+    font-size: 9px !important;
   }
 
   .topbar-user-name {
-    font-size: 13px;
+    font-size: 11px !important;
   }
 
   .topbar-plan-line {
-    font-size: 10px;
+    font-size: 8px !important;
   }
 
   .top-actions {
