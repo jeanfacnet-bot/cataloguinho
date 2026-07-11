@@ -1,39 +1,28 @@
-const APP_VERSION = self.APP_VERSION || "fallback";
+const APP_VERSION = self.APP_VERSION || "local-dev";
 const STATIC_CACHE = `catalogin-static-${APP_VERSION}`;
 
-const STATIC_ASSETS = [
-  "/static/style.css",
-  "/static/common_layout.js",
-  "/static/auth.js",
-  "/static/app.js"
-];
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(STATIC_CACHE).then(async (cache) => {
-      await Promise.allSettled(
-        STATIC_ASSETS.map((url) =>
-          cache.add(`${url}?v=${encodeURIComponent(APP_VERSION)}`)
-        )
-      );
-    })
-  );
-
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) =>
-      Promise.all(
-        cacheNames
-          .filter((cacheName) => cacheName !== STATIC_CACHE)
-          .map((cacheName) => caches.delete(cacheName))
-      )
-    )
-  );
+    Promise.all([
+      caches.keys().then((cacheNames) =>
+        Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== STATIC_CACHE) {
+              return caches.delete(cacheName);
+            }
 
-  self.clients.claim();
+            return Promise.resolve();
+          })
+        )
+      ),
+
+      self.clients.claim()
+    ])
+  );
 });
 
 self.addEventListener("fetch", (event) => {
@@ -50,33 +39,42 @@ self.addEventListener("fetch", (event) => {
   }
 
   /*
-   * Páginas HTML:
-   * sempre procura primeiro no servidor.
-   * Nunca mantém uma página dinâmica antiga como resposta principal.
+   * Páginas HTML sempre vêm do servidor.
    */
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request, {
         cache: "no-store"
-      }).catch(() => caches.match("/"))
+      })
     );
 
     return;
   }
 
   /*
-   * APIs e páginas dinâmicas:
-   * nunca passam pelo cache do service worker.
+   * APIs e rotas dinâmicas nunca usam cache.
    */
-  if (
-    url.pathname.startsWith("/ads/") ||
-    url.pathname.startsWith("/anuncios/") ||
-    url.pathname.startsWith("/search") ||
-    url.pathname.startsWith("/locations/") ||
-    url.pathname.startsWith("/auth/") ||
-    url.pathname.startsWith("/reports") ||
-    url.pathname.startsWith("/public/")
-  ) {
+  const dynamicRoutes = [
+    "/ads/",
+    "/anuncios/",
+    "/search",
+    "/locations/",
+    "/reports",
+    "/auth/",
+    "/public/",
+    "/me",
+    "/my-ads/",
+    "/vitrine-ads",
+    "/feed",
+    "/plans-config",
+    "/vip/"
+  ];
+
+  const isDynamicRoute = dynamicRoutes.some((route) =>
+    url.pathname.startsWith(route)
+  );
+
+  if (isDynamicRoute) {
     event.respondWith(
       fetch(request, {
         cache: "no-store"
@@ -88,24 +86,34 @@ self.addEventListener("fetch", (event) => {
 
   /*
    * Arquivos estáticos:
-   * mostra rapidamente o cache, mas atualiza em segundo plano.
+   * tenta a rede primeiro.
+   * O cache serve apenas se não houver conexão.
    */
   if (url.pathname.startsWith("/static/")) {
     event.respondWith(
       caches.open(STATIC_CACHE).then(async (cache) => {
-        const cachedResponse = await cache.match(request);
+        try {
+          const networkResponse = await fetch(request, {
+            cache: "no-store"
+          });
 
-        const networkResponsePromise = fetch(request).then(
-          (networkResponse) => {
-            if (networkResponse && networkResponse.ok) {
-              cache.put(request, networkResponse.clone());
-            }
-
-            return networkResponse;
+          if (networkResponse && networkResponse.ok) {
+            await cache.put(
+              request,
+              networkResponse.clone()
+            );
           }
-        );
 
-        return cachedResponse || networkResponsePromise;
+          return networkResponse;
+        } catch (error) {
+          const cachedResponse = await cache.match(request);
+
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+
+          throw error;
+        }
       })
     );
   }

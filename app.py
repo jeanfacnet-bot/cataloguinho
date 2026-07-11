@@ -126,6 +126,28 @@ def static_asset(filename):
 
 app.jinja_env.globals["static_asset"] = static_asset
 
+@app.after_request
+def disable_dynamic_cache(response):
+    content_type = response.headers.get(
+        "Content-Type",
+        ""
+    ).lower()
+
+    if (
+        "text/html" in content_type
+        or request.path == "/service-worker.js"
+        or request.path.startswith("/ads/")
+        or request.path.startswith("/search")
+    ):
+        response.headers["Cache-Control"] = (
+            "no-store, no-cache, "
+            "must-revalidate, max-age=0"
+        )
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+
+    return response
+
 def serialize_managed_location(location):
     return {
         "id": location.id,
