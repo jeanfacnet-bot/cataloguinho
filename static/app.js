@@ -146,24 +146,31 @@ async function restoreSearchStateIfAny() {
 }
 
 function openAdDetailsFromSearch(adId) {
-  const numericAdId = Number(adId);
-
-  if (!Number.isInteger(numericAdId) || numericAdId <= 0) {
-    console.error("ID de anúncio inválido:", adId);
-    return;
-  }
-
   try {
     saveSearchState(lastSearchResults);
   } catch (error) {
-    console.warn(
-      "Não foi possível salvar o estado da pesquisa. Abrindo o anúncio mesmo assim:",
-      error
-    );
+    console.warn("Não foi possível salvar o estado da pesquisa:", error);
   }
 
-  window.location.assign(
-    `/ads/${numericAdId}/page?from=search`
+  window.location.href = `/ads/${adId}/page?from=search`;
+}
+
+function shareAdOnWhatsApp(adId, adTitle) {
+  const adUrl = `${window.location.origin}/ads/${adId}/page?from=share`;
+
+  const message = [
+    "Olha este anúncio no CataLogin:",
+    `"${adTitle || "Anúncio"}"`,
+    adUrl
+  ].join("\n");
+
+  const whatsappUrl =
+    `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+  window.open(
+    whatsappUrl,
+    "_blank",
+    "noopener,noreferrer"
   );
 }
 
@@ -223,27 +230,22 @@ function renderResults(items) {
 			${item.state ? " - " + item.state : ""}
 		  </div>
 
-		  <div class="result-actions">
+			<div class="result-actions">
 			  ${
 				item.can_show_full_details
 				  ? `
-					? `
-					  <button
-						type="button"
-						class="view-details-btn"
-						data-ad-id="${item.id}"
-					  >
-						Ver detalhes
-					  </button>
-					`
+					<button
+					  type="button"
+					  onclick="openAdDetailsFromSearch(${item.id})"
+					>
+					  Ver detalhes
+					</button>
 
 					<button
 					  type="button"
 					  class="share-whatsapp-btn"
-					  onclick='shareAdOnWhatsApp(
-						${item.id},
-						${JSON.stringify(item.title || "Anúncio")}
-					  )'
+					  data-ad-id="${item.id}"
+					  data-ad-title="${encodeURIComponent(item.title || "Anúncio")}"
 					>
 					  💬 Compartilhar
 					</button>
@@ -299,10 +301,15 @@ function renderResults(items) {
 resultsContainer.appendChild(fragment);
 
 resultsContainer
-  .querySelectorAll(".view-details-btn")
+  .querySelectorAll(".share-whatsapp-btn")
   .forEach(button => {
     button.addEventListener("click", () => {
-      openAdDetailsFromSearch(button.dataset.adId);
+      const adId = button.dataset.adId;
+      const adTitle = decodeURIComponent(
+        button.dataset.adTitle || "Anúncio"
+      );
+
+      shareAdOnWhatsApp(adId, adTitle);
     });
   });
 }

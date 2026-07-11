@@ -1,4 +1,4 @@
 git add .
-git commit -m "ajuste"
+git commit -m "ajuste1"
 git push
 
