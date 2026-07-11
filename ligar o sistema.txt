@@ -1,4 +1,4 @@
 git add .
-git commit -m "compartilhar"
+git commit -m "ajuste"
 git push
 

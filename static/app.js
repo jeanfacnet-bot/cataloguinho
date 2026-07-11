@@ -57,13 +57,33 @@ function getSearchFormState() {
 }
 
 function saveSearchState(results = lastSearchResults) {
-  const state = {
-    filters: getSearchFormState(),
-    results: Array.isArray(results) ? results : [],
-    savedAt: Date.now()
-  };
+  try {
+    const state = {
+      filters: getSearchFormState(),
+      results: Array.isArray(results) ? results : [],
+      savedAt: Date.now()
+    };
 
-  sessionStorage.setItem(SEARCH_STATE_KEY, JSON.stringify(state));
+    sessionStorage.setItem(
+      SEARCH_STATE_KEY,
+      JSON.stringify(state)
+    );
+
+    return true;
+  } catch (error) {
+    console.warn("Não foi possível salvar a pesquisa:", error);
+
+    try {
+      sessionStorage.removeItem(SEARCH_STATE_KEY);
+    } catch (removeError) {
+      console.warn(
+        "Também não foi possível limpar o estado da pesquisa:",
+        removeError
+      );
+    }
+
+    return false;
+  }
 }
 
 async function restoreSearchStateIfAny() {
@@ -126,8 +146,25 @@ async function restoreSearchStateIfAny() {
 }
 
 function openAdDetailsFromSearch(adId) {
-  saveSearchState(lastSearchResults);
-  window.location.href = `/ads/${adId}/page?from=search`;
+  const numericAdId = Number(adId);
+
+  if (!Number.isInteger(numericAdId) || numericAdId <= 0) {
+    console.error("ID de anúncio inválido:", adId);
+    return;
+  }
+
+  try {
+    saveSearchState(lastSearchResults);
+  } catch (error) {
+    console.warn(
+      "Não foi possível salvar o estado da pesquisa. Abrindo o anúncio mesmo assim:",
+      error
+    );
+  }
+
+  window.location.assign(
+    `/ads/${numericAdId}/page?from=search`
+  );
 }
 
 function shareAdOnWhatsApp(adId, adTitle) {
@@ -190,12 +227,15 @@ function renderResults(items) {
 			  ${
 				item.can_show_full_details
 				  ? `
-					<button
-					  type="button"
-					  onclick="openAdDetailsFromSearch(${item.id})"
-					>
-					  Ver detalhes
-					</button>
+					? `
+					  <button
+						type="button"
+						class="view-details-btn"
+						data-ad-id="${item.id}"
+					  >
+						Ver detalhes
+					  </button>
+					`
 
 					<button
 					  type="button"
@@ -257,6 +297,14 @@ function renderResults(items) {
 	});
 
 resultsContainer.appendChild(fragment);
+
+resultsContainer
+  .querySelectorAll(".view-details-btn")
+  .forEach(button => {
+    button.addEventListener("click", () => {
+      openAdDetailsFromSearch(button.dataset.adId);
+    });
+  });
 }
 
 function toggleReportBox(adId, forceState = null) {
