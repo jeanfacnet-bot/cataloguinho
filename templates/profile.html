@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Meu perfil</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ static_asset('style.css') }}">
   <style>
     .page-wrap {
       max-width: 900px;
@@ -289,7 +289,7 @@
     })();
   </script>
 
-  <script src="{{ url_for('static', filename='profile.js') }}?v=1"></script>
-  <script src="{{ url_for('static', filename='common_layout.js') }}?v=4"></script>
+  <script src="{{ static_asset('profile.js') }}"></script>
+  <script src="{{ static_asset('common_layout.js') }}"></script>
 </body>
 </html>

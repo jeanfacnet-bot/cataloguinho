@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cadastrar anúncio</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ static_asset('style.css') }}">
 	<style>
 	  .page-wrap {
 		max-width: 1280px;
@@ -508,7 +508,7 @@
 	
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#0b1120">
-<link rel="apple-touch-icon" href="/static/icons/icon-192.png">	
+<link rel="apple-touch-icon" href="{{ static_asset('icons/icon-192.png') }}">	
 
 <link
   rel="stylesheet"
@@ -735,7 +735,7 @@
 	  })();
 	</script>
 
-	<script src="{{ url_for('static', filename='create_ad.js') }}?v=2"></script>
+	<script src="{{ static_asset('create_ad.js') }}"></script>
 
 	<script>
 	  (function () {
@@ -772,7 +772,7 @@
 	  })();
 	</script>
 	
-	<script src="{{ url_for('static', filename='common_layout.js') }}"></script>
+	<script src="{{ static_asset('common_layout.js') }}"></script>
 
 	<script>
 	  if ("serviceWorker" in navigator) {

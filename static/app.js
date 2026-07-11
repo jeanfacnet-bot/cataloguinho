@@ -43,7 +43,28 @@ function getPlanStar(plan) {
   return stars[plan] || "";
 }
 
-const savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+function getSavedUserSafely() {
+  try {
+    const rawUser =
+      localStorage.getItem("catalogo_user");
+
+    if (!rawUser) {
+      return null;
+    }
+
+    return JSON.parse(rawUser);
+  } catch (error) {
+    console.warn(
+      "Dados inválidos do usuário no navegador:",
+      error
+    );
+
+    localStorage.removeItem("catalogo_user");
+    return null;
+  }
+}
+
+const savedUser = getSavedUserSafely();
 
 function getSearchFormState() {
   return {
@@ -145,18 +166,37 @@ async function restoreSearchStateIfAny() {
   return true;
 }
 
+function getAppVersion() {
+  return (
+    document.documentElement.dataset.appVersion ||
+    "local"
+  );
+}
+
 function openAdDetailsFromSearch(adId) {
   try {
     saveSearchState(lastSearchResults);
   } catch (error) {
-    console.warn("Não foi possível salvar o estado da pesquisa:", error);
+    console.warn(
+      "Não foi possível salvar o estado da pesquisa:",
+      error
+    );
   }
 
-  window.location.href = `/ads/${adId}/page?from=search`;
+  const detailsUrl = new URL(
+    `/ads/${adId}/page`,
+    window.location.origin
+  );
+
+  detailsUrl.searchParams.set("from", "search");
+  detailsUrl.searchParams.set("v", getAppVersion());
+
+  window.location.href = detailsUrl.toString();
 }
 
 function shareAdOnWhatsApp(adId, adTitle) {
-  const adUrl = `${window.location.origin}/ads/${adId}/page?from=share`;
+  const adUrl =
+    `${window.location.origin}/ads/${adId}/page?from=share`;
 
   const message = [
     "Olha este anúncio no CataLogin:",
@@ -172,21 +212,6 @@ function shareAdOnWhatsApp(adId, adTitle) {
     "_blank",
     "noopener,noreferrer"
   );
-}
-
-function shareAdOnWhatsApp(adId, adTitle) {
-  const adUrl = `${window.location.origin}/ads/${adId}/page?from=share`;
-
-  const message = [
-    `Olha este anúncio no CataLogin:`,
-    `"${adTitle || "Anúncio"}"`,
-    adUrl
-  ].join("\n");
-
-  const whatsappUrl =
-    `https://wa.me/?text=${encodeURIComponent(message)}`;
-
-  window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 }
 
 

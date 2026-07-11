@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Administrador - Localidades</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ static_asset('style.css') }}">
   <style>
     
     .page-wrap { max-width: 1200px; margin: 30px auto; padding: 0 16px; }
@@ -753,6 +753,6 @@
     loadManagedLocations();
     loadBlockedLocations();
   </script>
-  <script src="{{ url_for('static', filename='common_layout.js') }}"></script>
+  <script src="{{ static_asset('common_layout.js') }}"></script>
 </body>
 </html>

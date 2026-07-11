@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html
+  lang="pt-BR"
+  data-app-version="{{ config['APP_VERSION'] }}"
+>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catálogo - Pesquisa</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=51">
+  <link rel="stylesheet" href="{{ static_asset('style.css') }}">
 	<style>
 	  .container {
 		max-width: 1240px;
@@ -554,7 +557,7 @@
 	
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#0b1120">
-<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<link rel="apple-touch-icon" href="{{ static_asset('icons/icon-192.png') }}">
 	
 </head>
 <body>
@@ -637,7 +640,20 @@
 
 	<script>
 	  (function () {
-		const adminLayoutUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+		let adminLayoutUser = null;
+
+		try {
+		  adminLayoutUser = JSON.parse(
+			localStorage.getItem("catalogo_user") || "null"
+		  );
+		} catch (error) {
+		  console.warn(
+			"Dados inválidos do usuário no navegador:",
+			error
+		  );
+
+		  localStorage.removeItem("catalogo_user");
+		}
 		const adminSidebar = document.getElementById("adminSidebar");
 
 		function isAdmin(user) {
@@ -652,11 +668,24 @@
 	  })();
 	</script>
 
-	<script src="{{ url_for('static', filename='app.js') }}?v=52"></script>
+	<script src="{{ static_asset('app.js') }}"></script>
 
 	<script>
 	  (function () {
-		const savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+		let savedUser = null;
+
+		try {
+		  savedUser = JSON.parse(
+			localStorage.getItem("catalogo_user") || "null"
+		  );
+		} catch (error) {
+		  console.warn(
+			"Dados inválidos do usuário no navegador:",
+			error
+		  );
+
+		  localStorage.removeItem("catalogo_user");
+		}
 		const menu = document.getElementById("topActionsMenu");
 
 		if (!menu) return;
@@ -689,16 +718,45 @@
 	  })();
 	</script>
 	
-	<script src="{{ url_for('static', filename='common_layout.js') }}?v=6"></script>
+	<script src="{{ static_asset('common_layout.js') }}"></script>
 
 	
 	<script>
 	  if ("serviceWorker" in navigator) {
-		window.addEventListener("load", () => {
-		  navigator.serviceWorker
-			.register("/service-worker.js")
-			.then(() => console.log("Service Worker registrado"))
-			.catch((err) => console.error("Erro ao registrar Service Worker:", err));
+		window.addEventListener("load", async () => {
+		  try {
+			const registration = await navigator.serviceWorker.register(
+			  "/service-worker.js",
+			  {
+				scope: "/",
+				updateViaCache: "none"
+			  }
+			);
+
+			await registration.update();
+
+			console.log(
+			  "Service Worker registrado e atualizado:",
+			  registration.scope
+			);
+
+			let refreshing = false;
+
+			navigator.serviceWorker.addEventListener(
+			  "controllerchange",
+			  () => {
+				if (refreshing) return;
+
+				refreshing = true;
+				window.location.reload();
+			  }
+			);
+		  } catch (error) {
+			console.error(
+			  "Erro ao registrar Service Worker:",
+			  error
+			);
+		  }
 		});
 	  }
 	</script>

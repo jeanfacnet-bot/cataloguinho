@@ -1,4 +1,14 @@
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for, send_from_directory
+from flask import (
+    Flask,
+    request,
+    jsonify,
+    render_template,
+    session,
+    redirect,
+    url_for,
+    send_from_directory,
+    Response
+)
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import case, or_
@@ -22,6 +32,14 @@ import hashlib
 load_dotenv()
 
 app = Flask(__name__)
+
+APP_VERSION = (
+    os.getenv("RENDER_GIT_COMMIT")
+    or os.getenv("APP_VERSION")
+    or "local-dev"
+)[:12]
+
+app.config["APP_VERSION"] = APP_VERSION
 
 MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "")
 BASE_URL = os.getenv("BASE_URL", "https://www.cataloginpk.com.br")
@@ -98,6 +116,15 @@ class ManagedLocation(db.Model):
         ),
     )
 
+def static_asset(filename):
+    return url_for(
+        "static",
+        filename=filename,
+        v=app.config["APP_VERSION"]
+    )
+
+
+app.jinja_env.globals["static_asset"] = static_asset
 
 def serialize_managed_location(location):
     return {
@@ -2581,7 +2608,32 @@ def manifest():
 
 @app.route("/service-worker.js")
 def service_worker():
-    return send_from_directory("static", "service-worker.js", mimetype="application/javascript")    
+    service_worker_path = os.path.join(
+        app.static_folder,
+        "service-worker.js"
+    )
+
+    with open(service_worker_path, "r", encoding="utf-8") as file:
+        service_worker_code = file.read()
+
+    version_code = (
+        f'self.APP_VERSION = '
+        f'{json.dumps(app.config["APP_VERSION"])};\n'
+    )
+
+    response = Response(
+        version_code + service_worker_code,
+        mimetype="application/javascript"
+    )
+
+    response.headers["Cache-Control"] = (
+        "no-cache, no-store, must-revalidate"
+    )
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    response.headers["Service-Worker-Allowed"] = "/"
+
+    return response  
     
 @app.route("/upgrade-vip/<int:user_id>", methods=["PATCH"])
 def upgrade_vip(user_id):

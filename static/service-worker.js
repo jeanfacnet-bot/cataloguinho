@@ -1,56 +1,112 @@
-const CACHE_NAME = "catalogin-v2";
+const APP_VERSION = self.APP_VERSION || "fallback";
+const STATIC_CACHE = `catalogin-static-${APP_VERSION}`;
 
-const URLS_TO_CACHE = [
-  "/",
-  "/search-page",
-  "/auth-page",
-  "/register-page",
-  "/vip-page",
-  "/terms-of-use",
-  "/privacy-policy",
+const STATIC_ASSETS = [
   "/static/style.css",
   "/static/common_layout.js",
   "/static/auth.js",
-  "/static/app.js",
-  "/manifest.webmanifest"
+  "/static/app.js"
 ];
 
 self.addEventListener("install", (event) => {
-  self.skipWaiting();
-
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(URLS_TO_CACHE);
+    caches.open(STATIC_CACHE).then(async (cache) => {
+      await Promise.allSettled(
+        STATIC_ASSETS.map((url) =>
+          cache.add(`${url}?v=${encodeURIComponent(APP_VERSION)}`)
+        )
+      );
     })
   );
+
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
+    caches.keys().then((cacheNames) =>
       Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key))
+        cacheNames
+          .filter((cacheName) => cacheName !== STATIC_CACHE)
+          .map((cacheName) => caches.delete(cacheName))
       )
-    ).then(() => self.clients.claim())
+    )
   );
+
+  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
+  const request = event.request;
 
-  event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        const responseClone = networkResponse.clone();
+  if (request.method !== "GET") {
+    return;
+  }
 
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseClone);
-        });
+  const url = new URL(request.url);
 
-        return networkResponse;
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  /*
+   * Páginas HTML:
+   * sempre procura primeiro no servidor.
+   * Nunca mantém uma página dinâmica antiga como resposta principal.
+   */
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request, {
+        cache: "no-store"
+      }).catch(() => caches.match("/"))
+    );
+
+    return;
+  }
+
+  /*
+   * APIs e páginas dinâmicas:
+   * nunca passam pelo cache do service worker.
+   */
+  if (
+    url.pathname.startsWith("/ads/") ||
+    url.pathname.startsWith("/anuncios/") ||
+    url.pathname.startsWith("/search") ||
+    url.pathname.startsWith("/locations/") ||
+    url.pathname.startsWith("/auth/") ||
+    url.pathname.startsWith("/reports") ||
+    url.pathname.startsWith("/public/")
+  ) {
+    event.respondWith(
+      fetch(request, {
+        cache: "no-store"
       })
-      .catch(() => caches.match(event.request))
-  );
+    );
+
+    return;
+  }
+
+  /*
+   * Arquivos estáticos:
+   * mostra rapidamente o cache, mas atualiza em segundo plano.
+   */
+  if (url.pathname.startsWith("/static/")) {
+    event.respondWith(
+      caches.open(STATIC_CACHE).then(async (cache) => {
+        const cachedResponse = await cache.match(request);
+
+        const networkResponsePromise = fetch(request).then(
+          (networkResponse) => {
+            if (networkResponse && networkResponse.ok) {
+              cache.put(request, networkResponse.clone());
+            }
+
+            return networkResponse;
+          }
+        );
+
+        return cachedResponse || networkResponsePromise;
+      })
+    );
+  }
 });

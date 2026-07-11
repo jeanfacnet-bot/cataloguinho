@@ -8,7 +8,7 @@
   <title>Encontre e divulgue produtos e serviços na sua região | Agenda Inteligente</title>
   <meta name="description" content="Encontre produtos e serviços perto de você ou divulgue seu negócio gratuitamente. Busque empresas, profissionais e serviços da sua região com facilidade.">
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ static_asset('style.css') }}">
 
   <style>
     body {
@@ -270,7 +270,7 @@
   
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#0b1120">
-<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<link rel="apple-touch-icon" href="{{ static_asset('icons/icon-192.png') }}">
   
 </head>
 
@@ -415,7 +415,7 @@
     }
   </script>
 
-	<script src="{{ url_for('static', filename='common_layout.js') }}"></script>
+	<script src="{{ static_asset('common_layout.js') }}"></script>
 
 	<script>
 	  if ("serviceWorker" in navigator) {

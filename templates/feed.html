@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Feed de mídias</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ static_asset('style.css') }}">
   <style>
     html, body {
 	  margin: 0;
@@ -381,7 +381,7 @@
 	loadFeed();
   </script>
   
-  <script src="{{ url_for('static', filename='common_layout.js') }}"></script>
+  <script src="{{ static_asset('common_layout.js') }}"></script>
 
 </body>
 </html>

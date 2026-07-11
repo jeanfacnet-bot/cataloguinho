@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Detalhes do Anúncio</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=52">
+  <link rel="stylesheet" href="{{ static_asset('style.css') }}">
   <style>
     .details-container {
       max-width: 1000px;
@@ -158,7 +158,20 @@
   </main>
 
   <script>
-	  let savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+		let savedUser = null;
+
+		try {
+		  savedUser = JSON.parse(
+			localStorage.getItem("catalogo_user") || "null"
+		  );
+		} catch (error) {
+		  console.warn(
+			"Dados inválidos do usuário no navegador:",
+			error
+		  );
+
+		  localStorage.removeItem("catalogo_user");
+		}
 
 	  function setupTopMenu() {
 		const menu = document.querySelector(".top-actions");
@@ -452,7 +465,7 @@
 	  loadAd();
 	</script>
 	
-	<script src="{{ url_for('static', filename='common_layout.js') }}"></script>
+	<script src="{{ static_asset('common_layout.js') }}"></script>
 	
 </body>
 </html>
