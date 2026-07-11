@@ -1,4 +1,4 @@
 git add .
-git commit -m "novo layout web"
+git commit -m "compartilhar"
 git push
 

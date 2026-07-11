@@ -130,6 +130,21 @@ function openAdDetailsFromSearch(adId) {
   window.location.href = `/ads/${adId}/page?from=search`;
 }
 
+function shareAdOnWhatsApp(adId, adTitle) {
+  const adUrl = `${window.location.origin}/ads/${adId}/page?from=share`;
+
+  const message = [
+    `Olha este anúncio no CataLogin:`,
+    `"${adTitle || "Anúncio"}"`,
+    adUrl
+  ].join("\n");
+
+  const whatsappUrl =
+    `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+  window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+}
+
 
 function resetSelect(selectElement, placeholder) {
   if (!selectElement) return;
@@ -171,17 +186,31 @@ function renderResults(items) {
 			${item.state ? " - " + item.state : ""}
 		  </div>
 
-		  <div class="muted" style="margin-top: 6px;">
-			Telefone: ${item.phone || "Não informado"}
-		  </div>
-
 		  <div class="result-actions">
-			${
-			  item.can_show_full_details
-				? `<button type="button" onclick="openAdDetailsFromSearch(${item.id})">Ver detalhes</button>`
-				: ""
-			}
-		  </div>
+			  ${
+				item.can_show_full_details
+				  ? `
+					<button
+					  type="button"
+					  onclick="openAdDetailsFromSearch(${item.id})"
+					>
+					  Ver detalhes
+					</button>
+
+					<button
+					  type="button"
+					  class="share-whatsapp-btn"
+					  onclick='shareAdOnWhatsApp(
+						${item.id},
+						${JSON.stringify(item.title || "Anúncio")}
+					  )'
+					>
+					  💬 Compartilhar
+					</button>
+				  `
+				  : ""
+			  }
+			</div>
 
 		  <div id="reportBox-${item.id}" class="report-box">
 			<select id="reportReason-${item.id}" class="report-reason-select">

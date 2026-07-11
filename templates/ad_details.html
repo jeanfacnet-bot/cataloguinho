@@ -138,6 +138,14 @@
 	.call-btn {
 	  background: #2563eb;
 	}
+	
+	.share-btn {
+	  background: #128c4a;
+	  border: none;
+	  cursor: pointer;
+	  font-family: inherit;
+	  font-size: inherit;
+	}
   </style>
 </head>
 <body>
@@ -197,6 +205,7 @@
 
 		const adId = {{ ad_id }};
 		const adContent = document.getElementById("adContent");
+		let currentAd = null;
 	  
 		const backLink = document.getElementById("backLink");
 
@@ -284,6 +293,21 @@
 
 		  return `55${digits}`;
 		}
+		
+		function shareAdDetailsOnWhatsApp(ad) {
+		  const adUrl = `${window.location.origin}/ads/${ad.id}/page?from=share`;
+
+		  const message = [
+			`Olha este anúncio no CataLogin:`,
+			`"${ad.title || "Anúncio"}"`,
+			adUrl
+		  ].join("\n");
+
+		  const whatsappUrl =
+			`https://wa.me/?text=${encodeURIComponent(message)}`;
+
+		  window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+		}
 
 		function buildContactSection(ad) {
 		  const rawPhone = ad.phone || "";
@@ -333,6 +357,7 @@
 		}
 
 	  function renderAd(ad) {
+	  	  currentAd = ad;
 		  
 		  const imageHtml = ad.main_image
 			? `<img class="details-image" src="${ad.main_image}" alt="${ad.title}">`
@@ -363,6 +388,14 @@
 		  adContent.innerHTML = `
 			<div class="details-title-row">
 			  <h1>${ad.title}</h1>
+
+			  <button
+				type="button"
+				class="contact-btn share-btn"
+				onclick="shareAdDetailsOnWhatsApp(currentAd)"
+			  >
+				💬 Compartilhar anúncio
+			  </button>
 			</div>
 
 			${buildContactSection(ad)}
