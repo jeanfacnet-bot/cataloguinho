@@ -184,7 +184,7 @@ function openAdDetailsFromSearch(adId) {
   }
 
   const detailsUrl = new URL(
-    `/ads/${adId}/page`,
+    `/item/${adId}/view`,
     window.location.origin
   );
 
@@ -196,7 +196,7 @@ function openAdDetailsFromSearch(adId) {
 
 function shareAdOnWhatsApp(adId, adTitle) {
   const adUrl =
-    `${window.location.origin}/ads/${adId}/page?from=share`;
+	`${window.location.origin}/item/${adId}/view?from=share`;
 
   const message = [
     "Olha este anúncio no CataLogin:",

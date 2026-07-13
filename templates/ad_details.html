@@ -146,6 +146,30 @@
 	  font-family: inherit;
 	  font-size: inherit;
 	}
+	
+	.button-icon {
+	  width: 19px;
+	  height: 19px;
+	  display: block;
+	  flex: 0 0 19px;
+	  fill: none;
+	  stroke: currentColor;
+	  stroke-width: 2;
+	  stroke-linecap: round;
+	  stroke-linejoin: round;
+	}
+
+	.back-link {
+	  display: inline-flex;
+	  align-items: center;
+	  gap: 7px;
+	}
+
+	.back-link .button-icon {
+	  width: 18px;
+	  height: 18px;
+	  flex-basis: 18px;
+	}
   </style>
 </head>
 <body>
@@ -153,7 +177,18 @@
 	{% include "partials/admin_sidebar.html" %}
 
   <main class="details-container">
-    <a id="backLink" href="/search-page" class="back-link">← Voltar</a>
+    <a id="backLink" href="/search-page" class="back-link">
+	  <svg
+		class="button-icon"
+		viewBox="0 0 24 24"
+		aria-hidden="true"
+	  >
+		<path d="M19 12H5"></path>
+		<path d="M12 19l-7-7 7-7"></path>
+	  </svg>
+
+	  <span>Voltar</span>
+	</a>
     <div id="adContent" class="loading-box">Carregando anúncio...</div>
   </main>
 
@@ -225,16 +260,30 @@
 		const params = new URLSearchParams(window.location.search);
 		const origin = params.get("from");
 
+		let backLinkText = "Voltar para pesquisa";
+
 		if (origin === "vitrine") {
 		  backLink.href = "/vitrine-page";
-		  backLink.textContent = "← Voltar para vitrine";
+		  backLinkText = "Voltar para vitrine";
 		} else if (origin === "feed") {
 		  backLink.href = "/feed-page";
-		  backLink.textContent = "← Voltar para feed";
+		  backLinkText = "Voltar para feed";
 		} else {
 		  backLink.href = "/search-page";
-		  backLink.textContent = "← Voltar para pesquisa";
 		}
+
+		backLink.innerHTML = `
+		  <svg
+			class="button-icon"
+			viewBox="0 0 24 24"
+			aria-hidden="true"
+		  >
+			<path d="M19 12H5"></path>
+			<path d="M12 19l-7-7 7-7"></path>
+		  </svg>
+
+		  <span>${backLinkText}</span>
+		`;
 		
 	  function buildLocationSection(ad) {
 		  const locationText = `
@@ -264,17 +313,21 @@
 				<a
 				  href="${mapsUrl}"
 				  target="_blank"
+				  rel="noopener noreferrer"
 				  class="location-btn maps-btn"
 				>
-				  📍 Abrir no Google Maps
+				  ${getDetailIcon("maps")}
+				  Google Maps
 				</a>
 
 				<a
 				  href="${wazeUrl}"
 				  target="_blank"
+				  rel="noopener noreferrer"
 				  class="location-btn waze-btn"
 				>
-				  🚗 Abrir no Waze
+				  ${getDetailIcon("navigation")}
+				  Waze
 				</a>
 			  </div>
 			`;
@@ -307,8 +360,91 @@
 		  return `55${digits}`;
 		}
 		
+		function getDetailIcon(iconName) {
+		  const icons = {
+			back: `
+			  <svg
+				class="button-icon"
+				viewBox="0 0 24 24"
+				aria-hidden="true"
+			  >
+				<path d="M19 12H5"></path>
+				<path d="M12 19l-7-7 7-7"></path>
+			  </svg>
+			`,
+
+			share: `
+			  <svg
+				class="button-icon"
+				viewBox="0 0 24 24"
+				aria-hidden="true"
+			  >
+				<circle cx="18" cy="5" r="3"></circle>
+				<circle cx="6" cy="12" r="3"></circle>
+				<circle cx="18" cy="19" r="3"></circle>
+				<path d="M8.6 10.7l6.8-4"></path>
+				<path d="M8.6 13.3l6.8 4"></path>
+			  </svg>
+			`,
+
+			whatsapp: `
+			  <svg
+				class="button-icon"
+				viewBox="0 0 24 24"
+				aria-hidden="true"
+			  >
+				<path d="M21 11.5a8.4 8.4 0 0 1-9 8.5"></path>
+				<path d="M12 20a8.5 8.5 0 1 1 8.5-8.5"></path>
+				<path d="M7.5 18.5 4 20l1.5-3.5"></path>
+				<path d="M9 8.5c.6 2.4 2.1 3.9 4.5 4.5"></path>
+				<path d="M13.5 12.5 15 14"></path>
+			  </svg>
+			`,
+
+			phone: `
+			  <svg
+				class="button-icon"
+				viewBox="0 0 24 24"
+				aria-hidden="true"
+			  >
+				<path d="M22 16.92v3a2 2 0 0 1-2.18 2"></path>
+				<path d="M19.82 21.92a19.79 19.79 0 0 1-8.63-3.07"></path>
+				<path d="M11.19 18.85a19.5 19.5 0 0 1-6.04-6.04"></path>
+				<path d="M5.15 12.81A19.79 19.79 0 0 1 2.08 4.18"></path>
+				<path d="M2.08 4.18A2 2 0 0 1 4.06 2h3"></path>
+				<path d="m7.06 2 1.5 4a2 2 0 0 1-.45 2.11L6.8 9.42"></path>
+				<path d="m14.58 17.2 1.31-1.31a2 2 0 0 1 2.11-.45l4 1.5"></path>
+			  </svg>
+			`,
+
+			maps: `
+			  <svg
+				class="button-icon"
+				viewBox="0 0 24 24"
+				aria-hidden="true"
+			  >
+				<path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0z"></path>
+				<circle cx="12" cy="10" r="3"></circle>
+			  </svg>
+			`,
+
+			navigation: `
+			  <svg
+				class="button-icon"
+				viewBox="0 0 24 24"
+				aria-hidden="true"
+			  >
+				<polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+			  </svg>
+			`
+		  };
+
+		  return icons[iconName] || "";
+		}
+		
 		function shareAdDetailsOnWhatsApp(ad) {
-		  const adUrl = `${window.location.origin}/ads/${ad.id}/page?from=share`;
+		  const adUrl =
+			`${window.location.origin}/item/${ad.id}/view?from=share`;
 
 		  const message = [
 			`Olha este anúncio no CataLogin:`,
@@ -353,16 +489,19 @@
 				<a
 				  href="${whatsappUrl}"
 				  target="_blank"
+				  rel="noopener noreferrer"
 				  class="contact-btn whatsapp-btn"
 				>
-				  💬 Conversar no WhatsApp
+				  ${getDetailIcon("whatsapp")}
+				  WhatsApp
 				</a>
 
 				<a
 				  href="${callUrl}"
 				  class="contact-btn call-btn"
 				>
-				  📞 Ligar agora
+				  ${getDetailIcon("phone")}
+				  Ligar
 				</a>
 			  </div>
 			</div>
@@ -402,29 +541,30 @@
 			<div class="details-title-row">
 			  <h1>${ad.title}</h1>
 
-			  <button
-				type="button"
-				class="contact-btn share-btn"
-				onclick="shareAdDetailsOnWhatsApp(currentAd)"
-			  >
-				💬 Compartilhar anúncio
-			  </button>
+				<button
+				  type="button"
+				  class="contact-btn share-btn"
+				  onclick="shareAdDetailsOnWhatsApp(currentAd)"
+				>
+				  ${getDetailIcon("share")}
+				  Compartilhar
+				</button>
 			</div>
+
+			${descriptionHtml}
 
 			${buildContactSection(ad)}
 
 			${buildLocationSection(ad)}
 
-			${descriptionHtml}
-
 			${imageHtml}
 			${videoHtml}
-		  `;
+		`;
 		}
 
 	  async function loadAd() {
 		  try {
-			const response = await fetch(`/ads/${adId}`, {
+			const response = await fetch(`/item/${adId}`, {
 			  method: "GET",
 			  credentials: "same-origin",
 			  headers: {

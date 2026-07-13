@@ -137,6 +137,7 @@ def disable_dynamic_cache(response):
         "text/html" in content_type
         or request.path == "/service-worker.js"
         or request.path.startswith("/ads/")
+        or request.path.startswith("/item/")
         or request.path.startswith("/search")
     ):
         response.headers["Cache-Control"] = (
@@ -2332,49 +2333,105 @@ def seed_data():
     return jsonify({"message": "Dados iniciais criados com sucesso"})
 
 
-@app.route("/ads/<int:ad_id>", methods=["GET"])
-def get_ad(ad_id):
-    ad = Ad.query.get(ad_id)
+def build_item_response(item_id):
+    item = Ad.query.get(item_id)
 
-    if not ad or not ad.is_active:
-        return jsonify({"message": "Anúncio não encontrado"}), 404
-
-    current_user = None
-    if session.get("user_id"):
-        current_user = User.query.get(session["user_id"])
-
-    if not get_plan_rules(ad.plan)["can_show_full_details"]:
-        if not current_user or not current_user.is_admin:
-            return jsonify({"message": "Detalhes disponíveis apenas para anúncios com plano compatível"}), 403
-
-    return jsonify(serialize_ad(ad))
-
-@app.route("/anuncios/<int:ad_id>", methods=["GET"])
-def get_anuncio(ad_id):
-    return get_ad(ad_id)
-    
-@app.route("/ads/<int:ad_id>/page")
-def ad_details_page(ad_id):
-    ad = Ad.query.get(ad_id)
-
-    if not ad or not ad.is_active:
-        return "Anúncio não encontrado", 404
+    if not item or not item.is_active:
+        return jsonify({
+            "message": "Conteúdo não encontrado"
+        }), 404
 
     current_user = None
-    if session.get("user_id"):
-        current_user = User.query.get(session["user_id"])
 
-    if not get_plan_rules(ad.plan)["can_show_full_details"]:
+    if session.get("user_id"):
+        current_user = User.query.get(
+            session["user_id"]
+        )
+
+    if not get_plan_rules(
+        item.plan
+    )["can_show_full_details"]:
         if not current_user or not current_user.is_admin:
-            return "Detalhes disponíveis apenas para anúncios com plano compatível", 403
+            return jsonify({
+                "message": (
+                    "Detalhes disponíveis apenas para "
+                    "planos compatíveis"
+                )
+            }), 403
+
+    return jsonify(serialize_ad(item))
+
+
+@app.route("/item/<int:item_id>", methods=["GET"])
+def get_item(item_id):
+    return build_item_response(item_id)
+
+
+@app.route("/item/<int:item_id>/view")
+def item_details_page(item_id):
+    item = Ad.query.get(item_id)
+
+    if not item or not item.is_active:
+        return "Conteúdo não encontrado", 404
+
+    current_user = None
+
+    if session.get("user_id"):
+        current_user = User.query.get(
+            session["user_id"]
+        )
+
+    if not get_plan_rules(
+        item.plan
+    )["can_show_full_details"]:
+        if not current_user or not current_user.is_admin:
+            return (
+                "Detalhes disponíveis apenas para "
+                "planos compatíveis"
+            ), 403
 
     origin = request.args.get("from", "search")
 
-    return render_template("ad_details.html", ad_id=ad_id, origin=origin)
+    return render_template(
+        "ad_details.html",
+        ad_id=item_id,
+        origin=origin
+    )
+
+
+# Compatibilidade com links antigos
+@app.route("/ads/<int:ad_id>", methods=["GET"])
+def get_ad(ad_id):
+    return build_item_response(ad_id)
+
+
+@app.route("/anuncios/<int:ad_id>", methods=["GET"])
+def get_anuncio(ad_id):
+    return build_item_response(ad_id)
+
+
+@app.route("/ads/<int:ad_id>/page")
+def ad_details_page(ad_id):
+    return redirect(
+        url_for(
+            "item_details_page",
+            item_id=ad_id,
+            **request.args
+        ),
+        code=302
+    )
+
 
 @app.route("/anuncios/<int:ad_id>/page")
 def anuncio_details_page(ad_id):
-    return ad_details_page(ad_id)
+    return redirect(
+        url_for(
+            "item_details_page",
+            item_id=ad_id,
+            **request.args
+        ),
+        code=302
+    )
     
 @app.route("/create-ad-page")
 @login_required_page
