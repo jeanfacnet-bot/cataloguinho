@@ -1796,15 +1796,19 @@ def search_ads():
 
 @app.route("/locations/states", methods=["GET"])
 def get_states():
-        cached_states = get_cached_location(
-            "states"
+    cached_states = get_cached_location(
+        "states"
+    )
+
+    if cached_states is not None:
+        return jsonify(cached_states)
+
+    try:
+        url = (
+            "https://servicodados.ibge.gov.br/"
+            "api/v1/localidades/estados?orderBy=nome"
         )
 
-        if cached_states is not None:
-            return jsonify(cached_states)
-            
-    try:
-        url = "https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome"
         data = fetch_ibge_json(url)
 
         states = [
@@ -1815,7 +1819,7 @@ def get_states():
             }
             for item in data
         ]
-        
+
         set_cached_location(
             "states",
             states,
@@ -1823,6 +1827,7 @@ def get_states():
         )
 
         return jsonify(states)
+
     except Exception as e:
         return jsonify({
             "message": "Erro ao carregar estados do IBGE",
