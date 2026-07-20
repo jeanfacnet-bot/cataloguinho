@@ -289,12 +289,35 @@
     <h1>Usuários cadastrados</h1>
 
     <div class="user-topbar">
-	  <input
-		type="text"
-		id="userSearchInput"
-		placeholder="Buscar por nome..."
-		style="padding: 10px 14px; border: 1px solid #dcdcdc; border-radius: 10px; min-width: 260px;"
-	  >
+		<div style="display:flex; gap:8px; flex-wrap:wrap;">
+		  <input
+			type="search"
+			id="userSearchInput"
+			name="admin_user_manual_search"
+			placeholder="Buscar por nome..."
+			autocomplete="off"
+			autocapitalize="off"
+			autocorrect="off"
+			spellcheck="false"
+			style="padding:10px 14px; border:1px solid #dcdcdc; border-radius:10px; min-width:260px;"
+		  >
+
+		  <button
+			type="button"
+			id="searchUserBtn"
+			class="create-user-btn"
+		  >
+			Buscar
+		  </button>
+
+		  <button
+			type="button"
+			id="clearUserSearchBtn"
+			class="filter-btn"
+		  >
+			Limpar
+		  </button>
+		</div>
 
 		<div class="user-filters">
 		  <button id="filterAll" class="filter-btn active">Todos (0)</button>
@@ -306,7 +329,13 @@
 		  <button id="filterBlocked" class="filter-btn">Bloqueados (0)</button>
 		</div>
 
-	  <button id="openCreateUserModal" class="create-user-btn">Cadastrar usuário</button>
+	    <button
+		  type="button"
+		  id="openCreateUserModal"
+		  class="create-user-btn"
+		>
+		  Cadastrar usuário
+		</button>
 	</div>
 	
 	<div id="createUserModal" class="modal-overlay" style="display: none;">
@@ -335,8 +364,14 @@
 		<div id="createUserMessage" class="muted" style="margin-top: 10px;"></div>
 
 		<div class="modal-actions">
-		  <button id="saveNewUserBtn" class="create-user-btn">Salvar</button>
-		  <button id="closeCreateUserModal" class="filter-btn" type="button">Cancelar</button>
+			<button
+			  type="button"
+			  id="saveNewUserBtn"
+			  class="create-user-btn"
+			>
+			  Salvar
+			</button>
+			<button id="closeCreateUserModal" class="filter-btn" type="button">Cancelar</button>
 		</div>
 	  </div>
 	</div>
@@ -464,10 +499,11 @@ function renderUsers(filter) {
               >
 
               <button
-                class="create-user-btn"
-                onclick="updateUserPlan(${u.id})">
-                Salvar plano
-              </button>
+			    type="button"
+			    class="create-user-btn"
+			    onclick="updateUserPlan(${u.id})">
+			    Salvar plano
+			  </button>
             </div>
           </div>
 
@@ -476,8 +512,9 @@ function renderUsers(filter) {
               u.is_blocked
                 ? `
                   <button
-                    class="unblock-user-btn"
-                    onclick="unblockUser(${u.id})">
+				    type="button"
+				    class="unblock-user-btn"
+				    onclick="unblockUser(${u.id})">
                     Desbloquear
                   </button>
                 `
@@ -491,16 +528,18 @@ function renderUsers(filter) {
                   >
 
                   <button
-                    class="block-user-btn"
-                    onclick="blockUser(${u.id})">
+				    type="button"
+				    class="block-user-btn"
+				    onclick="blockUser(${u.id})">
                     Bloquear
                   </button>
                 `
             }
 
             <button
-              class="delete-user-btn"
-              data-user-id="${u.id}"
+			  type="button"
+			  class="delete-user-btn"
+			  data-user-id="${u.id}"
               data-user-name="${(u.name || "").replace(/"/g, "&quot;")}">
               Excluir
             </button>
@@ -517,27 +556,7 @@ function renderUsers(filter) {
       await deleteUser(userId, userName);
     });
   });
-  
-  document
-  .querySelectorAll(".user-card")
-  .forEach(card => {
-    card.addEventListener(
-      "click",
-      event => {
-        const interactiveElement =
-          event.target.closest(
-            "button, select, input, a"
-          );
-
-        if (interactiveElement) {
-          return;
-        }
-
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    );
-  });
+    
 }
 
 function updateFilterButtons() {
@@ -640,6 +659,12 @@ saveNewUserBtn.addEventListener("click", async function () {
 
   if (userSearchInput) {
     userSearchInput.value = "";
+  }
+
+  createUserModal.style.display = "none";
+
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
   }
 
   await loadUsers();
@@ -794,11 +819,44 @@ document.getElementById("filterBlocked").addEventListener("click", function () {
   updateFilterButtons();
 });
 
-const userSearchInput = document.getElementById("userSearchInput");
+const userSearchInput =
+  document.getElementById("userSearchInput");
 
-userSearchInput.addEventListener("input", function (e) {
-  searchTerm = e.target.value.trim();
+const searchUserBtn =
+  document.getElementById("searchUserBtn");
+
+const clearUserSearchBtn =
+  document.getElementById("clearUserSearchBtn");
+
+function applyUserSearch() {
+  searchTerm = String(userSearchInput.value || "").trim();
   renderUsers(currentFilter);
+}
+
+function clearUserSearch() {
+  searchTerm = "";
+  userSearchInput.value = "";
+  renderUsers(currentFilter);
+}
+
+searchUserBtn.addEventListener("click", function () {
+  applyUserSearch();
+});
+
+clearUserSearchBtn.addEventListener("click", function () {
+  clearUserSearch();
+});
+
+userSearchInput.addEventListener("keydown", function (event) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    applyUserSearch();
+  }
+
+  if (event.key === "Escape") {
+    event.preventDefault();
+    clearUserSearch();
+  }
 });
 
 async function blockUser(userId) {
