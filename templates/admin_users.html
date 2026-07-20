@@ -430,7 +430,10 @@ function renderUsers(filter) {
   container.innerHTML = `
     <div class="users-grid">
       ${filteredUsers.map(u => `
-        <div class="user-card">
+        <div
+		  class="user-card"
+		  data-user-card-id="${u.id}"
+		>
           <strong>${u.name || "-"}</strong><br>
           <span class="muted">${u.email || "-"}</span><br>
           <span class="muted">CPF: ${u.cpf || "-"}</span><br>
@@ -513,6 +516,27 @@ function renderUsers(filter) {
       const userName = button.dataset.userName || "";
       await deleteUser(userId, userName);
     });
+  });
+  
+  document
+  .querySelectorAll(".user-card")
+  .forEach(card => {
+    card.addEventListener(
+      "click",
+      event => {
+        const interactiveElement =
+          event.target.closest(
+            "button, select, input, a"
+          );
+
+        if (interactiveElement) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    );
   });
 }
 
@@ -678,7 +702,16 @@ async function loadUsers() {
   try {
     container.innerHTML = "<p class='muted'>Carregando usuários...</p>";
 
-    const res = await fetch("/admin/users");
+    const res = await fetch(
+	  `/admin/users?_=${Date.now()}`,
+	  {
+		method: "GET",
+		cache: "no-store",
+		headers: {
+		  "Cache-Control": "no-cache"
+		}
+	  }
+	);
 
     if (!res.ok) {
       const errorText = await res.text();

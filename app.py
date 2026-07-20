@@ -139,6 +139,8 @@ def disable_dynamic_cache(response):
         or request.path.startswith("/ads/")
         or request.path.startswith("/item/")
         or request.path.startswith("/search")
+        or request.path.startswith("/admin/")
+        or request.path == "/admin/users"
     ):
         response.headers["Cache-Control"] = (
             "no-store, no-cache, "
