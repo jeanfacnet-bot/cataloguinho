@@ -606,6 +606,18 @@ saveNewUserBtn.addEventListener("click", async function () {
   document.getElementById("newUserPlan").value = "FREE";
   document.getElementById("newUserVipExpiration").value = "";
 
+  currentFilter = "all";
+  searchTerm = "";
+
+  const userSearchInput =
+    document.getElementById(
+      "userSearchInput"
+    );
+
+  if (userSearchInput) {
+    userSearchInput.value = "";
+  }
+
   await loadUsers();
 });
 
@@ -646,6 +658,17 @@ async function updateUserPlan(userId) {
   }
 
   alert(data.message || "Plano alterado com sucesso");
+
+  currentFilter = "all";
+  searchTerm = "";
+
+  const userSearchInput =
+    document.getElementById("userSearchInput");
+
+  if (userSearchInput) {
+    userSearchInput.value = "";
+  }
+
   await loadUsers();
 }
 
