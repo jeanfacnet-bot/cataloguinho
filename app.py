@@ -22,12 +22,15 @@ import io
 import uuid
 import subprocess
 import requests
+import time
+from threading import Lock
 from urllib.request import urlopen, Request
 from urllib.parse import quote
 from functools import wraps
 from flask_mail import Mail, Message
 import secrets
 import hashlib
+
 
 load_dotenv()
 
@@ -41,7 +44,27 @@ APP_VERSION = (
 
 app.config["APP_VERSION"] = APP_VERSION
 
+# =========================
+# CACHE DE LOCALIDADES
+# =========================
+
+LOCATION_CACHE = {
+    "states": {
+        "data": None,
+        "expires_at": 0
+    },
+    "cities": {},
+    "neighborhoods": {}
+}
+
+LOCATION_CACHE_LOCK = Lock()
+
+STATES_CACHE_SECONDS = 24 * 60 * 60
+CITIES_CACHE_SECONDS = 24 * 60 * 60
+NEIGHBORHOODS_CACHE_SECONDS = 6 * 60 * 60
+
 MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "")
+
 BASE_URL = os.getenv("BASE_URL", "https://www.cataloginpk.com.br")
 
 VIP_PLAN_PRICES = {
@@ -342,6 +365,70 @@ class Report(db.Model):
 # =========================
 # HELPERS
 # =========================
+
+def get_cached_location(category, key=None):
+    now = time.time()
+
+    with LOCATION_CACHE_LOCK:
+        if key is None:
+            cached_item = LOCATION_CACHE.get(
+                category
+            )
+        else:
+            cached_item = (
+                LOCATION_CACHE
+                .get(category, {})
+                .get(key)
+            )
+
+        if not cached_item:
+            return None
+
+        expires_at = cached_item.get(
+            "expires_at",
+            0
+        )
+
+        if expires_at <= now:
+            if key is None:
+                LOCATION_CACHE[category] = {
+                    "data": None,
+                    "expires_at": 0
+                }
+            else:
+                LOCATION_CACHE.get(
+                    category,
+                    {}
+                ).pop(key, None)
+
+            return None
+
+        return cached_item.get("data")
+
+
+def set_cached_location(
+    category,
+    data,
+    ttl_seconds,
+    key=None
+):
+    cached_item = {
+        "data": data,
+        "expires_at": (
+            time.time() + ttl_seconds
+        )
+    }
+
+    with LOCATION_CACHE_LOCK:
+        if key is None:
+            LOCATION_CACHE[category] = (
+                cached_item
+            )
+        else:
+            LOCATION_CACHE.setdefault(
+                category,
+                {}
+            )[key] = cached_item
 
 def generate_reset_token():
     return secrets.token_urlsafe(32)
@@ -1709,6 +1796,13 @@ def search_ads():
 
 @app.route("/locations/states", methods=["GET"])
 def get_states():
+        cached_states = get_cached_location(
+            "states"
+        )
+
+        if cached_states is not None:
+            return jsonify(cached_states)
+            
     try:
         url = "https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome"
         data = fetch_ibge_json(url)
@@ -1721,6 +1815,12 @@ def get_states():
             }
             for item in data
         ]
+        
+        set_cached_location(
+            "states",
+            states,
+            STATES_CACHE_SECONDS
+        )
 
         return jsonify(states)
     except Exception as e:
@@ -1736,6 +1836,16 @@ def get_cities():
 
     if not uf:
         return jsonify({"message": "Informe a UF"}), 400
+        
+    city_cache_key = uf
+
+    cached_cities = get_cached_location(
+        "cities",
+        city_cache_key
+    )
+
+    if cached_cities is not None:
+        return jsonify(cached_cities)    
 
     if uf == "DF":
         cities = [
@@ -1773,6 +1883,13 @@ def get_cities():
                 "id": item["id"],
                 "nome": city_name
             })
+            
+        set_cached_location(
+            "cities",
+            cities,
+            CITIES_CACHE_SECONDS,
+            city_cache_key
+        )    
 
         return jsonify(cities)
     except Exception as e:
@@ -1818,6 +1935,22 @@ def get_subdistricts():
 def get_neighborhoods():
     city = request.args.get("city", "").strip()
     state = request.args.get("state", "").strip().upper()
+    neighborhood_cache_key = (
+        state.casefold(),
+        city.casefold()
+    )
+
+    cached_neighborhoods = (
+        get_cached_location(
+            "neighborhoods",
+            neighborhood_cache_key
+        )
+    )
+
+    if cached_neighborhoods is not None:
+        return jsonify(
+            cached_neighborhoods
+        )
 
     if not city:
         return jsonify({"message": "Informe a cidade"}), 400
@@ -1843,14 +1976,14 @@ def get_neighborhoods():
             "q": q,
             "format": "jsonv2",
             "addressdetails": 1,
-            "limit": 100
+            "limit": 50
         }
 
         headers = {
             "User-Agent": "catalogo-app/1.0"
         }
 
-        response = requests.get(url, params=params, headers=headers, timeout=20)
+        response = requests.get(url, params=params, headers=headers, timeout=(3, 7))
         response.raise_for_status()
 
         data = response.json()
@@ -1876,7 +2009,13 @@ def get_neighborhoods():
             neighborhoods.append({
                 "nome": suburb
             })
-
+            
+        set_cached_location(
+            "neighborhoods",
+            neighborhoods,
+            NEIGHBORHOODS_CACHE_SECONDS,
+            neighborhood_cache_key
+        )
         return jsonify(neighborhoods)
     except Exception as e:
         return jsonify({
@@ -2680,24 +2819,34 @@ def vitrine_ads():
 
 @app.route("/my-ads/<int:user_id>", methods=["GET"])
 def get_my_ads(user_id):
-    user = User.query.get(user_id)
-    
     if not session.get("user_id"):
-        return jsonify({"message": "Faça login para ver seus anúncios."}), 401
+        return jsonify({
+            "message": "Faça login para ver seus anúncios."
+        }), 401
 
     if int(user_id) != int(session["user_id"]):
-        return jsonify({"message": "Acesso negado"}), 403
+        return jsonify({
+            "message": "Acesso negado."
+        }), 403
+
+    user = db.session.get(User, user_id)
 
     if not user:
-        return jsonify({"message": "Usuário não encontrado"}), 404
-        
-    enforce_user_plan(user)
-    sync_user_ads_with_plan(user)
-    db.session.commit()
+        return jsonify({
+            "message": "Usuário não encontrado."
+        }), 404
 
-    ads = Ad.query.filter_by(user_id=user_id).order_by(Ad.created_at.desc()).all()
+    ads = (
+        Ad.query
+        .filter_by(user_id=user_id)
+        .order_by(Ad.created_at.desc())
+        .all()
+    )
 
-    return jsonify([serialize_ad(ad) for ad in ads])
+    return jsonify([
+        serialize_ad(ad)
+        for ad in ads
+    ])
 
 
 @app.route("/vip-page")
@@ -3724,14 +3873,33 @@ def admin_delete_ad(ad_id):
     
 @app.route("/users/<int:user_id>", methods=["GET"])
 def get_user(user_id):
-    user = User.query.get(user_id)
+    if not session.get("user_id"):
+        return jsonify({
+            "message": "Faça login para acessar os dados do usuário."
+        }), 401
+
+    if int(user_id) != int(session["user_id"]):
+        return jsonify({
+            "message": "Acesso negado."
+        }), 403
+
+    user = db.session.get(User, user_id)
 
     if not user:
-        return jsonify({"message": "Usuário não encontrado"}), 404
+        return jsonify({
+            "message": "Usuário não encontrado."
+        }), 404
+
+    old_plan = user.plan
+    old_expiration = user.vip_expires_at
 
     enforce_user_plan(user)
-    sync_user_ads_with_plan(user)
-    db.session.commit()
+
+    if (
+        user.plan != old_plan
+        or user.vip_expires_at != old_expiration
+    ):
+        db.session.commit()
 
     return jsonify(serialize_user(user))
     

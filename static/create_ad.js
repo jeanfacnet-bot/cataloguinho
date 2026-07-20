@@ -32,6 +32,11 @@ const keywordInput = document.getElementById("keywordInput");
 const addKeywordBtn = document.getElementById("addKeywordBtn");
 const keywordTags = document.getElementById("keywordTags");
 const keywordsHiddenInput = document.getElementById("keywords");
+const createAdLocationCache = {
+  states: null,
+  cities: new Map(),
+  neighborhoods: new Map()
+};
 
 let selectedKeywords = [];
 
@@ -374,33 +379,53 @@ function updateLocationAccessUI() {
     mapLocationUpgradeMessage.style.display = canUseLocation ? "none" : "block";
   }
 
-  if (!canUseLocation) {
-    if (latitudeInput) latitudeInput.value = "";
-    if (longitudeInput) longitudeInput.value = "";
-    return;
-  }
+	if (!canUseLocation) {
+	  if (latitudeInput) {
+		latitudeInput.value = "";
+	  }
 
-  setTimeout(initAdMap, 200);
+	  if (longitudeInput) {
+		longitudeInput.value = "";
+	  }
+
+	  return;
+	}
+
+	if (mapLocationStatus) {
+	  mapLocationStatus.textContent =
+		"Clique no botão de localização ou no mapa para marcar o endereço.";
+	}
 }
 
 function initAdMap() {
-  if (!document.getElementById("adMap")) return;
+  const mapElement =
+    document.getElementById("adMap");
+
+  if (!mapElement) return;
+
   if (adMap) {
     adMap.invalidateSize();
     return;
   }
 
-  adMap = L.map("adMap").setView([-15.7801, -47.9292], 5);
-  
-  locateUserOnMap();
+  adMap = L.map("adMap").setView(
+    [-15.7801, -47.9292],
+    5
+  );
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: "&copy; OpenStreetMap"
-  }).addTo(adMap);
+  L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap"
+    }
+  ).addTo(adMap);
 
   adMap.on("click", function (event) {
-    setMapMarker(event.latlng.lat, event.latlng.lng);
+    setMapMarker(
+      event.latlng.lat,
+      event.latlng.lng
+    );
   });
 }
 
@@ -808,26 +833,61 @@ if (cancelEditBtn) {
 
 async function loadStates() {
   try {
-    const response = await fetch("/locations/states");
-    const states = await response.json();
-
-    resetSelect(stateSelect, "Selecione o estado");
-
-    if (!response.ok || !Array.isArray(states)) {
-      showMessage("Não foi possível carregar os estados.", "error");
+    if (createAdLocationCache.states) {
+      populateStates(
+        createAdLocationCache.states
+      );
       return;
     }
 
-    states.forEach(state => {
-      const option = document.createElement("option");
-      option.value = state.sigla;
-      option.textContent = `${state.nome} (${state.sigla})`;
-      stateSelect.appendChild(option);
-    });
+    const response = await fetch(
+      "/locations/states"
+    );
+
+    const states = await response.json();
+
+    if (
+      !response.ok ||
+      !Array.isArray(states)
+    ) {
+      showMessage(
+        "Não foi possível carregar os estados.",
+        "error"
+      );
+      return;
+    }
+
+    createAdLocationCache.states = states;
+    populateStates(states);
   } catch (error) {
-    console.error("Erro ao carregar estados:", error);
-    showMessage("Erro ao carregar estados.", "error");
+    console.error(
+      "Erro ao carregar estados:",
+      error
+    );
+
+    showMessage(
+      "Erro ao carregar estados.",
+      "error"
+    );
   }
+}
+
+function populateStates(states) {
+  resetSelect(
+    stateSelect,
+    "Selecione o estado"
+  );
+
+  states.forEach(state => {
+    const option =
+      document.createElement("option");
+
+    option.value = state.sigla;
+    option.textContent =
+      `${state.nome} (${state.sigla})`;
+
+    stateSelect.appendChild(option);
+  });
 }
 
 function updateKeywordsPlaceholder() {
@@ -857,29 +917,94 @@ function updateKeywordsPlaceholder() {
 
 async function loadCities(uf) {
   try {
-    const response = await fetch(`/locations/cities?uf=${encodeURIComponent(uf)}`);
-    const cities = await response.json();
+    const cacheKey =
+      String(uf || "").toUpperCase();
 
-    resetSelect(citySelect, "Selecione a cidade");
-    resetSelect(neighborhoodSelect, "Selecione o bairro");
-    resetSelect(streetSelect, "Selecione a rua");
+    resetSelect(
+      citySelect,
+      "Carregando cidades..."
+    );
 
-    if (!response.ok || !Array.isArray(cities)) {
-      showMessage("Não foi possível carregar as cidades.", "error");
+    resetSelect(
+      neighborhoodSelect,
+      "Selecione o bairro"
+    );
+
+    if (streetSelect) {
+      resetSelect(
+        streetSelect,
+        "Selecione a rua"
+      );
+    }
+
+    if (
+      createAdLocationCache.cities.has(
+        cacheKey
+      )
+    ) {
+      populateCities(
+        createAdLocationCache.cities.get(
+          cacheKey
+        )
+      );
+
       return;
     }
 
-    cities.forEach(city => {
-      const option = document.createElement("option");
-      option.value = city.nome;
-      option.dataset.id = city.id;
-      option.textContent = city.nome;
-      citySelect.appendChild(option);
-    });
+    const response = await fetch(
+      `/locations/cities?uf=${
+        encodeURIComponent(cacheKey)
+      }`
+    );
+
+    const cities = await response.json();
+
+    if (
+      !response.ok ||
+      !Array.isArray(cities)
+    ) {
+      showMessage(
+        "Não foi possível carregar as cidades.",
+        "error"
+      );
+      return;
+    }
+
+    createAdLocationCache.cities.set(
+      cacheKey,
+      cities
+    );
+
+    populateCities(cities);
   } catch (error) {
-    console.error("Erro ao carregar cidades:", error);
-    showMessage("Erro ao carregar cidades.", "error");
+    console.error(
+      "Erro ao carregar cidades:",
+      error
+    );
+
+    showMessage(
+      "Erro ao carregar cidades.",
+      "error"
+    );
   }
+}
+
+function populateCities(cities) {
+  resetSelect(
+    citySelect,
+    "Selecione a cidade"
+  );
+
+  cities.forEach(city => {
+    const option =
+      document.createElement("option");
+
+    option.value = city.nome;
+    option.dataset.id = city.id;
+    option.textContent = city.nome;
+
+    citySelect.appendChild(option);
+  });
 }
 
 async function loadNeighborhoods(cityName, stateUf) {
@@ -934,7 +1059,6 @@ async function loadMyAds() {
 
 	renderMyAds(data);
 
-    renderMyAds(data);
   } catch (error) {
     console.error("Erro ao carregar anúncios:", error);
     myAds.innerHTML = `<div class="muted">Erro ao carregar anúncios.</div>`;
