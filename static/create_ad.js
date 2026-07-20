@@ -48,6 +48,8 @@ let plansConfig = null;
 let editingAdId = null;
 const cancelEditBtn = document.getElementById("cancelEditBtn");
 
+let isSubmittingAd = false;
+
 function isAdminUser(user) {
   return user && (user.is_admin === true || user.role === "admin" || user.plan === "ADMIN");
 }
@@ -779,55 +781,147 @@ function startEdit(ad) {
 
 function resetFormMode() {
   editingAdId = null;
+
+  // Limpa todos os campos pertencentes ao formulário
   adForm.reset();
-  setKeywordsFromArray([]);
-  document.getElementById("country").value = "Brasil";
-  document.getElementById("complement").value = "";
-  resetSelect(citySelect, "Selecione a cidade");
-  resetSelect(neighborhoodSelect, "Selecione o bairro");
-  if (streetSelect) {
-    resetSelect(streetSelect, "Selecione a rua");
+
+  // Limpeza explícita dos campos de texto
+  const titleInput =
+    document.getElementById("title");
+
+  const descriptionInput =
+    document.getElementById("description");
+
+  const phoneInput =
+    document.getElementById("phone");
+
+  const numberInput =
+    document.getElementById("number");
+
+  const zipcodeInput =
+    document.getElementById("zipcode");
+
+  if (titleInput) {
+    titleInput.value = "";
   }
 
-  const submitBtn = adForm.querySelector('button[type="submit"]');
-  if (submitBtn) {
-    submitBtn.textContent = "Salvar anúncio";
+  if (descriptionInput) {
+    descriptionInput.value = "";
+  }
+
+  if (phoneInput) {
+    phoneInput.value = "";
+  }
+
+  if (numberInput) {
+    numberInput.value = "";
+  }
+
+  if (complementInput) {
+    complementInput.value = "";
+  }
+
+  if (zipcodeInput) {
+    zipcodeInput.value = "";
+  }
+
+  // Limpa as palavras-chave
+  selectedKeywords = [];
+
+  if (keywordInput) {
+    keywordInput.value = "";
+  }
+
+  if (keywordsHiddenInput) {
+    keywordsHiddenInput.value = "";
+  }
+
+  renderKeywordTags();
+  updateKeywordsPlaceholder();
+
+  // Volta o país ao valor padrão
+  const countryInput =
+    document.getElementById("country");
+
+  if (countryInput) {
+    countryInput.value = "Brasil";
+  }
+
+  // Limpa estado, cidade, bairro e rua
+  if (stateSelect) {
+    stateSelect.value = "";
+  }
+
+  if (citySelect) {
+    resetSelect(
+      citySelect,
+      "Selecione a cidade"
+    );
+  }
+
+  if (neighborhoodSelect) {
+    resetSelect(
+      neighborhoodSelect,
+      "Selecione o bairro"
+    );
+  }
+
+  if (streetSelect) {
+    resetSelect(
+      streetSelect,
+      "Selecione a rua"
+    );
+  }
+
+  // Limpa imagem e vídeo
+  if (mainImageInput) {
+    mainImageInput.value = "";
+  }
+
+  if (mainVideoInput) {
+    mainVideoInput.value = "";
+  }
+
+  // Limpa localização
+  if (latitudeInput) {
+    latitudeInput.value = "";
+  }
+
+  if (longitudeInput) {
+    longitudeInput.value = "";
+  }
+
+  if (adMapMarker && adMap) {
+    adMap.removeLayer(adMapMarker);
+    adMapMarker = null;
+  }
+
+  if (mapLocationStatus) {
+    mapLocationStatus.textContent =
+      "Clique no mapa ou use sua localização atual.";
+  }
+
+  if (useCurrentLocationBtn) {
+    useCurrentLocationBtn.disabled = false;
+    useCurrentLocationBtn.textContent =
+      "📍 Usar minha localização atual";
+  }
+
+  // Volta o botão para o modo de cadastro
+  const submitButton =
+    adForm.querySelector(
+      'button[type="submit"]'
+    );
+
+  if (submitButton) {
+    submitButton.disabled = false;
+    submitButton.textContent =
+      "Salvar anúncio";
   }
 
   if (cancelEditBtn) {
     cancelEditBtn.style.display = "none";
   }
-  
-    if (latitudeInput) {
-	  latitudeInput.value = "";
-	}
-
-	if (longitudeInput) {
-	  longitudeInput.value = "";
-	}
-
-	if (adMapMarker && adMap) {
-	  adMap.removeLayer(adMapMarker);
-	  adMapMarker = null;
-	}
-
-	if (mapLocationStatus) {
-	  mapLocationStatus.textContent =
-		"Clique no mapa ou use sua localização atual.";
-	}
-
-	if (useCurrentLocationBtn) {
-	  useCurrentLocationBtn.disabled = false;
-	  useCurrentLocationBtn.textContent =
-		"📍 Usar minha localização atual";
-	}
-}
-
-if (cancelEditBtn) {
-  cancelEditBtn.addEventListener("click", () => {
-    resetFormMode();
-    clearMessage();
-  });
 }
 
 
@@ -1104,7 +1198,17 @@ neighborhoodSelect.addEventListener("change", () => {
 
 adForm.addEventListener("submit", async (e) => {
   e.preventDefault();
+  
+  if (isSubmittingAd) {
+    return;
+  }
+  
   clearMessage();
+  
+  const submitButton =
+    adForm.querySelector(
+      'button[type="submit"]'
+    );
 
   if (!requireLogin()) return;
 
@@ -1176,8 +1280,23 @@ adForm.addEventListener("submit", async (e) => {
 	  formData.append("main_video", mainVideoFile);
 	}
 
-  try {
-    const url = editingAdId ? `/anuncios/${editingAdId}` : "/ads";
+    try {
+		isSubmittingAd = true;
+
+		if (submitButton) {
+		  submitButton.disabled = true;
+
+		  submitButton.textContent =
+			editingAdId
+			  ? "Salvando alterações..."
+			  : "Cadastrando anúncio...";
+		}
+
+		const url =
+		  editingAdId
+			? `/anuncios/${editingAdId}`
+			: "/ads";
+		
     const method = editingAdId ? "PUT" : "POST";
 	
 	const rules = getEffectivePlanRulesForUser(savedUser);
@@ -1219,19 +1338,52 @@ adForm.addEventListener("submit", async (e) => {
       return;
     }
 
-    showMessage(
-      editingAdId ? "Anúncio atualizado com sucesso." : "Anúncio cadastrado com sucesso.",
-      "success"
-    );
+    const wasEditing =
+	  editingAdId !== null;
 
-    resetFormMode();
-    loadMyAds();
+	resetFormMode();
 
-  } catch (error) {
-    console.error("Erro ao salvar anúncio:", error);
-    showMessage("Erro ao salvar anúncio.", "error");
-  }
-	
+	showMessage(
+	  wasEditing
+		? "Anúncio atualizado com sucesso."
+		: "Anúncio cadastrado com sucesso. O formulário foi limpo e o anúncio já aparece em Meus anúncios.",
+	  "success"
+	);
+
+	await loadMyAds();
+
+	if (!wasEditing && myAds) {
+	  setTimeout(() => {
+		myAds.scrollIntoView({
+		  behavior: "smooth",
+		  block: "start"
+		});
+	  }, 200);
+	}
+
+	} catch (error) {
+		console.error(
+			"Erro ao salvar anúncio:",
+			error
+		);
+
+		showMessage(
+			"Erro ao salvar anúncio.",
+			"error"
+		);
+	} finally {
+		isSubmittingAd = false;
+
+		if (submitButton) {
+			submitButton.disabled = false;
+
+			submitButton.textContent =
+			editingAdId
+				? "Salvar alterações"
+				: "Salvar anúncio";
+		}
+	}
+
 });
 
 async function deleteAd(adId) {
