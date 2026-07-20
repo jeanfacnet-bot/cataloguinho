@@ -24,7 +24,43 @@
 	}
 
 	.feed-header {
-	  display: none;
+	  display: block;
+	  margin-bottom: 12px;
+	}
+
+	.feed-header h1 {
+	  margin: 0 0 10px;
+	  font-size: 22px;
+	}
+
+	.feed-filter-box {
+	  display: grid;
+	  grid-template-columns:
+		repeat(3, minmax(0, 1fr))
+		auto;
+	  gap: 8px;
+	}
+
+	.feed-filter-box select,
+	.feed-filter-box button {
+	  min-height: 40px;
+	  padding: 9px 11px;
+	  border-radius: 10px;
+	  font-size: 13px;
+	  box-sizing: border-box;
+	}
+
+	.feed-filter-box select {
+	  border: 1px solid #d1d5db;
+	  background: white;
+	}
+
+	.feed-filter-box button {
+	  border: none;
+	  background: #2563eb;
+	  color: white;
+	  font-weight: 700;
+	  cursor: pointer;
 	}
 
 	.feed-grid {
@@ -187,6 +223,14 @@
 		height: calc(100vh - 120px);
 		min-height: 500px;
 	  }
+	  .feed-filter-box {
+	   grid-template-columns:
+	   repeat(2, minmax(0, 1fr));
+	  }
+
+	  .feed-filter-box button {
+	   grid-column: span 2;
+	  }
 	}
   </style>
 </head>
@@ -196,9 +240,35 @@
 
   <main class="feed-container">
     <section class="feed-header">
-      <h1>Feed de fotos e vídeos</h1>
-      <p>Veja todas as mídias cadastradas nos anúncios.</p>
-    </section>
+	  <h1>Feed de fotos e vídeos</h1>
+
+	  <div class="feed-filter-box">
+		<select id="feedState">
+		  <option value="">
+			Todos os estados
+		  </option>
+		</select>
+
+		<select id="feedCity">
+		  <option value="">
+			Todas as cidades
+		  </option>
+		</select>
+
+		<select id="feedNeighborhood">
+		  <option value="">
+			Todos os bairros
+		  </option>
+		</select>
+
+		<button
+		  type="button"
+		  id="feedFilterBtn"
+		>
+		  Filtrar
+		</button>
+	  </div>
+	</section>
 
     <div id="feedContent" class="feed-grid"></div>
   </main>
@@ -243,6 +313,167 @@
 	}
 	
     const feedContent = document.getElementById("feedContent");
+	
+	const feedState =
+	  document.getElementById("feedState");
+
+	const feedCity =
+	  document.getElementById("feedCity");
+
+	const feedNeighborhood =
+	  document.getElementById(
+		"feedNeighborhood"
+	  );
+
+	const feedFilterBtn =
+	  document.getElementById(
+		"feedFilterBtn"
+	  );
+
+	function resetFeedSelect(
+	  selectElement,
+	  placeholder
+	) {
+	  selectElement.innerHTML = `
+		<option value="">
+		  ${placeholder}
+		</option>
+	  `;
+	}
+
+	async function loadFeedStates() {
+	  resetFeedSelect(
+		feedState,
+		"Todos os estados"
+	  );
+
+	  const response = await fetch(
+		"/locations/states",
+		{
+		  cache: "no-store"
+		}
+	  );
+
+	  const states = await response.json();
+
+	  if (
+		!response.ok ||
+		!Array.isArray(states)
+	  ) {
+		return;
+	  }
+
+	  states.forEach((state) => {
+		const option =
+		  document.createElement("option");
+
+		option.value = state.sigla;
+		option.textContent =
+		  `${state.nome} (${state.sigla})`;
+
+		feedState.appendChild(option);
+	  });
+	}
+
+	async function loadFeedCities(state) {
+	  resetFeedSelect(
+		feedCity,
+		"Todas as cidades"
+	  );
+
+	  resetFeedSelect(
+		feedNeighborhood,
+		"Todos os bairros"
+	  );
+
+	  if (!state) {
+		return;
+	  }
+
+	  const response = await fetch(
+		`/locations/cities?uf=${
+		  encodeURIComponent(state)
+		}`,
+		{
+		  cache: "no-store"
+		}
+	  );
+
+	  const cities = await response.json();
+
+	  if (
+		!response.ok ||
+		!Array.isArray(cities)
+	  ) {
+		return;
+	  }
+
+	  cities.forEach((city) => {
+		const option =
+		  document.createElement("option");
+
+		option.value = city.nome;
+		option.textContent = city.nome;
+
+		feedCity.appendChild(option);
+	  });
+	}
+
+	async function loadFeedNeighborhoods(
+	  city,
+	  state
+	) {
+	  resetFeedSelect(
+		feedNeighborhood,
+		"Todos os bairros"
+	  );
+
+	  if (!city) {
+		return;
+	  }
+
+	  const params = new URLSearchParams({
+		city,
+		state
+	  });
+
+	  const response = await fetch(
+		`/locations/neighborhoods?${
+		  params.toString()
+		}`,
+		{
+		  cache: "no-store"
+		}
+	  );
+
+	  const neighborhoods =
+		await response.json();
+
+	  if (
+		!response.ok ||
+		!Array.isArray(neighborhoods)
+	  ) {
+		return;
+	  }
+
+	  neighborhoods.forEach(
+		(neighborhood) => {
+		  const name =
+			neighborhood.nome ||
+			neighborhood;
+
+		  const option =
+			document.createElement("option");
+
+		  option.value = name;
+		  option.textContent = name;
+
+		  feedNeighborhood.appendChild(
+			option
+		  );
+		}
+	  );
+	}
 	
 	function enableGlobalWheelScroll() {
 	  window.addEventListener("wheel", (event) => {
@@ -337,7 +568,12 @@
 			  <div class="feed-meta">
 				${item.plan === "VIP" ? "VIP" : "FREE"} • ${item.type === "image" ? "Foto" : "Vídeo"}
 			  </div>
-			  <a class="feed-link" href="/ads/${item.ad_id}/page">Ver anúncio</a>
+			  <a
+			    class="feed-link"
+			    href="/item/${item.ad_id}/view?from=feed"
+			  >
+			    Ver anúncio
+			  </a>
 			</div>
 		  </section>
 		`).join("");
@@ -346,21 +582,61 @@
 	
 
     async function loadFeed() {
-      try {
-        const response = await fetch("/feed");
-        const items = await response.json();
+	  try {
+		const params = new URLSearchParams();
 
-        if (!response.ok || !Array.isArray(items)) {
-          throw new Error("Não foi possível carregar o feed.");
-        }
+		if (feedState.value) {
+		  params.append(
+			"state",
+			feedState.value
+		  );
+		}
 
-        renderFeed(items);
+		if (feedCity.value) {
+		  params.append(
+			"city",
+			feedCity.value
+		  );
+		}
+
+		if (feedNeighborhood.value) {
+		  params.append(
+			"neighborhood",
+			feedNeighborhood.value
+		  );
+		}
+
+		feedContent.className = "empty-box";
+		feedContent.innerHTML =
+		  "<p>Carregando feed...</p>";
+
+		const response = await fetch(
+		  `/feed?${params.toString()}`,
+		  {
+			cache: "no-store"
+		  }
+		);
+
+		const items = await response.json();
+
+		if (
+		  !response.ok ||
+		  !Array.isArray(items)
+		) {
+		  throw new Error(
+			"Não foi possível carregar o feed."
+		  );
+		}
+
+		renderFeed(items);
 		setupVideoAutoplay();
-      } catch (error) {
-        feedContent.className = "empty-box";
-        feedContent.innerHTML = `<p>${error.message}</p>`;
-      }
-    }
+	  } catch (error) {
+		feedContent.className = "empty-box";
+		feedContent.innerHTML = `
+		  <p>${error.message}</p>
+		`;
+	  }
+	}
 
 	(function () {
 		const adminLayoutUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
@@ -377,8 +653,37 @@
 		}
 	  })();
   
-    enableGlobalWheelScroll();
-	loadFeed();
+    feedState.addEventListener(
+	  "change",
+	  async () => {
+		await loadFeedCities(
+		  feedState.value
+		);
+	  }
+	);
+
+	feedCity.addEventListener(
+	  "change",
+	  async () => {
+		await loadFeedNeighborhoods(
+		  feedCity.value,
+		  feedState.value
+		);
+	  }
+	);
+
+	feedFilterBtn.addEventListener(
+	  "click",
+	  loadFeed
+	);
+
+	async function initFeedPage() {
+	  await loadFeedStates();
+	  enableGlobalWheelScroll();
+	  await loadFeed();
+	}
+
+	initFeedPage();
   </script>
   
   <script src="{{ static_asset('common_layout.js') }}"></script>

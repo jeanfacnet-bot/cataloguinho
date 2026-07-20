@@ -21,6 +21,43 @@ body.admin-has-sidebar .vitrine-container {
   padding: 0;
 }
 
+.vitrine-filter-box {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(180px, 1fr))
+    auto;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+.vitrine-filter-box select,
+.vitrine-filter-box button {
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 13px;
+  border-radius: 11px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.vitrine-filter-box select {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+}
+
+.vitrine-filter-box button {
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .vitrine-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -94,6 +131,11 @@ body.admin-has-sidebar .vitrine-container {
 	  box-shadow: none;
 	  overflow: hidden;
 	}
+	
+  .vitrine-filter-box {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
 
 	/* IMAGEM MENOR */
 	.vitrine-item img {
@@ -144,9 +186,33 @@ body.admin-has-sidebar .vitrine-container {
 {% include "partials/admin_sidebar.html" %}
 
 <div class="vitrine-container">
-  <h2></h2>
+  <h2>Vitrine</h2>
 
-  <div id="vitrineGrid" class="vitrine-grid"></div>
+  <div class="vitrine-filter-box">
+    <select id="vitrineState">
+      <option value="">Todos os estados</option>
+    </select>
+
+    <select id="vitrineCity">
+      <option value="">Todas as cidades</option>
+    </select>
+
+    <select id="vitrineNeighborhood">
+      <option value="">Todos os bairros</option>
+    </select>
+
+    <button
+      type="button"
+      id="vitrineFilterBtn"
+    >
+      Filtrar
+    </button>
+  </div>
+
+  <div
+    id="vitrineGrid"
+    class="vitrine-grid"
+  ></div>
 </div>
 
 <script src="{{ static_asset('common_layout.js') }}"></script>

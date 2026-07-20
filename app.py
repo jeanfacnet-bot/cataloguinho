@@ -2619,23 +2619,62 @@ def vitrine_page():
     
 @app.route("/vitrine-ads", methods=["GET"])
 def vitrine_ads():
+    state = request.args.get("state", "").strip()
+    city = request.args.get("city", "").strip()
+    neighborhood = request.args.get(
+        "neighborhood",
+        ""
+    ).strip()
+
     allowed_plans = [
-        plan for plan in ["FREE", "VIP_BRONZE", "VIP_PRATA", "VIP_OURO", "VIP_PREMIUM"]
+        plan
+        for plan in [
+            "FREE",
+            "VIP_BRONZE",
+            "VIP_PRATA",
+            "VIP_OURO",
+            "VIP_PREMIUM"
+        ]
         if get_plan_rules(plan)["can_use_vitrine"]
     ]
 
-    ads = Ad.query.join(User, Ad.user_id == User.id).filter(
+    query = Ad.query.join(
+        User,
+        Ad.user_id == User.id
+    ).filter(
         Ad.is_active == True,
         Ad.main_image.isnot(None),
         Ad.plan.in_(allowed_plans),
-        or_(Ad.blocked_until.is_(None), Ad.blocked_until <= utc_now()),
-        or_(User.blocked_until.is_(None), User.blocked_until <= utc_now())
-    ).order_by(
+        or_(
+            Ad.blocked_until.is_(None),
+            Ad.blocked_until <= utc_now()
+        ),
+        or_(
+            User.blocked_until.is_(None),
+            User.blocked_until <= utc_now()
+        )
+    )
+
+    if state:
+        query = query.filter(Ad.state == state)
+
+    if city:
+        query = query.filter(Ad.city == city)
+
+    if neighborhood:
+        query = query.filter(
+            Ad.neighborhood == neighborhood
+        )
+
+    ads = query.order_by(
         plan_priority_case(),
         Ad.created_at.desc()
     ).limit(100).all()
 
-    return jsonify([serialize_ad(ad) for ad in ads])
+    return jsonify([
+        serialize_ad(ad)
+        for ad in ads
+    ])
 
 @app.route("/my-ads/<int:user_id>", methods=["GET"])
 def get_my_ads(user_id):
@@ -2932,12 +2971,44 @@ def feed_page():
 
 @app.route("/feed", methods=["GET"])
 def get_feed():
-    ads = Ad.query.join(User, Ad.user_id == User.id).filter(
+    state = request.args.get("state", "").strip()
+    city = request.args.get("city", "").strip()
+    neighborhood = request.args.get(
+        "neighborhood",
+        ""
+    ).strip()
+
+    query = Ad.query.join(
+        User,
+        Ad.user_id == User.id
+    ).filter(
         Ad.is_active == True,
-        or_(Ad.main_image.isnot(None), Ad.main_video.isnot(None)),
-        or_(Ad.blocked_until.is_(None), Ad.blocked_until <= utc_now()),
-        or_(User.blocked_until.is_(None), User.blocked_until <= utc_now())
-    ).order_by(
+        or_(
+            Ad.main_image.isnot(None),
+            Ad.main_video.isnot(None)
+        ),
+        or_(
+            Ad.blocked_until.is_(None),
+            Ad.blocked_until <= utc_now()
+        ),
+        or_(
+            User.blocked_until.is_(None),
+            User.blocked_until <= utc_now()
+        )
+    )
+
+    if state:
+        query = query.filter(Ad.state == state)
+
+    if city:
+        query = query.filter(Ad.city == city)
+
+    if neighborhood:
+        query = query.filter(
+            Ad.neighborhood == neighborhood
+        )
+
+    ads = query.order_by(
         plan_priority_case(),
         Ad.created_at.desc()
     ).all()
