@@ -16,6 +16,62 @@ const filterButton =
   document.getElementById(
     "vitrineFilterBtn"
   );
+  
+const floatingFilterButton =
+  document.getElementById(
+    "vitrineFloatingFilterBtn"
+  );
+
+const closeFilterButton =
+  document.getElementById(
+    "vitrineCloseFilterBtn"
+  );
+
+const filterPanel =
+  document.getElementById(
+    "vitrineFilterPanel"
+  );
+
+const filterOverlay =
+  document.getElementById(
+    "vitrineFilterOverlay"
+  );  
+
+function openVitrineFilterPanel() {
+  if (!filterPanel || !filterOverlay) {
+    return;
+  }
+
+  filterPanel.classList.add("open");
+  filterOverlay.classList.add("open");
+
+  document.body.style.overflow = "hidden";
+
+  if (floatingFilterButton) {
+    floatingFilterButton.setAttribute(
+      "aria-expanded",
+      "true"
+    );
+  }
+}
+
+function closeVitrineFilterPanel() {
+  if (!filterPanel || !filterOverlay) {
+    return;
+  }
+
+  filterPanel.classList.remove("open");
+  filterOverlay.classList.remove("open");
+
+  document.body.style.overflow = "";
+
+  if (floatingFilterButton) {
+    floatingFilterButton.setAttribute(
+      "aria-expanded",
+      "false"
+    );
+  }
+}
 
 function resetSelect(
   selectElement,
@@ -328,7 +384,40 @@ citySelect.addEventListener(
 
 filterButton.addEventListener(
   "click",
-  loadVitrine
+  async () => {
+    await loadVitrine();
+    closeVitrineFilterPanel();
+  }
+);
+
+if (floatingFilterButton) {
+  floatingFilterButton.addEventListener(
+    "click",
+    openVitrineFilterPanel
+  );
+}
+
+if (closeFilterButton) {
+  closeFilterButton.addEventListener(
+    "click",
+    closeVitrineFilterPanel
+  );
+}
+
+if (filterOverlay) {
+  filterOverlay.addEventListener(
+    "click",
+    closeVitrineFilterPanel
+  );
+}
+
+document.addEventListener(
+  "keydown",
+  (event) => {
+    if (event.key === "Escape") {
+      closeVitrineFilterPanel();
+    }
+  }
 );
 
 document.addEventListener(

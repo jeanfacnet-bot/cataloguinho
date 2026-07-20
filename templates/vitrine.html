@@ -58,6 +58,18 @@ body.admin-has-sidebar .vitrine-container {
   cursor: pointer;
 }
 
+.floating-filter-btn {
+  display: none;
+}
+
+.filter-panel-header {
+  display: none;
+}
+
+.filter-overlay {
+  display: none;
+}
+
 .vitrine-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -132,10 +144,138 @@ body.admin-has-sidebar .vitrine-container {
 	  overflow: hidden;
 	}
 	
-  .vitrine-filter-box {
-    grid-template-columns: 1fr;
-    padding: 12px;
-  }
+	.floating-filter-btn {
+	  position: fixed;
+	  right: 14px;
+	  top: 45%;
+	  z-index: 1100;
+
+	  width: 50px;
+	  height: 50px;
+
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+
+	  border: none;
+	  border-radius: 50%;
+
+	  background: #2563eb;
+	  color: #ffffff;
+
+	  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.28);
+	  cursor: pointer;
+	}
+
+	.floating-filter-btn svg {
+	  width: 24px;
+	  height: 24px;
+
+	  fill: none;
+	  stroke: currentColor;
+	  stroke-width: 2;
+	  stroke-linecap: round;
+	  stroke-linejoin: round;
+	}
+
+	.filter-overlay {
+	  position: fixed;
+	  inset: 0;
+	  z-index: 1150;
+
+	  display: block;
+
+	  background: rgba(0, 0, 0, 0.38);
+
+	  opacity: 0;
+	  visibility: hidden;
+	  pointer-events: none;
+
+	  transition:
+		opacity 0.25s ease,
+		visibility 0.25s ease;
+	}
+
+	.filter-overlay.open {
+	  opacity: 1;
+	  visibility: visible;
+	  pointer-events: auto;
+	}
+
+	.vitrine-filter-box.filter-panel {
+	  position: fixed;
+	  top: 0;
+	  right: 0;
+	  bottom: 0;
+
+	  z-index: 1200;
+
+	  width: min(84vw, 340px);
+	  height: 100vh;
+
+	  display: flex;
+	  flex-direction: column;
+	  gap: 14px;
+
+	  margin: 0;
+	  padding: 22px 18px;
+
+	  background: #ffffff;
+	  border: none;
+	  border-radius: 18px 0 0 18px;
+
+	  box-shadow: -6px 0 24px rgba(0, 0, 0, 0.22);
+
+	  transform: translateX(105%);
+	  transition: transform 0.25s ease;
+
+	  box-sizing: border-box;
+	}
+
+	.vitrine-filter-box.filter-panel.open {
+	  transform: translateX(0);
+	}
+
+	.filter-panel-header {
+	  display: flex;
+	  align-items: center;
+	  justify-content: space-between;
+
+	  margin-bottom: 8px;
+	  font-size: 18px;
+	}
+
+	.filter-close-btn {
+	  width: 38px !important;
+	  min-height: 38px !important;
+	  padding: 0 !important;
+
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+
+	  border: none !important;
+	  border-radius: 50% !important;
+
+	  background: #f1f5f9 !important;
+	  color: #111827 !important;
+
+	  font-size: 27px !important;
+	  font-weight: 400 !important;
+	  line-height: 1;
+
+	  cursor: pointer;
+	}
+
+	.vitrine-filter-box.filter-panel select,
+	.vitrine-filter-box.filter-panel > #vitrineFilterBtn {
+	  width: 100%;
+	  min-height: 48px;
+	}
+
+	.vitrine-filter-box.filter-panel > #vitrineFilterBtn {
+	  margin-top: 4px;
+	}
 
 	/* IMAGEM MENOR */
 	.vitrine-item img {
@@ -188,31 +328,69 @@ body.admin-has-sidebar .vitrine-container {
 <div class="vitrine-container">
   <h2>Vitrine</h2>
 
-  <div class="vitrine-filter-box">
-    <select id="vitrineState">
-      <option value="">Todos os estados</option>
-    </select>
+	<button
+	  type="button"
+	  id="vitrineFloatingFilterBtn"
+	  class="floating-filter-btn"
+	  aria-label="Abrir filtros"
+	  aria-expanded="false"
+	>
+	  <svg
+		viewBox="0 0 24 24"
+		aria-hidden="true"
+	  >
+		<path d="M4 5h16"></path>
+		<path d="M7 12h10"></path>
+		<path d="M10 19h4"></path>
+	  </svg>
+	</button>
 
-    <select id="vitrineCity">
-      <option value="">Todas as cidades</option>
-    </select>
+	<div
+	  id="vitrineFilterOverlay"
+	  class="filter-overlay"
+	></div>
 
-    <select id="vitrineNeighborhood">
-      <option value="">Todos os bairros</option>
-    </select>
+	<div
+	  id="vitrineFilterPanel"
+	  class="vitrine-filter-box filter-panel"
+	>
+	  <div class="filter-panel-header">
+		<strong>Filtrar por região</strong>
 
-    <button
-      type="button"
-      id="vitrineFilterBtn"
-    >
-      Filtrar
-    </button>
-  </div>
+		<button
+		  type="button"
+		  id="vitrineCloseFilterBtn"
+		  class="filter-close-btn"
+		  aria-label="Fechar filtros"
+		>
+		  ×
+		</button>
+	  </div>
+
+	  <select id="vitrineState">
+		<option value="">Todos os estados</option>
+	  </select>
+
+	  <select id="vitrineCity">
+		<option value="">Todas as cidades</option>
+	  </select>
+
+	  <select id="vitrineNeighborhood">
+		<option value="">Todos os bairros</option>
+	  </select>
+
+	  <button
+		type="button"
+		id="vitrineFilterBtn"
+	  >
+		Aplicar filtro
+	  </button>
+	</div>
 
   <div
     id="vitrineGrid"
     class="vitrine-grid"
-  ></div>
+  </div>
 </div>
 
 <script src="{{ static_asset('common_layout.js') }}"></script>
