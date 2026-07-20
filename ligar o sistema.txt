@@ -1,4 +1,4 @@
 git add .
-git commit -m "filtros4"
+git commit -m "ajustes10"
 git push
 

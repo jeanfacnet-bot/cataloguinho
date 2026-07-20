@@ -3508,37 +3508,116 @@ def update_user_plan(target_user_id):
 
     admin_user_id = data.get("admin_user_id")
     new_plan = (data.get("plan") or "").strip().upper()
-    vip_expires_at = (data.get("vip_expires_at") or "").strip()
+    vip_expires_at_raw = (
+        data.get("vip_expires_at") or ""
+    ).strip()
 
     if not admin_user_id:
-        return jsonify({"message": "Administrador não informado"}), 400
+        return jsonify({
+            "message": "Administrador não informado"
+        }), 400
 
     admin_user = User.query.get(admin_user_id)
-    if not admin_user or not admin_user.is_admin:
-        return jsonify({"message": "Acesso negado"}), 403
 
-    allowed_plans = ["FREE", "VIP_BRONZE", "VIP_PRATA", "VIP_OURO", "VIP_PREMIUM"]
+    if not admin_user or not admin_user.is_admin:
+        return jsonify({
+            "message": "Acesso negado"
+        }), 403
+
+    allowed_plans = [
+        "FREE",
+        "VIP_BRONZE",
+        "VIP_PRATA",
+        "VIP_OURO",
+        "VIP_PREMIUM",
+        "ADMIN"
+    ]
+
     if new_plan not in allowed_plans:
-        return jsonify({"message": "Plano inválido"}), 400
+        return jsonify({
+            "message": "Tipo de usuário inválido"
+        }), 400
 
     target_user = User.query.get(target_user_id)
+
     if not target_user:
-        return jsonify({"message": "Usuário não encontrado"}), 404
+        return jsonify({
+            "message": "Usuário não encontrado"
+        }), 404
 
-    
-    target_user.plan = new_plan
+    # Impede o administrador logado de retirar
+    # acidentalmente a própria permissão.
+    if (
+        int(target_user.id) == int(admin_user.id)
+        and new_plan != "ADMIN"
+    ):
+        return jsonify({
+            "message": (
+                "Você não pode retirar sua própria "
+                "permissão de administrador"
+            )
+        }), 400
 
-    if new_plan == "FREE":
+    vip_plans = [
+        "VIP_BRONZE",
+        "VIP_PRATA",
+        "VIP_OURO",
+        "VIP_PREMIUM"
+    ]
+
+    if new_plan == "ADMIN":
+        target_user.is_admin = True
+        target_user.plan = "ADMIN"
         target_user.vip_expires_at = None
+
+        # Atualiza os anúncios desse usuário para ADMIN.
+        for ad in target_user.ads:
+            ad.plan = "ADMIN"
+            ad.is_active = True
+
     else:
-        target_user.vip_expires_at = utc_now() + timedelta(days=30)
+        target_user.is_admin = False
+        target_user.plan = new_plan
+
+        if new_plan == "FREE":
+            target_user.vip_expires_at = None
+
+        elif new_plan in vip_plans:
+            if vip_expires_at_raw:
+                try:
+                    target_user.vip_expires_at = datetime.strptime(
+                        vip_expires_at_raw,
+                        "%Y-%m-%d"
+                    )
+                except ValueError:
+                    return jsonify({
+                        "message": (
+                            "Data de vencimento VIP inválida"
+                        )
+                    }), 400
+            else:
+                target_user.vip_expires_at = (
+                    utc_now() + timedelta(days=30)
+                )
+
+        sync_user_ads_with_plan(
+            target_user,
+            new_plan
+        )
 
     db.session.commit()
 
     return jsonify({
-        "message": f"Plano do usuário alterado para {new_plan} com sucesso",
+        "message": (
+            "Usuário alterado para Administrador com sucesso"
+            if new_plan == "ADMIN"
+            else (
+                f"Usuário alterado para "
+                f"{get_plan_label(new_plan)} com sucesso"
+            )
+        ),
         "user": serialize_user(target_user)
-    })    
+    }), 200
 
 @app.route("/admin/ads/<int:ad_id>/block", methods=["PATCH"])
 def block_ad(ad_id):

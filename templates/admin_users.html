@@ -24,20 +24,7 @@
     min-height: calc(100vh - 64px);
   }
 
-  .admin-sidebar {
-    width: 240px;
-    background: #1f2937;
-    color: white;
-    padding: 20px 16px;
-    flex-shrink: 0;
-  }
-
-  .admin-sidebar h3 {
-    margin-top: 0;
-    margin-bottom: 18px;
-    font-size: 18px;
-  }
-
+  
   .admin-menu {
     display: flex;
     flex-direction: column;
@@ -235,44 +222,7 @@
     }
   }
 
-  .admin-sidebar {
-    position: fixed;
-    top: 72px;
-    left: 0;
-    bottom: 0;
-    width: 240px;
-    display: none;
-    flex-direction: column;
-    gap: 10px;
-    z-index: 900;
-    overflow-y: auto;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
-  }
-
-  .admin-sidebar-title {
-    font-size: 18px;
-    font-weight: bold;
-    margin-bottom: 8px;
-  }
-
-  .admin-sidebar a {
-    display: block;
-    text-decoration: none;
-    color: white;
-    padding: 12px 14px;
-    border-radius: 10px;
-    transition: 0.2s;
-  }
-
-  .admin-sidebar a:hover {
-    background: rgba(255, 255, 255, 0.08);
-  }
-
-  .admin-sidebar a.active {
-    background: #2563eb;
-    font-weight: bold;
-  }
-
+  
   body.admin-has-sidebar .page-wrap {
     max-width: none;
     margin-left: 270px;
@@ -477,33 +427,74 @@ function renderUsers(filter) {
           ${u.blocked_until ? `<br><span class="muted">Bloqueado até: ${new Date(u.blocked_until).toLocaleString("pt-BR")}</span>` : ""}
           ${u.block_reason ? `<br><span class="muted">Motivo: ${u.block_reason}</span>` : ""}
 
-          <div style="margin-top:12px; display:${u.is_admin ? "none" : "block"};">
-            <label style="display:block; font-weight:600; margin-bottom:6px;">Alterar plano</label>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-              <select
-                id="plan-user-${u.id}"
-                style="padding:10px; border:1px solid #ccc; border-radius:8px; min-width:180px;"
-              >
-                <option value="FREE" ${u.plan === "FREE" ? "selected" : ""}>FREE</option>
-                <option value="VIP_BRONZE" ${u.plan === "VIP_BRONZE" ? "selected" : ""}>VIP Bronze</option>
-                <option value="VIP_PRATA" ${u.plan === "VIP_PRATA" ? "selected" : ""}>VIP Prata</option>
-                <option value="VIP_OURO" ${u.plan === "VIP_OURO" ? "selected" : ""}>VIP Ouro</option>
-                <option value="VIP_PREMIUM" ${u.plan === "VIP_PREMIUM" ? "selected" : ""}>VIP Premium</option>
-              </select>
+          <div style="margin-top:12px;">
+			  <label style="display:block; font-weight:600; margin-bottom:6px;">
+				Alterar tipo do usuário
+			  </label>
 
-              <input
-                type="date"
-                id="vip-expiration-${u.id}"
-                value="${u.vip_expires_at ? new Date(u.vip_expires_at).toISOString().split("T")[0] : ""}"
-                style="padding:8px; border:1px solid #ccc; border-radius:8px;"
-              >
+			<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+				<select
+				  id="plan-user-${u.id}"
+				  onchange="toggleVipExpiration(${u.id})"
+				  style="padding:10px; border:1px solid #ccc; border-radius:8px; min-width:180px;"
+				>
+				  <option
+					value="FREE"
+					${!u.is_admin && u.plan === "FREE" ? "selected" : ""}
+				  >
+					FREE
+				  </option>
 
-              <button
-			    type="button"
-			    class="create-user-btn"
-			    onclick="updateUserPlan(${u.id})">
-			    Salvar plano
-			  </button>
+				  <option
+					value="VIP_BRONZE"
+					${!u.is_admin && u.plan === "VIP_BRONZE" ? "selected" : ""}
+				  >
+					VIP Bronze
+				  </option>
+
+				  <option
+					value="VIP_PRATA"
+					${!u.is_admin && u.plan === "VIP_PRATA" ? "selected" : ""}
+				  >
+					VIP Prata
+				  </option>
+
+				  <option
+					value="VIP_OURO"
+					${!u.is_admin && u.plan === "VIP_OURO" ? "selected" : ""}
+				  >
+					VIP Ouro
+				  </option>
+
+				  <option
+					value="VIP_PREMIUM"
+					${!u.is_admin && u.plan === "VIP_PREMIUM" ? "selected" : ""}
+				  >
+					VIP Premium
+				  </option>
+
+				  <option
+					value="ADMIN"
+					${u.is_admin ? "selected" : ""}
+				  >
+					Administrador
+				  </option>
+				</select>
+
+				<input
+				  type="date"
+				  id="vip-expiration-${u.id}"
+				  value="${u.vip_expires_at ? new Date(u.vip_expires_at).toISOString().split("T")[0] : ""}"
+				  ${u.is_admin || u.plan === "FREE" ? "disabled" : ""}
+				  style="padding:8px; border:1px solid #ccc; border-radius:8px;"
+				>
+
+				<button
+				  type="button"
+				  class="create-user-btn"
+				  onclick="updateUserPlan(${u.id})">
+				  Salvar alteração
+				</button>
             </div>
           </div>
 
@@ -670,6 +661,28 @@ saveNewUserBtn.addEventListener("click", async function () {
   await loadUsers();
 });
 
+function toggleVipExpiration(userId) {
+  const planSelect =
+    document.getElementById(`plan-user-${userId}`);
+
+  const dateInput =
+    document.getElementById(`vip-expiration-${userId}`);
+
+  if (!planSelect || !dateInput) {
+    return;
+  }
+
+  const selectedPlan = planSelect.value;
+
+  const isVip = VIP_PLANS.includes(selectedPlan);
+
+  dateInput.disabled = !isVip;
+
+  if (!isVip) {
+    dateInput.value = "";
+  }
+}
+
 async function updateUserPlan(userId) {
   const planSelect = document.getElementById(`plan-user-${userId}`);
   const dateInput = document.getElementById(`vip-expiration-${userId}`);
@@ -680,6 +693,16 @@ async function updateUserPlan(userId) {
   if (!selectedPlan) {
     alert("Selecione um plano.");
     return;
+  }
+  
+  if (selectedPlan === "ADMIN") {
+    const confirmed = confirm(
+      "Este usuário terá acesso às funções administrativas. Deseja continuar?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
   }
 
   if (!savedUser || !savedUser.id) {

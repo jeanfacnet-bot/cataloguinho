@@ -17,9 +17,17 @@ const imageUpgradeMessage = document.getElementById("imageUpgradeMessage");
 const videoUpgradeMessage = document.getElementById("videoUpgradeMessage");
 const mapLocationBlock = document.getElementById("mapLocationBlock");
 const mapLocationUpgradeMessage = document.getElementById("mapLocationUpgradeMessage");
-const mapLocationStatus = document.getElementById("mapLocationStatus");
-const latitudeInput = document.getElementById("latitude");
-const longitudeInput = document.getElementById("longitude");
+const mapLocationStatus =
+  document.getElementById("mapLocationStatus");
+
+const latitudeInput =
+  document.getElementById("latitude");
+
+const longitudeInput =
+  document.getElementById("longitude");
+
+const useCurrentLocationBtn =
+  document.getElementById("useCurrentLocationBtn");
 const keywordInput = document.getElementById("keywordInput");
 const addKeywordBtn = document.getElementById("addKeywordBtn");
 const keywordTags = document.getElementById("keywordTags");
@@ -383,6 +391,8 @@ function initAdMap() {
   }
 
   adMap = L.map("adMap").setView([-15.7801, -47.9292], 5);
+  
+  locateUserOnMap();
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
@@ -414,6 +424,111 @@ function setMapMarker(lat, lng) {
   if (mapLocationStatus) {
     mapLocationStatus.textContent = `Localização marcada: ${safeLat.toFixed(7)}, ${safeLng.toFixed(7)}`;
   }
+}
+
+function locateUserOnMap() {
+  if (!navigator.geolocation) {
+    if (mapLocationStatus) {
+      mapLocationStatus.textContent =
+        "Seu navegador não oferece suporte à localização.";
+    }
+
+    return;
+  }
+
+  if (!adMap) {
+    initAdMap();
+  }
+
+  if (useCurrentLocationBtn) {
+    useCurrentLocationBtn.disabled = true;
+    useCurrentLocationBtn.textContent =
+      "📍 Localizando...";
+  }
+
+  if (mapLocationStatus) {
+    mapLocationStatus.textContent =
+      "Obtendo sua localização atual...";
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    function (position) {
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+
+      if (!adMap) {
+        initAdMap();
+      }
+
+      setMapMarker(latitude, longitude);
+
+      adMap.setView(
+        [latitude, longitude],
+        17
+      );
+
+      if (mapLocationStatus) {
+        mapLocationStatus.textContent =
+          "Localização atual marcada. Você pode clicar no mapa para ajustar.";
+      }
+
+      if (useCurrentLocationBtn) {
+        useCurrentLocationBtn.disabled = false;
+        useCurrentLocationBtn.textContent =
+          "📍 Atualizar minha localização";
+      }
+    },
+
+    function (error) {
+      let errorMessage =
+        "Não foi possível obter sua localização.";
+
+      if (error.code === error.PERMISSION_DENIED) {
+        errorMessage =
+          "Permissão de localização negada. Libere a localização nas configurações do navegador.";
+      }
+
+      if (error.code === error.POSITION_UNAVAILABLE) {
+        errorMessage =
+          "Sua localização não está disponível neste momento.";
+      }
+
+      if (error.code === error.TIMEOUT) {
+        errorMessage =
+          "A localização demorou muito para responder. Tente novamente.";
+      }
+
+      if (mapLocationStatus) {
+        mapLocationStatus.textContent = errorMessage;
+      }
+
+      if (useCurrentLocationBtn) {
+        useCurrentLocationBtn.disabled = false;
+        useCurrentLocationBtn.textContent =
+          "📍 Tentar novamente";
+      }
+
+      console.error(
+        "Erro ao obter localização:",
+        error
+      );
+    },
+
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    }
+  );
+}
+
+if (useCurrentLocationBtn) {
+  useCurrentLocationBtn.addEventListener(
+    "click",
+    function () {
+      locateUserOnMap();
+    }
+  );
 }
 
 function resetSelect(selectElement, placeholder) {
@@ -657,6 +772,30 @@ function resetFormMode() {
   if (cancelEditBtn) {
     cancelEditBtn.style.display = "none";
   }
+  
+    if (latitudeInput) {
+	  latitudeInput.value = "";
+	}
+
+	if (longitudeInput) {
+	  longitudeInput.value = "";
+	}
+
+	if (adMapMarker && adMap) {
+	  adMap.removeLayer(adMapMarker);
+	  adMapMarker = null;
+	}
+
+	if (mapLocationStatus) {
+	  mapLocationStatus.textContent =
+		"Clique no mapa ou use sua localização atual.";
+	}
+
+	if (useCurrentLocationBtn) {
+	  useCurrentLocationBtn.disabled = false;
+	  useCurrentLocationBtn.textContent =
+		"📍 Usar minha localização atual";
+	}
 }
 
 if (cancelEditBtn) {
@@ -666,17 +805,6 @@ if (cancelEditBtn) {
   });
 }
 
-if (latitudeInput) latitudeInput.value = "";
-if (longitudeInput) longitudeInput.value = "";
-
-if (adMapMarker && adMap) {
-  adMap.removeLayer(adMapMarker);
-  adMapMarker = null;
-}
-
-if (mapLocationStatus) {
-  mapLocationStatus.textContent = "Clique no mapa para marcar a localização do anúncio.";
-}
 
 async function loadStates() {
   try {
