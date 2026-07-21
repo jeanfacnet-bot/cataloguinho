@@ -991,11 +991,12 @@ def admin_required_page(view_func):
 
 def plan_priority_case():
     return case(
-        (Ad.plan == "VIP_PREMIUM", 0),
-        (Ad.plan == "VIP_OURO", 1),
-        (Ad.plan == "VIP_PRATA", 2),
-        (Ad.plan == "VIP_BRONZE", 3),
-        else_=4
+        (Ad.plan == "ADMIN", 0),
+        (Ad.plan == "VIP_PREMIUM", 1),
+        (Ad.plan == "VIP_OURO", 2),
+        (Ad.plan == "VIP_PRATA", 3),
+        (Ad.plan == "VIP_BRONZE", 4),
+        else_=5
     )
     
 def title_match_priority(term):
@@ -1504,6 +1505,16 @@ def get_plan_rules(plan):
     settings = get_app_settings()
 
     rules_map = {
+        "ADMIN": {
+            "ads_limit": 999999,
+            "keywords_limit": 999999,
+            "can_use_images": True,
+            "can_use_videos": True,
+            "can_appear_in_vip_list": True,
+            "can_show_full_details": True,
+            "can_use_vitrine": True,
+            "can_use_location": True
+        },
         "FREE": {
             "ads_limit": settings.free_ads_limit,
             "keywords_limit": settings.free_keywords_limit,
@@ -3036,6 +3047,7 @@ def vitrine_ads():
     allowed_plans = [
         plan
         for plan in [
+            "ADMIN",
             "FREE",
             "VIP_BRONZE",
             "VIP_PRATA",
