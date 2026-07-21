@@ -462,3 +462,22 @@ document.addEventListener("DOMContentLoaded", async function () {
   applyAdminSidebarLayout();
   bindAdminSidebarMobile();
 });
+
+async function registerSiteVisit() {
+  try {
+    await fetch("/metrics/visit", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+  } catch (error) {
+    console.warn(
+      "Não foi possível registrar a visita:",
+      error
+    );
+  }
+}
+
+registerSiteVisit();

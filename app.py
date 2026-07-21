@@ -390,7 +390,64 @@ class Report(db.Model):
     action_days = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     reviewed_at = db.Column(db.DateTime, nullable=True)
-    reviewed_by_admin_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)    
+    reviewed_by_admin_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)   
+
+class SiteVisitor(db.Model):
+    __tablename__ = "site_visitors"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    visitor_id = db.Column(
+        db.String(100),
+        nullable=False,
+        unique=True,
+        index=True
+    )
+
+    first_visit_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        index=True
+    )
+
+    last_visit_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        index=True
+    )
+
+
+class SearchMetric(db.Model):
+    __tablename__ = "search_metrics"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    visitor_id = db.Column(
+        db.String(100),
+        nullable=True,
+        index=True
+    )
+
+    search_term = db.Column(
+        db.String(255),
+        nullable=True,
+        index=True
+    )
+
+    searched_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        index=True
+    )
 
 # =========================
 # HELPERS
@@ -491,6 +548,115 @@ Este link expira em 30 minutos.
     )
 
     mail.send(msg)
+    
+@app.route("/metrics/visit", methods=["POST"])
+def register_site_visit():
+    try:
+        # Não conta administradores como visitantes.
+        current_user_id = session.get("user_id")
+
+        if current_user_id:
+            current_user = db.session.get(
+                User,
+                current_user_id
+            )
+
+            if current_user and current_user.is_admin:
+                return jsonify({
+                    "registered": False,
+                    "reason": "admin"
+                })
+
+        visitor_id = (
+            request.cookies.get("catalogo_visitor_id")
+            or str(uuid.uuid4())
+        )
+
+        now = utc_now()
+
+        visitor = SiteVisitor.query.filter_by(
+            visitor_id=visitor_id
+        ).first()
+
+        if visitor:
+            visitor.last_visit_at = now
+        else:
+            visitor = SiteVisitor(
+                visitor_id=visitor_id,
+                first_visit_at=now,
+                last_visit_at=now
+            )
+
+            db.session.add(visitor)
+
+        db.session.commit()
+
+        response = jsonify({
+            "registered": True
+        })
+
+        response.set_cookie(
+            "catalogo_visitor_id",
+            visitor_id,
+            max_age=60 * 60 * 24 * 365 * 2,
+            httponly=True,
+            secure=not app.debug,
+            samesite="Lax"
+        )
+
+        return response
+
+    except Exception as error:
+        db.session.rollback()
+
+        print(
+            "Erro ao registrar visitante:",
+            error
+        )
+
+        return jsonify({
+            "registered": False
+        }), 500
+
+@app.route("/metrics/search", methods=["POST"])
+def register_search_metric():
+    try:
+        data = request.get_json(silent=True) or {}
+
+        search_term = str(
+            data.get("term") or ""
+        ).strip().lower()
+
+        search_term = search_term[:255]
+
+        visitor_id = request.cookies.get(
+            "catalogo_visitor_id"
+        )
+
+        metric = SearchMetric(
+            visitor_id=visitor_id,
+            search_term=search_term or None,
+            searched_at=utc_now()
+        )
+
+        db.session.add(metric)
+        db.session.commit()
+
+        return jsonify({
+            "registered": True
+        }), 201
+
+    except Exception as error:
+        db.session.rollback()
+
+        print(
+            "Erro ao registrar pesquisa:",
+            error
+        )
+
+        return jsonify({
+            "registered": False
+        }), 500        
 
 @app.route("/vip/create-pix", methods=["POST"])
 def create_vip_pix():
@@ -954,6 +1120,8 @@ def ensure_admin_user():
         existing_admin.name = "Administrador"
         existing_admin.phone = "(00) 00000-0000"
         existing_admin.is_admin = True
+        existing_admin.plan = "ADMIN"
+        existing_admin.vip_expires_at = None
         existing_admin.password_hash = generate_password_hash(admin_password)
         db.session.commit()
         return
@@ -4422,12 +4590,44 @@ def admin_delete_user(user_id):
 @app.route("/admin/dashboard-data")
 def admin_dashboard_data():
     total_users = User.query.count()
-    vip_users = User.query.filter(User.plan != "FREE").count()
-    blocked_users = User.query.filter(User.blocked_until.isnot(None)).count()
-    vip_bronze = User.query.filter_by(plan="VIP_BRONZE").count()
-    vip_prata = User.query.filter_by(plan="VIP_PRATA").count()
-    vip_ouro = User.query.filter_by(plan="VIP_OURO").count()
-    vip_premium = User.query.filter_by(plan="VIP_PREMIUM").count()
+
+    admin_users = User.query.filter(
+        User.is_admin.is_(True)
+    ).count()
+
+    vip_users = User.query.filter(
+        User.is_admin.is_(False),
+        User.plan.in_([
+            "VIP_BRONZE",
+            "VIP_PRATA",
+            "VIP_OURO",
+            "VIP_PREMIUM"
+        ])
+    ).count()
+
+    blocked_users = User.query.filter(
+        User.blocked_until.isnot(None)
+    ).count()
+
+    vip_bronze = User.query.filter(
+        User.is_admin.is_(False),
+        User.plan == "VIP_BRONZE"
+    ).count()
+
+    vip_prata = User.query.filter(
+        User.is_admin.is_(False),
+        User.plan == "VIP_PRATA"
+    ).count()
+
+    vip_ouro = User.query.filter(
+        User.is_admin.is_(False),
+        User.plan == "VIP_OURO"
+    ).count()
+
+    vip_premium = User.query.filter(
+        User.is_admin.is_(False),
+        User.plan == "VIP_PREMIUM"
+    ).count()
 
     total_ads = Ad.query.count()
     active_ads = Ad.query.filter_by(is_active=True).count()
@@ -4437,21 +4637,105 @@ def admin_dashboard_data():
 
     total_locations = ManagedLocation.query.count()
     blocked_locations = BlockedLocation.query.count()
+    
+    today_start = utc_now().replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0
+    )
 
-    # Usuários por plano
-    users_by_plan_rows = db.session.query(User.plan, db.func.count(User.id)).group_by(User.plan).all()
+    thirty_days_ago = utc_now() - timedelta(
+        days=30
+    )
+
+    total_visitors = SiteVisitor.query.count()
+
+    visitors_today = SiteVisitor.query.filter(
+        SiteVisitor.last_visit_at >= today_start
+    ).count()
+
+    total_searches = SearchMetric.query.count()
+
+    searches_today = SearchMetric.query.filter(
+        SearchMetric.searched_at >= today_start
+    ).count()
+
+    top_search_terms_rows = (
+        db.session.query(
+            SearchMetric.search_term,
+            db.func.count(
+                SearchMetric.id
+            ).label("total")
+        )
+        .filter(
+            SearchMetric.searched_at >= thirty_days_ago,
+            SearchMetric.search_term.isnot(None),
+            SearchMetric.search_term != ""
+        )
+        .group_by(
+            SearchMetric.search_term
+        )
+        .order_by(
+            db.desc("total")
+        )
+        .limit(10)
+        .all()
+    )
+
+    top_search_terms = [
+        {
+            "term": row[0],
+            "total": row[1]
+        }
+        for row in top_search_terms_rows
+    ]
+
+    # Usuários comuns agrupados por plano.
+    users_by_plan_rows = (
+        db.session.query(
+            User.plan,
+            db.func.count(User.id)
+        )
+        .filter(
+            User.is_admin.is_(False)
+        )
+        .group_by(
+            User.plan
+        )
+        .all()
+    )
+
+    plan_labels = {
+        "FREE": "FREE",
+        "VIP_BRONZE": "VIP Bronze",
+        "VIP_PRATA": "VIP Prata",
+        "VIP_OURO": "VIP Ouro",
+        "VIP_PREMIUM": "VIP Premium"
+    }
 
     users_by_plan = [
         {
-            "plan": row[0] or "FREE",
+            "plan": plan_labels.get(
+                row[0] or "FREE",
+                row[0] or "FREE"
+            ),
             "total": row[1]
         }
         for row in users_by_plan_rows
     ]
 
+    # Administradores aparecem separadamente no gráfico.
+    if admin_users > 0:
+        users_by_plan.append({
+            "plan": "Administradores",
+            "total": admin_users
+        })
+
     return jsonify({
         "summary": {
         "total_users": total_users,
+        "admin_users": admin_users,
         "vip_users": vip_users,
         "blocked_users": blocked_users,
 
@@ -4465,9 +4749,15 @@ def admin_dashboard_data():
         "total_reports": total_reports,
         "pending_reports": pending_reports,
         "total_locations": total_locations,
-        "blocked_locations": blocked_locations
+        "blocked_locations": blocked_locations,
+        
+        "total_visitors": total_visitors,
+        "visitors_today": visitors_today,
+        "total_searches": total_searches,
+        "searches_today": searches_today,
     },
-        "users_by_plan": users_by_plan
+        "users_by_plan": users_by_plan,
+        "top_search_terms": top_search_terms
     }) 
     
 @app.route("/media/images/<path:filename>")

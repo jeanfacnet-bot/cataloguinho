@@ -674,8 +674,37 @@ if (streetSelect) {
   });
 }
 
+async function registerSearchMetric() {
+  try {
+    const term =
+      termInput?.value.trim() || "";
+
+    await fetch("/metrics/search", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        term
+      })
+    });
+  } catch (error) {
+    console.warn(
+      "Não foi possível registrar a pesquisa:",
+      error
+    );
+  }
+}
+
 if (searchBtn) {
-  searchBtn.addEventListener("click", searchAds);
+  searchBtn.addEventListener(
+    "click",
+    async () => {
+      registerSearchMetric();
+      await searchAds();
+    }
+  );
 } else {
   console.error("searchBtn não encontrado");
 }

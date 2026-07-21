@@ -219,6 +219,56 @@
     color: #94a3b8;
     font-size: 13px;
   }
+  
+  .search-ranking {
+	  list-style: none;
+	  margin: 0;
+	  padding: 0;
+	  display: grid;
+	  gap: 10px;
+	  counter-reset: search-ranking;
+	}
+
+	.search-ranking li {
+	  counter-increment: search-ranking;
+	  display: flex;
+	  align-items: center;
+	  gap: 12px;
+	  padding: 12px 14px;
+	  background: #f8fafc;
+	  border: 1px solid #e2e8f0;
+	  border-radius: 12px;
+	}
+
+	.search-ranking li::before {
+	  content: counter(search-ranking);
+	  width: 28px;
+	  height: 28px;
+	  flex: 0 0 28px;
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	  background: #e0e7ff;
+	  color: #3730a3;
+	  border-radius: 50%;
+	  font-size: 12px;
+	  font-weight: 800;
+	}
+
+	.search-ranking li span {
+	  flex: 1;
+	  min-width: 0;
+	  color: #334155;
+	  font-size: 14px;
+	  font-weight: 700;
+	  overflow-wrap: anywhere;
+	}
+
+	.search-ranking li strong {
+	  color: #2563eb;
+	  font-size: 14px;
+	  white-space: nowrap;
+	}
 
   @media (max-width: 1200px) {
     .stats-grid {
@@ -315,6 +365,23 @@
           <div id="systemInsights" class="empty-note">Carregando...</div>
         </div>
       </section>
+	  
+	  <section class="list-card">
+		  <h2 class="card-title">
+			Palavras mais pesquisadas
+		  </h2>
+
+		  <p class="card-subtitle">
+			Dez termos mais pesquisados nos últimos 30 dias.
+		  </p>
+
+		  <div
+			id="topSearchTerms"
+			class="empty-note"
+		  >
+			Carregando...
+		  </div>
+		</section>
 
     </div>
   </main>
@@ -323,13 +390,91 @@
 let usersChartInstance = null;
 
 async function loadDashboard() {
-  const res = await fetch("/admin/dashboard-data");
-  const data = await res.json();
+  try {
+    const res = await fetch(
+      "/admin/dashboard-data",
+      {
+        cache: "no-store"
+      }
+    );
 
-  renderCards(data.summary);
-  renderSummaryPanels(data.summary);
-  renderInsights(data.summary);
-  renderCharts(data);
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(
+        data.message ||
+        data.error ||
+        "Erro ao carregar o dashboard."
+      );
+    }
+
+    renderCards(data.summary || {});
+    renderSummaryPanels(data.summary || {});
+    renderInsights(data.summary || {});
+    renderCharts(data);
+    renderTopSearchTerms(
+      data.top_search_terms || []
+    );
+
+  } catch (error) {
+    console.error(
+      "Erro ao carregar dashboard:",
+      error
+    );
+
+    const cards = document.getElementById("cards");
+    const summaryPanels = document.getElementById(
+      "summaryPanels"
+    );
+    const usersInsights = document.getElementById(
+      "usersInsights"
+    );
+    const systemInsights = document.getElementById(
+      "systemInsights"
+    );
+    const topSearchTerms = document.getElementById(
+      "topSearchTerms"
+    );
+
+    if (cards) {
+      cards.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-label">
+            Erro no dashboard
+          </div>
+          <div class="stat-foot">
+            Não foi possível carregar os dados.
+          </div>
+        </div>
+      `;
+    }
+
+    if (summaryPanels) {
+      summaryPanels.innerHTML = `
+        <div class="mini-panel">
+          <strong>Erro ao carregar</strong>
+          <span>
+            Consulte o console do navegador e o terminal do Flask.
+          </span>
+        </div>
+      `;
+    }
+
+    if (usersInsights) {
+      usersInsights.textContent =
+        "Não foi possível carregar os dados.";
+    }
+
+    if (systemInsights) {
+      systemInsights.textContent =
+        "Não foi possível carregar os dados.";
+    }
+
+    if (topSearchTerms) {
+      topSearchTerms.textContent =
+        "Não foi possível carregar as pesquisas.";
+    }
+  }
 }
 
 function renderCards(summary) {
@@ -337,80 +482,110 @@ function renderCards(summary) {
 
   container.innerHTML = `
     <div class="stat-card">
-      <div class="stat-label">Usuários cadastrados</div>
-      <div class="stat-value">${summary.total_users}</div>
-      <div class="stat-foot">Base total do sistema</div>
+      <div class="stat-label">Visitantes hoje</div>
+      <div class="stat-value">${summary.visitors_today ?? 0}</div>
+      <div class="stat-foot">Visitantes únicos no dia</div>
     </div>
 
     <div class="stat-card">
-      <div class="stat-label">Usuários VIP</div>
-      <div class="stat-value">${summary.vip_users}</div>
-      <div class="stat-foot">Planos pagos ativos</div>
+      <div class="stat-label">Total de visitantes</div>
+      <div class="stat-value">${summary.total_visitors ?? 0}</div>
+      <div class="stat-foot">Visitantes únicos registrados</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Pesquisas hoje</div>
+      <div class="stat-value">${summary.searches_today ?? 0}</div>
+      <div class="stat-foot">Cliques no botão Pesquisar</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Total de pesquisas</div>
+      <div class="stat-value">${summary.total_searches ?? 0}</div>
+      <div class="stat-foot">Pesquisas realizadas</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Usuários cadastrados</div>
+      <div class="stat-value">${summary.total_users ?? 0}</div>
+      <div class="stat-foot">Base total do sistema</div>
     </div>
 	
 	<div class="stat-card">
-	  <div class="stat-label">VIP Bronze</div>
-	  <div class="stat-value">${summary.vip_bronze}</div>
-	  <div class="stat-foot">Usuários no plano Bronze</div>
-	</div>
-
-	<div class="stat-card">
-	  <div class="stat-label">VIP Prata</div>
-	  <div class="stat-value">${summary.vip_prata}</div>
-	  <div class="stat-foot">Usuários no plano Prata</div>
-	</div>
-
-	<div class="stat-card">
-	  <div class="stat-label">VIP Ouro</div>
-	  <div class="stat-value">${summary.vip_ouro}</div>
-	  <div class="stat-foot">Usuários no plano Ouro</div>
-	</div>
-
-	<div class="stat-card">
-	  <div class="stat-label">VIP Premium</div>
-	  <div class="stat-value">${summary.vip_premium}</div>
-	  <div class="stat-foot">Usuários no plano Premium</div>
+	  <div class="stat-label">Administradores</div>
+	  <div class="stat-value">${summary.admin_users ?? 0}</div>
+	  <div class="stat-foot">Contas administrativas</div>
 	</div>
 
     <div class="stat-card">
+      <div class="stat-label">Usuários VIP</div>
+      <div class="stat-value">${summary.vip_users ?? 0}</div>
+      <div class="stat-foot">Planos pagos ativos</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">VIP Bronze</div>
+      <div class="stat-value">${summary.vip_bronze ?? 0}</div>
+      <div class="stat-foot">Usuários no plano Bronze</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">VIP Prata</div>
+      <div class="stat-value">${summary.vip_prata ?? 0}</div>
+      <div class="stat-foot">Usuários no plano Prata</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">VIP Ouro</div>
+      <div class="stat-value">${summary.vip_ouro ?? 0}</div>
+      <div class="stat-foot">Usuários no plano Ouro</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">VIP Premium</div>
+      <div class="stat-value">${summary.vip_premium ?? 0}</div>
+      <div class="stat-foot">Usuários no plano Premium</div>
+    </div>
+
+    <div class="stat-card">
       <div class="stat-label">Usuários bloqueados</div>
-      <div class="stat-value">${summary.blocked_users}</div>
+      <div class="stat-value">${summary.blocked_users ?? 0}</div>
       <div class="stat-foot">Contas com restrição</div>
     </div>
 
     <div class="stat-card">
       <div class="stat-label">Anúncios totais</div>
-      <div class="stat-value">${summary.total_ads}</div>
+      <div class="stat-value">${summary.total_ads ?? 0}</div>
       <div class="stat-foot">Volume geral de anúncios</div>
     </div>
 
     <div class="stat-card">
       <div class="stat-label">Anúncios ativos</div>
-      <div class="stat-value">${summary.active_ads}</div>
+      <div class="stat-value">${summary.active_ads ?? 0}</div>
       <div class="stat-foot">Atualmente visíveis</div>
     </div>
 
     <div class="stat-card">
       <div class="stat-label">Denúncias</div>
-      <div class="stat-value">${summary.total_reports}</div>
+      <div class="stat-value">${summary.total_reports ?? 0}</div>
       <div class="stat-foot">Total registrado</div>
     </div>
 
     <div class="stat-card">
       <div class="stat-label">Denúncias pendentes</div>
-      <div class="stat-value">${summary.pending_reports}</div>
+      <div class="stat-value">${summary.pending_reports ?? 0}</div>
       <div class="stat-foot">Aguardando ação</div>
     </div>
 
     <div class="stat-card">
       <div class="stat-label">Localidades cadastradas</div>
-      <div class="stat-value">${summary.total_locations}</div>
+      <div class="stat-value">${summary.total_locations ?? 0}</div>
       <div class="stat-foot">Mapa administrativo</div>
     </div>
 
     <div class="stat-card">
       <div class="stat-label">Localidades bloqueadas</div>
-      <div class="stat-value">${summary.blocked_locations}</div>
+      <div class="stat-value">${summary.blocked_locations ?? 0}</div>
       <div class="stat-foot">Itens fora da busca</div>
     </div>
   `;
@@ -453,13 +628,29 @@ function renderInsights(summary) {
   const usersInsights = document.getElementById("usersInsights");
   const systemInsights = document.getElementById("systemInsights");
 
-  usersInsights.innerHTML = `
-    <ul>
-      <li>Total de usuários cadastrados: <strong>${summary.total_users}</strong></li>
-      <li>Total de usuários VIP: <strong>${summary.vip_users}</strong></li>
-      <li>Total de usuários bloqueados: <strong>${summary.blocked_users}</strong></li>
-    </ul>
-  `;
+	usersInsights.innerHTML = `
+	  <ul>
+		<li>
+		  Total de usuários cadastrados:
+		  <strong>${summary.total_users ?? 0}</strong>
+		</li>
+
+		<li>
+		  Administradores:
+		  <strong>${summary.admin_users ?? 0}</strong>
+		</li>
+
+		<li>
+		  Usuários VIP:
+		  <strong>${summary.vip_users ?? 0}</strong>
+		</li>
+
+		<li>
+		  Usuários bloqueados:
+		  <strong>${summary.blocked_users ?? 0}</strong>
+		</li>
+	  </ul>
+	`;
 
   systemInsights.innerHTML = `
     <ul>
@@ -470,6 +661,44 @@ function renderInsights(summary) {
       <li>Localidades bloqueadas: <strong>${summary.blocked_locations}</strong></li>
     </ul>
   `;
+}
+
+function renderTopSearchTerms(items) {
+  const container = document.getElementById(
+    "topSearchTerms"
+  );
+
+  if (!container) return;
+
+  if (!Array.isArray(items) || !items.length) {
+    container.innerHTML = `
+      <div class="empty-note">
+        Nenhuma palavra pesquisada ainda.
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML = `
+    <ol class="search-ranking">
+      ${items.map(item => `
+        <li>
+          <span>${escapeDashboardText(item.term)}</span>
+          <strong>${item.total}</strong>
+        </li>
+      `).join("")}
+    </ol>
+  `;
+}
+
+function escapeDashboardText(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 function renderCharts(data) {
