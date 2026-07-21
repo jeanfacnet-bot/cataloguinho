@@ -334,6 +334,14 @@ class Ad(db.Model):
     main_image = db.Column(db.String(500))
     main_video = db.Column(db.String(500))
     is_active = db.Column(db.Boolean, default=True)
+    
+    show_on_home = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        index=True
+    )
+    
     blocked_until = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -1072,6 +1080,9 @@ def serialize_ad(ad):
         "main_image": safe_main_image,
         "main_video": safe_main_video,
         "is_active": ad.is_active,
+        "show_on_home": bool(
+            ad.show_on_home
+        ),
         "plan_label": get_plan_label(ad.plan),
         "can_show_full_details": plan_rules["can_show_full_details"],
         "blocked_until": ad.blocked_until.isoformat() if ad.blocked_until else None,
@@ -1712,11 +1723,7 @@ def search_ads():
     street = request.args.get("street", "").strip()
     complement = request.args.get("complement", "").strip()
     
-    allowed_vip_plans = [
-        plan for plan in VIP_PLANS
-        if get_plan_rules(plan)["can_appear_in_vip_list"]
-    ]
-
+    
     query = Ad.query.join(User, Ad.user_id == User.id).filter(
         Ad.is_active == True,
         or_(Ad.blocked_until.is_(None), Ad.blocked_until <= utc_now()),
@@ -1726,7 +1733,12 @@ def search_ads():
     has_search = bool(term or country or state or city or municipality or neighborhood or street or complement)
 
     if not has_search:
-        query = query.filter(Ad.plan.in_(allowed_vip_plans))
+        query = query.filter(
+            or_(
+                Ad.plan == "VIP_PREMIUM",
+                Ad.show_on_home.is_(True)
+            )
+        )
 
     if term:
         query = query.filter(
@@ -2610,6 +2622,13 @@ def create_ad():
     zipcode = request.form.get("zipcode", "").strip()
     latitude_raw = request.form.get("latitude", "").strip()
     longitude_raw = request.form.get("longitude", "").strip()
+    show_on_home_requested = (
+        request.form.get(
+            "show_on_home",
+            ""
+        ).strip().lower()
+        in ("1", "true", "yes", "on")
+    )
     latitude = None
     longitude = None
 
@@ -2631,6 +2650,11 @@ def create_ad():
     user = User.query.get(user_id)
     if not user:
         return jsonify({"message": "Usuário não encontrado"}), 404
+        
+    show_on_home = bool(
+        user.is_admin
+        and show_on_home_requested
+    )    
     
     enforce_user_plan(user)
 
@@ -2743,7 +2767,8 @@ def create_ad():
         plan="ADMIN" if user.is_admin else user.plan,
         main_image=image_path if plan_rules["can_use_images"] else None,
         main_video=video_path if plan_rules["can_use_videos"] else None,
-        is_active=True
+        is_active=True,
+        show_on_home=show_on_home
     )
 
     db.session.add(ad)
@@ -3331,6 +3356,13 @@ def update_ad(ad_id):
         zipcode = request.form.get("zipcode", "").strip()
         latitude_raw = request.form.get("latitude", "").strip()
         longitude_raw = request.form.get("longitude", "").strip()
+        show_on_home_requested = (
+            request.form.get(
+                "show_on_home",
+                ""
+            ).strip().lower()
+            in ("1", "true", "yes", "on")
+        )
         latitude = None
         longitude = None
         keywords = request.form.getlist("keywords")
@@ -3439,6 +3471,12 @@ def update_ad(ad_id):
             ad.latitude = None
             ad.longitude = None
         ad.plan = user.plan
+        if user.is_admin:
+            ad.show_on_home = (
+                show_on_home_requested
+            )
+        else:
+            ad.show_on_home = False
 
         Keyword.query.filter_by(ad_id=ad.id).delete()
 

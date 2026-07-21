@@ -48,10 +48,45 @@ let plansConfig = null;
 let editingAdId = null;
 const cancelEditBtn = document.getElementById("cancelEditBtn");
 
+const adminHomeOption =
+  document.getElementById(
+    "adminHomeOption"
+  );
+
+const showOnHomeInput =
+  document.getElementById(
+    "showOnHome"
+  );
+
 let isSubmittingAd = false;
 
 function isAdminUser(user) {
   return user && (user.is_admin === true || user.role === "admin" || user.plan === "ADMIN");
+}
+
+function updateAdminHomeOption() {
+  const currentUser = JSON.parse(
+    localStorage.getItem(
+      "catalogo_user"
+    ) || "null"
+  );
+
+  const canManageHome =
+    isAdminUser(currentUser);
+
+  if (adminHomeOption) {
+    adminHomeOption.style.display =
+      canManageHome
+        ? "block"
+        : "none";
+  }
+
+  if (
+    !canManageHome
+    && showOnHomeInput
+  ) {
+    showOnHomeInput.checked = false;
+  }
 }
 
 async function loadPlansConfig() {
@@ -564,6 +599,8 @@ function resetSelect(selectElement, placeholder) {
 
 function renderUser() {
   savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
+  
+  updateAdminHomeOption();
 
   if (!savedUser) {
     userInfo.innerHTML = `
@@ -631,6 +668,7 @@ async function refreshSavedUser() {
 
 	localStorage.setItem("catalogo_user", JSON.stringify(data));
     savedUser = data;
+	updateAdminHomeOption();
 	renderUser();
 	updateKeywordsPlaceholder();
 	updateMediaAccessUI();
@@ -674,6 +712,29 @@ function renderMyAds(items) {
 		<span class="muted">Telefone: ${item.phone || "Não informado"}</span><br>
 		<span class="muted">Plano: ${item.plan}</span><br>
 		${
+		  isAdminUser(savedUser)
+			? `
+			  <span
+				class="muted"
+				style="
+				  color:${
+					item.show_on_home
+					  ? "#15803d"
+					  : "#64748b"
+				  };
+				  font-weight:700;
+				"
+			  >
+				${
+				  item.show_on_home
+					? "✓ Aparece na tela inicial"
+					: "Não aparece na tela inicial"
+				}
+			  </span><br>
+			`
+			: ""
+		}
+		${
 		  item.blocked_until
 			? `<span class="muted" style="color:#dc3545;font-weight:bold;">
 				 Anúncio bloqueado até ${new Date(item.blocked_until).toLocaleString("pt-BR")}
@@ -713,6 +774,11 @@ function renderMyAds(items) {
 
 function startEdit(ad) {
   editingAdId = ad.id;
+	  if (showOnHomeInput) {
+	  showOnHomeInput.checked =
+		isAdminUser(savedUser)
+		&& ad.show_on_home === true;
+	}
 
   document.getElementById("title").value = ad.title || "";
   document.getElementById("description").value = ad.description || "";
@@ -781,6 +847,9 @@ function startEdit(ad) {
 
 function resetFormMode() {
   editingAdId = null;
+  if (showOnHomeInput) {
+	  showOnHomeInput.checked = false;
+	}
 
   // Limpa todos os campos pertencentes ao formulário
   adForm.reset();
@@ -1248,6 +1317,14 @@ adForm.addEventListener("submit", async (e) => {
 
   const formData = new FormData();
   formData.append("user_id", savedUser.id);
+  if (isAdminUser(savedUser)) {
+	  formData.append(
+		"show_on_home",
+		showOnHomeInput?.checked
+		  ? "true"
+		  : "false"
+	  );
+	}
   formData.append("title", document.getElementById("title").value.trim());
   formData.append("description", document.getElementById("description").value.trim());
   formData.append("phone", document.getElementById("phone").value.trim());
