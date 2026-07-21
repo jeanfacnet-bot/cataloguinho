@@ -8,6 +8,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catálogo - Pesquisa</title>
   <link rel="stylesheet" href="{{ static_asset('style.css') }}">
+  <link
+		rel="stylesheet"
+		href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+	/>
 	<style>
 	  .container {
 		max-width: 1240px;
@@ -201,11 +205,14 @@
 	  }
 
 	  .result-actions {
-		  display: flex;
-		  gap: 8px;
-		  margin-top: 14px;
-		  flex-wrap: wrap;
-		  align-items: center;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			margin-top: 14px;
+		}
+		
+		.result-actions .view-details-btn {
+		  flex: 0 0 auto;
 		}
 
 		.result-actions 
@@ -232,12 +239,43 @@
 	  }
 	  
 	  .result-actions .share-whatsapp-btn {
-		  background: linear-gradient(135deg, #25d366 0%, #128c4a 100%);
+		  
+		  width: 34px;
+		  min-width: 34px;
+		  height: 34px;
+
+		  padding: 0;
+
+		  display: inline-flex;
+		  align-items: center;
+		  justify-content: center;
+
+		  background: linear-gradient(
+			135deg,
+			#25d366 0%,
+			#128c4a 100%
+		  );
+
 		  color: white;
+		  border: none;
+		  border-radius: 50%;
+
+		  font-size: 15px;
+		  line-height: 1;
+
+		  cursor: pointer;
+		  box-shadow: none;
+		  flex: 0 0 34px;
 		}
 
 		.result-actions .share-whatsapp-btn:hover {
-		  box-shadow: 0 10px 22px rgba(37, 211, 102, 0.25);
+		  transform: translateY(-1px);
+		  box-shadow: 0 6px 14px rgba(
+			37,
+			211,
+			102,
+			0.22
+		  );
 		}
 
 	  .ad-title-row {
@@ -468,9 +506,23 @@
 		  padding: 18px;
 		  border-radius: 20px;
 		}
-
+	
 		.search-hero h1 {
 		  font-size: 28px;
+		}
+		
+		.result-actions {
+		  flex-wrap: nowrap;
+		  width: 100%;
+		}
+
+		.result-actions .share-whatsapp-btn {
+		  margin-left: auto;
+		  width: 32px;
+		  min-width: 32px;
+		  height: 32px;
+		  flex-basis: 32px;
+		  font-size: 14px;
 		}
 
 		.result-card {

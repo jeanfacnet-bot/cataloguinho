@@ -261,6 +261,7 @@ function renderResults(items) {
 				  ? `
 					<button
 					  type="button"
+					  class="view-details-btn"
 					  onclick="openAdDetailsFromSearch(${item.id})"
 					>
 					  Ver detalhes
@@ -270,9 +271,15 @@ function renderResults(items) {
 					  type="button"
 					  class="share-whatsapp-btn"
 					  data-ad-id="${item.id}"
-					  data-ad-title="${encodeURIComponent(item.title || "Anúncio")}"
+					  data-ad-title="${encodeURIComponent(
+						item.title || "Anúncio"
+					  )}"
+					  title="Compartilhar anúncio no WhatsApp"
+					  aria-label="Compartilhar anúncio no WhatsApp"
 					>
-					  💬 Compartilhar
+					  <span class="material-symbols-outlined">
+							share
+						</span>
 					</button>
 				  `
 				  : ""

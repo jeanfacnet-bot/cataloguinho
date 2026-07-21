@@ -2,6 +2,26 @@ const savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
 const saveSettingsBtn = document.getElementById("saveSettingsBtn");
 const settingsStatus = document.getElementById("settingsStatus");
 const supportWhatsapp = document.getElementById("supportWhatsapp");
+const newUserVipEnabled =
+  document.getElementById("newUserVipEnabled");
+
+const newUserVipPlan =
+  document.getElementById("newUserVipPlan");
+
+const newUserVipDays =
+  document.getElementById("newUserVipDays");
+
+const allUsersVipPlan =
+  document.getElementById("allUsersVipPlan");
+
+const allUsersVipDays =
+  document.getElementById("allUsersVipDays");
+
+const grantVipToAllBtn =
+  document.getElementById("grantVipToAllBtn");
+
+const promotionMessage =
+  document.getElementById("promotionMessage");
 
 function isAdmin(user) {
   return !!user && (user.is_admin === true || user.role === "admin");
@@ -75,6 +95,25 @@ async function loadSettings() {
 	if (supportWhatsapp) {
       supportWhatsapp.value = data.support_whatsapp || "";
     }
+	
+	const promotions = data.promotions || {};
+
+    if (newUserVipEnabled) {
+      newUserVipEnabled.checked = Boolean(
+        promotions.new_user_vip_enabled
+      );
+    }
+
+    if (newUserVipPlan) {
+      newUserVipPlan.value =
+        promotions.new_user_vip_plan ||
+        "VIP_BRONZE";
+    }
+
+    if (newUserVipDays) {
+      newUserVipDays.value =
+        promotions.new_user_vip_days || 30;
+    }
 
     setStatus("Ajustes carregados com sucesso.");
   } catch (error) {
@@ -95,7 +134,29 @@ async function saveSettings() {
 
 	const payload = {
       admin_user_id: savedUser.id,
-      support_whatsapp: supportWhatsapp ? supportWhatsapp.value.trim() : "",
+
+      support_whatsapp:
+        supportWhatsapp
+          ? supportWhatsapp.value.trim()
+          : "",
+
+      promotions: {
+        new_user_vip_enabled:
+          newUserVipEnabled
+            ? newUserVipEnabled.checked
+            : false,
+
+        new_user_vip_plan:
+          newUserVipPlan
+            ? newUserVipPlan.value
+            : "VIP_BRONZE",
+
+        new_user_vip_days:
+          newUserVipDays
+            ? Number(newUserVipDays.value)
+            : 30
+      },
+
       free: collectPlan("free"),
       bronze: collectPlan("bronze"),
       prata: collectPlan("prata"),
@@ -126,5 +187,140 @@ async function saveSettings() {
   }
 }
 
-saveSettingsBtn.addEventListener("click", saveSettings);
+async function grantVipToAllUsers() {
+  if (!isAdmin(savedUser)) {
+    setPromotionStatus(
+      "Acesso negado.",
+      true
+    );
+    return;
+  }
+
+  const plan = allUsersVipPlan
+    ? allUsersVipPlan.value
+    : "VIP_BRONZE";
+
+  const days = allUsersVipDays
+    ? Number(allUsersVipDays.value)
+    : 30;
+
+  if (
+    !Number.isInteger(days) ||
+    days < 1 ||
+    days > 365
+  ) {
+    setPromotionStatus(
+      "Informe uma duração entre 1 e 365 dias.",
+      true
+    );
+    return;
+  }
+
+  const planLabels = {
+    VIP_BRONZE: "VIP Bronze",
+    VIP_PRATA: "VIP Prata",
+    VIP_OURO: "VIP Ouro",
+    VIP_PREMIUM: "VIP Premium"
+  };
+
+  const confirmed = window.confirm(
+    `Deseja conceder ${planLabels[plan]} ` +
+    `por ${days} dias a todos os usuários?`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    grantVipToAllBtn.disabled = true;
+    grantVipToAllBtn.textContent =
+      "Aplicando promoção...";
+
+    setPromotionStatus(
+      "Aplicando promoção..."
+    );
+
+    const response = await fetch(
+      "/admin/promotions/grant-vip-all",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          admin_user_id: savedUser.id,
+          plan: plan,
+          days: days
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ||
+        "Erro ao aplicar promoção"
+      );
+    }
+
+    setPromotionStatus(
+      data.message ||
+      "Promoção aplicada com sucesso."
+    );
+
+    window.alert(
+      data.message ||
+      "Promoção aplicada com sucesso."
+    );
+  } catch (error) {
+    console.error(
+      "Erro ao aplicar promoção:",
+      error
+    );
+
+    setPromotionStatus(
+      error.message ||
+      "Erro ao aplicar promoção.",
+      true
+    );
+  } finally {
+    grantVipToAllBtn.disabled = false;
+    grantVipToAllBtn.textContent =
+      "Conceder VIP a todos";
+  }
+}
+
+
+function setPromotionStatus(
+  message,
+  isError = false
+) {
+  if (!promotionMessage) {
+    return;
+  }
+
+  promotionMessage.textContent = message;
+
+  promotionMessage.style.color =
+    isError
+      ? "#dc3545"
+      : "#198754";
+}
+
+if (saveSettingsBtn) {
+  saveSettingsBtn.addEventListener(
+    "click",
+    saveSettings
+  );
+}
+
+if (grantVipToAllBtn) {
+  grantVipToAllBtn.addEventListener(
+    "click",
+    grantVipToAllUsers
+  );
+}
+
 loadSettings();

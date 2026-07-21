@@ -325,6 +325,132 @@
 		  </div>
 		</div>
 	  </div>
+	  
+	    <section class="settings-card promotion-card">
+		  <h2>🎁 Promoções VIP</h2>
+
+		  <p class="muted">
+			Configure benefícios promocionais para novos
+			cadastros ou conceda VIP aos usuários existentes.
+		  </p>
+
+		  <div class="promotion-block">
+			<h3>VIP para novos cadastros</h3>
+
+			<label class="checkbox-row">
+			  <input
+				type="checkbox"
+				id="newUserVipEnabled"
+			  >
+			  Ativar VIP automático para novos usuários
+			</label>
+
+			<div class="form-grid">
+			  <div>
+				<label for="newUserVipPlan">
+				  Plano concedido
+				</label>
+
+				<select id="newUserVipPlan">
+				  <option value="VIP_BRONZE">
+					VIP Bronze
+				  </option>
+
+				  <option value="VIP_PRATA">
+					VIP Prata
+				  </option>
+
+				  <option value="VIP_OURO">
+					VIP Ouro
+				  </option>
+
+				  <option value="VIP_PREMIUM">
+					VIP Premium
+				  </option>
+				</select>
+			  </div>
+
+			  <div>
+				<label for="newUserVipDays">
+				  Duração em dias
+				</label>
+
+				<input
+				  type="number"
+				  id="newUserVipDays"
+				  min="1"
+				  max="365"
+				  value="30"
+				>
+			  </div>
+			</div>
+		  </div>
+
+		  <hr>
+
+		  <div class="promotion-block">
+			<h3>Conceder VIP a todos</h3>
+
+			<p class="muted">
+			  Esta ação será aplicada imediatamente aos
+			  usuários já cadastrados.
+			</p>
+
+			<div class="form-grid">
+			  <div>
+				<label for="allUsersVipPlan">
+				  Plano concedido
+				</label>
+
+				<select id="allUsersVipPlan">
+				  <option value="VIP_BRONZE">
+					VIP Bronze
+				  </option>
+
+				  <option value="VIP_PRATA">
+					VIP Prata
+				  </option>
+
+				  <option value="VIP_OURO">
+					VIP Ouro
+				  </option>
+
+				  <option value="VIP_PREMIUM">
+					VIP Premium
+				  </option>
+				</select>
+			  </div>
+
+			  <div>
+				<label for="allUsersVipDays">
+				  Duração em dias
+				</label>
+
+				<input
+				  type="number"
+				  id="allUsersVipDays"
+				  min="1"
+				  max="365"
+				  value="30"
+				>
+			  </div>
+			</div>
+
+			<button
+			  type="button"
+			  id="grantVipToAllBtn"
+			  class="primary-btn"
+			>
+			  Conceder VIP a todos
+			</button>
+
+			<div
+			  id="promotionMessage"
+			  class="muted"
+			  style="margin-top: 10px;"
+			></div>
+		  </div>
+		</section>
 
 	  <div class="actions">
 		<button type="button" id="saveSettingsBtn">Salvar ajustes</button>

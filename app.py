@@ -249,6 +249,28 @@ class AppSetting(db.Model):
     premium_can_use_location = db.Column(db.Boolean, nullable=False, default=True)
     
     support_whatsapp = db.Column(db.String(30), nullable=True)
+    
+    # =========================
+    # PROMOÇÕES VIP
+    # =========================
+
+    new_user_vip_promotion_enabled = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False
+    )
+
+    new_user_vip_promotion_plan = db.Column(
+        db.String(20),
+        nullable=False,
+        default="VIP_BRONZE"
+    )
+
+    new_user_vip_promotion_days = db.Column(
+        db.Integer,
+        nullable=False,
+        default=30
+    )
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -849,6 +871,52 @@ def get_app_settings():
         db.session.commit()
 
     return settings
+    
+def grant_promotional_vip(user, plan, days):
+    allowed_vip_plans = [
+        "VIP_BRONZE",
+        "VIP_PRATA",
+        "VIP_OURO",
+        "VIP_PREMIUM"
+    ]
+
+    if not user:
+        return False
+
+    if user.is_admin or user.plan == "ADMIN":
+        return False
+
+    plan = (plan or "").strip().upper()
+
+    if plan not in allowed_vip_plans:
+        return False
+
+    try:
+        days = int(days)
+    except (TypeError, ValueError):
+        return False
+
+    if days < 1 or days > 365:
+        return False
+
+    now = utc_now()
+    promotional_expiration = now + timedelta(days=days)
+
+    # Não reduz o prazo de um VIP que já vence mais tarde.
+    if (
+        is_vip_plan(user.plan)
+        and user.vip_expires_at
+        and user.vip_expires_at > promotional_expiration
+    ):
+        sync_user_ads_with_plan(user)
+        return True
+
+    user.plan = plan
+    user.vip_expires_at = promotional_expiration
+
+    sync_user_ads_with_plan(user, plan)
+
+    return True    
 
 def serialize_report(report):
     reported_user = User.query.get(report.reported_user_id)
@@ -2988,6 +3056,19 @@ def get_admin_settings():
 
     return jsonify({
         "support_whatsapp": settings.support_whatsapp or "",
+        
+        "promotions": {
+            "new_user_vip_enabled": (
+                settings.new_user_vip_promotion_enabled
+            ),
+            "new_user_vip_plan": (
+                settings.new_user_vip_promotion_plan
+            ),
+            "new_user_vip_days": (
+                settings.new_user_vip_promotion_days
+            )
+        },
+        
         "free": {
             "ads_limit": settings.free_ads_limit,
             "keywords_limit": settings.free_keywords_limit,
@@ -3110,6 +3191,63 @@ def update_admin_settings():
         settings.premium_price = float(data["premium"]["price"])
         settings.premium_can_use_vitrine = bool(data["premium"]["can_use_vitrine"])
         settings.premium_can_use_location = bool(data["premium"]["can_use_location"])
+        
+        promotions = data.get("promotions") or {}
+
+        promotion_enabled = bool(
+            promotions.get(
+                "new_user_vip_enabled",
+                False
+            )
+        )
+
+        promotion_plan = (
+            promotions.get(
+                "new_user_vip_plan",
+                "VIP_BRONZE"
+            )
+            or "VIP_BRONZE"
+        ).strip().upper()
+
+        promotion_days = int(
+            promotions.get(
+                "new_user_vip_days",
+                30
+            )
+        )
+
+        allowed_promotion_plans = [
+            "VIP_BRONZE",
+            "VIP_PRATA",
+            "VIP_OURO",
+            "VIP_PREMIUM"
+        ]
+
+        if promotion_plan not in allowed_promotion_plans:
+            return jsonify({
+                "message": "Plano da promoção inválido"
+            }), 400
+
+        if promotion_days < 1 or promotion_days > 365:
+            return jsonify({
+                "message": (
+                    "A duração da promoção deve estar "
+                    "entre 1 e 365 dias"
+                )
+            }), 400
+
+        settings.new_user_vip_promotion_enabled = (
+            promotion_enabled
+        )
+
+        settings.new_user_vip_promotion_plan = (
+            promotion_plan
+        )
+
+        settings.new_user_vip_promotion_days = (
+            promotion_days
+        )
+        
     except (KeyError, TypeError, ValueError):
         return jsonify({"message": "Valores inválidos"}), 400
 
@@ -3128,6 +3266,104 @@ def update_admin_settings():
     db.session.commit()
 
     return jsonify({"message": "Ajustes atualizados com sucesso"})
+    
+@app.route(
+    "/admin/promotions/grant-vip-all",
+    methods=["POST"]
+)
+def grant_vip_to_all_users():
+    data = request.get_json() or {}
+
+    admin_user_id = data.get("admin_user_id")
+    plan = (
+        data.get("plan")
+        or "VIP_BRONZE"
+    ).strip().upper()
+
+    try:
+        days = int(data.get("days") or 30)
+    except (TypeError, ValueError):
+        return jsonify({
+            "message": "Quantidade de dias inválida"
+        }), 400
+
+    if not admin_user_id:
+        return jsonify({
+            "message": "Administrador não informado"
+        }), 400
+
+    admin_user = User.query.get(admin_user_id)
+
+    if not admin_user or not admin_user.is_admin:
+        return jsonify({
+            "message": "Acesso negado"
+        }), 403
+
+    allowed_plans = [
+        "VIP_BRONZE",
+        "VIP_PRATA",
+        "VIP_OURO",
+        "VIP_PREMIUM"
+    ]
+
+    if plan not in allowed_plans:
+        return jsonify({
+            "message": "Plano VIP inválido"
+        }), 400
+
+    if days < 1 or days > 365:
+        return jsonify({
+            "message": (
+                "A duração deve estar entre "
+                "1 e 365 dias"
+            )
+        }), 400
+
+    users = User.query.filter(
+        User.is_admin.is_(False),
+        User.plan != "ADMIN"
+    ).all()
+
+    updated_count = 0
+
+    try:
+        for user in users:
+            granted = grant_promotional_vip(
+                user=user,
+                plan=plan,
+                days=days
+            )
+
+            if granted:
+                updated_count += 1
+
+        db.session.commit()
+
+        return jsonify({
+            "message": (
+                f"VIP concedido a "
+                f"{updated_count} usuário(s)"
+            ),
+            "updated_users": updated_count,
+            "plan": plan,
+            "days": days
+        })
+
+    except Exception as error:
+        db.session.rollback()
+
+        print(
+            "ERRO AO APLICAR PROMOÇÃO GERAL:",
+            error
+        )
+
+        return jsonify({
+            "message": (
+                "Não foi possível aplicar "
+                "a promoção"
+            ),
+            "error": str(error)
+        }), 500    
     
 @app.route("/admin/dashboard-page")
 @admin_required_page
@@ -4135,6 +4371,15 @@ def admin_create_user():
     )
 
     db.session.add(user)
+    
+    settings = get_app_settings()
+
+    if settings.new_user_vip_promotion_enabled:
+        grant_promotional_vip(
+            user=user,
+            plan=settings.new_user_vip_promotion_plan,
+            days=settings.new_user_vip_promotion_days
+        )
     db.session.commit()
 
     return jsonify({"message": "Usuário cadastrado com sucesso"})
