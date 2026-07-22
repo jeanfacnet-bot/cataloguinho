@@ -993,6 +993,23 @@ function resetFormMode() {
   }
 }
 
+if (cancelEditBtn) {
+  cancelEditBtn.addEventListener("click", function () {
+    resetFormMode();
+    clearMessage();
+
+    showMessage(
+      "Edição cancelada. O formulário voltou ao modo de cadastro.",
+      "success"
+    );
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  });
+}
+
 
 async function loadStates() {
   try {
