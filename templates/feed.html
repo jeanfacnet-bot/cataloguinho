@@ -105,7 +105,7 @@
 	}
 
 	.feed-media-wrap {
-	  flex: 1;
+	  flex: 0 0 calc(100% - 170px);
 	  background: #000;
 	  display: flex;
 	  align-items: center;
@@ -124,9 +124,14 @@
 	}
 
 	.feed-info {
-	  padding: 16px;
+	  flex: 0 0 170px;
+	  padding: 18px 16px;
 	  background: white;
 	  border-top: 1px solid #eee;
+	  display: flex;
+	  flex-direction: column;
+	  justify-content: space-between;
+	  box-sizing: border-box;
 	}
 
 	.feed-title {
@@ -143,9 +148,14 @@
 
 	.feed-link {
 	  display: inline-block;
+	  margin-top: 14px;
+	  padding: 12px 18px;
+	  border-radius: 10px;
+	  background: #2563eb;
+	  color: white;
 	  text-decoration: none;
-	  color: #0d6efd;
 	  font-weight: bold;
+	  text-align: center;
 	}
 
 	.empty-box {
