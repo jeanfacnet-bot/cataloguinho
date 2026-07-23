@@ -236,9 +236,13 @@ function renderResults(items) {
 
 	const fragment = document.createDocumentFragment();
 
-	items.forEach(item => {
+	items.forEach((item, index) => {
 	  const card = document.createElement("div");
 	  card.className = "result-card";
+
+	  const isPriorityImage =
+		index === 0 &&
+		Boolean(item.main_image);
 
 	  card.innerHTML = `
 		  <h3 class="ad-title-row mobile-ad-title">
@@ -320,7 +324,13 @@ function renderResults(items) {
 		  item.main_image
 			? `
 			  <div class="result-image">
-				<img src="${item.main_image}" alt="${item.title}" loading="lazy">
+				<img
+				  src="${item.main_image}"
+				  alt="${item.title || "Imagem do anúncio"}"
+				  loading="${isPriorityImage ? "eager" : "lazy"}"
+				  decoding="async"
+				  fetchpriority="${isPriorityImage ? "high" : "low"}"
+				>
 			  </div>
 			`
 			: ""
