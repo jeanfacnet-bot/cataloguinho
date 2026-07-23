@@ -7,7 +7,8 @@ from flask import (
     redirect,
     url_for,
     send_from_directory,
-    Response
+    Response,
+    abort
 )
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -15,6 +16,7 @@ from sqlalchemy import case, or_
 from datetime import datetime, timedelta, UTC
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
+from PIL import Image, ImageOps
 import os
 import json
 import gzip
@@ -30,6 +32,7 @@ from functools import wraps
 from flask_mail import Mail, Message
 import secrets
 import hashlib
+
 
 
 load_dotenv()
@@ -104,11 +107,35 @@ mail = Mail(app)
 RENDER_DISK_PATH = os.getenv("RENDER_DISK_PATH", "")
 UPLOAD_BASE = RENDER_DISK_PATH if RENDER_DISK_PATH else os.path.join("static", "uploads")
 
-UPLOAD_IMAGE_FOLDER = os.path.join(UPLOAD_BASE, "images")
-UPLOAD_VIDEO_FOLDER = os.path.join(UPLOAD_BASE, "videos")
+UPLOAD_IMAGE_FOLDER = os.path.join(
+    UPLOAD_BASE,
+    "images"
+)
 
-os.makedirs(UPLOAD_IMAGE_FOLDER, exist_ok=True)
-os.makedirs(UPLOAD_VIDEO_FOLDER, exist_ok=True)
+UPLOAD_VIDEO_FOLDER = os.path.join(
+    UPLOAD_BASE,
+    "videos"
+)
+
+UPLOAD_THUMBNAIL_FOLDER = os.path.join(
+    UPLOAD_BASE,
+    "thumbnails"
+)
+
+os.makedirs(
+    UPLOAD_IMAGE_FOLDER,
+    exist_ok=True
+)
+
+os.makedirs(
+    UPLOAD_VIDEO_FOLDER,
+    exist_ok=True
+)
+
+os.makedirs(
+    UPLOAD_THUMBNAIL_FOLDER,
+    exist_ok=True
+)
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
 ALLOWED_VIDEO_EXTENSIONS = {"mp4"}
@@ -1144,6 +1171,84 @@ def ensure_admin_user():
     
 def allowed_file(filename, allowed_extensions):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed_extensions
+    
+def get_vitrine_thumbnail_url(
+    original_image_url
+):
+    if not original_image_url:
+        return None
+
+    original_path = resolve_media_file_path(
+        original_image_url
+    )
+
+    if (
+        not original_path
+        or not os.path.isfile(original_path)
+    ):
+        return original_image_url
+
+    original_filename = os.path.basename(
+        original_path
+    )
+
+    filename_without_extension = (
+        os.path.splitext(
+            original_filename
+        )[0]
+    )
+
+    thumbnail_filename = (
+        f"{filename_without_extension}.webp"
+    )
+
+    thumbnail_path = os.path.join(
+        UPLOAD_THUMBNAIL_FOLDER,
+        thumbnail_filename
+    )
+
+    if not os.path.isfile(thumbnail_path):
+        try:
+            with Image.open(
+                original_path
+            ) as image:
+                image = ImageOps.exif_transpose(
+                    image
+                )
+
+                if image.mode not in (
+                    "RGB",
+                    "RGBA"
+                ):
+                    image = image.convert("RGB")
+
+                image.thumbnail(
+                    (500, 500),
+                    Image.Resampling.LANCZOS
+                )
+
+                image.save(
+                    thumbnail_path,
+                    format="WEBP",
+                    quality=75,
+                    method=6,
+                    optimize=True
+                )
+
+        except Exception as error:
+            print(
+                "Erro ao gerar miniatura:",
+                original_path,
+                error,
+                flush=True
+            )
+
+            return original_image_url
+
+    return (
+        f"/media/thumbnails/"
+        f"{thumbnail_filename}"
+    )    
 
 def resolve_media_file_path(media_url):
     if not media_url:
@@ -3035,14 +3140,40 @@ def create_ad():
 def vitrine_page():
     return render_template("vitrine.html")
     
-@app.route("/vitrine-ads", methods=["GET"])
+@app.route(
+    "/vitrine-ads",
+    methods=["GET"]
+)
 def vitrine_ads():
-    state = request.args.get("state", "").strip()
-    city = request.args.get("city", "").strip()
+    state = request.args.get(
+        "state",
+        ""
+    ).strip()
+
+    city = request.args.get(
+        "city",
+        ""
+    ).strip()
+
     neighborhood = request.args.get(
         "neighborhood",
         ""
     ).strip()
+
+    try:
+        page = max(
+            int(
+                request.args.get(
+                    "page",
+                    1
+                )
+            ),
+            1
+        )
+    except (TypeError, ValueError):
+        page = 1
+
+    per_page = 24
 
     allowed_plans = [
         plan
@@ -3054,46 +3185,117 @@ def vitrine_ads():
             "VIP_OURO",
             "VIP_PREMIUM"
         ]
-        if get_plan_rules(plan)["can_use_vitrine"]
+        if get_plan_rules(
+            plan
+        )["can_use_vitrine"]
     ]
 
-    query = Ad.query.join(
-        User,
-        Ad.user_id == User.id
-    ).filter(
-        Ad.is_active == True,
-        Ad.main_image.isnot(None),
-        Ad.plan.in_(allowed_plans),
-        or_(
-            Ad.blocked_until.is_(None),
-            Ad.blocked_until <= utc_now()
-        ),
-        or_(
-            User.blocked_until.is_(None),
-            User.blocked_until <= utc_now()
+    query = (
+        db.session.query(
+            Ad.id,
+            Ad.title,
+            Ad.phone,
+            Ad.city,
+            Ad.neighborhood,
+            Ad.street,
+            Ad.main_image,
+            Ad.plan,
+            Ad.created_at
+        )
+        .join(
+            User,
+            Ad.user_id == User.id
+        )
+        .filter(
+            Ad.is_active.is_(True),
+            Ad.main_image.isnot(None),
+            Ad.plan.in_(allowed_plans),
+            or_(
+                Ad.blocked_until.is_(None),
+                Ad.blocked_until
+                <= utc_now()
+            ),
+            or_(
+                User.blocked_until.is_(None),
+                User.blocked_until
+                <= utc_now()
+            )
         )
     )
 
     if state:
-        query = query.filter(Ad.state == state)
+        query = query.filter(
+            Ad.state == state
+        )
 
     if city:
-        query = query.filter(Ad.city == city)
+        query = query.filter(
+            Ad.city == city
+        )
 
     if neighborhood:
         query = query.filter(
-            Ad.neighborhood == neighborhood
+            Ad.neighborhood
+            == neighborhood
         )
 
-    ads = query.order_by(
-        plan_priority_case(),
-        Ad.created_at.desc()
-    ).limit(100).all()
+    rows = (
+        query
+        .order_by(
+            plan_priority_case(),
+            Ad.created_at.desc()
+        )
+        .offset(
+            (page - 1) * per_page
+        )
+        .limit(
+            per_page + 1
+        )
+        .all()
+    )
 
-    return jsonify([
-        serialize_ad(ad)
-        for ad in ads
-    ])
+    has_more = len(rows) > per_page
+
+    rows = rows[:per_page]
+
+    items = []
+
+    for row in rows:
+        thumbnail_url = (
+            get_vitrine_thumbnail_url(
+                row.main_image
+            )
+        )
+
+        items.append({
+            "id": row.id,
+            "title": row.title,
+            "phone": row.phone,
+            "city": row.city,
+            "neighborhood": (
+                row.neighborhood
+            ),
+            "street": row.street,
+            "plan": row.plan,
+            "main_image": (
+                row.main_image
+            ),
+            "vitrine_image": (
+                thumbnail_url
+            )
+        })
+
+    response = jsonify({
+        "items": items,
+        "page": page,
+        "has_more": has_more
+    })
+
+    response.headers["Cache-Control"] = (
+        "public, max-age=60"
+    )
+
+    return response
 
 @app.route("/my-ads/<int:user_id>", methods=["GET"])
 def get_my_ads(user_id):
@@ -4772,13 +4974,62 @@ def admin_dashboard_data():
         "top_search_terms": top_search_terms
     }) 
     
-@app.route("/media/images/<path:filename>")
+@app.route(
+    "/media/images/<path:filename>"
+)
 def serve_uploaded_image(filename):
-    return send_from_directory(UPLOAD_IMAGE_FOLDER, filename)
+    response = send_from_directory(
+        UPLOAD_IMAGE_FOLDER,
+        filename,
+        conditional=True
+    )
 
-@app.route("/media/videos/<path:filename>")
+    response.headers["Cache-Control"] = (
+        "public, max-age=2592000, immutable"
+    )
+
+    return response
+
+
+@app.route(
+    "/media/thumbnails/<path:filename>"
+)
+def serve_vitrine_thumbnail(filename):
+    safe_filename = os.path.basename(
+        filename
+    )
+
+    thumbnail_path = os.path.join(
+        UPLOAD_THUMBNAIL_FOLDER,
+        safe_filename
+    )
+
+    if not os.path.isfile(thumbnail_path):
+        abort(404)
+
+    response = send_from_directory(
+        UPLOAD_THUMBNAIL_FOLDER,
+        safe_filename,
+        conditional=True
+    )
+
+    response.headers["Cache-Control"] = (
+        "public, max-age=2592000, immutable"
+    )
+
+    return response
+
+
+@app.route(
+    "/media/videos/<path:filename>"
+)
 def serve_uploaded_video(filename):
-    return send_from_directory(UPLOAD_VIDEO_FOLDER, filename)
+    return send_from_directory(
+        UPLOAD_VIDEO_FOLDER,
+        filename,
+        conditional=True
+    )
+    
     
 # =========================
 # INIT DATABASE

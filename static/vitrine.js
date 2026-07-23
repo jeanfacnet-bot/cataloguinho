@@ -1,11 +1,17 @@
 const grid =
-  document.getElementById("vitrineGrid");
+  document.getElementById(
+    "vitrineGrid"
+  );
 
 const stateSelect =
-  document.getElementById("vitrineState");
+  document.getElementById(
+    "vitrineState"
+  );
 
 const citySelect =
-  document.getElementById("vitrineCity");
+  document.getElementById(
+    "vitrineCity"
+  );
 
 const neighborhoodSelect =
   document.getElementById(
@@ -16,7 +22,7 @@ const filterButton =
   document.getElementById(
     "vitrineFilterBtn"
   );
-  
+
 const floatingFilterButton =
   document.getElementById(
     "vitrineFloatingFilterBtn"
@@ -35,17 +41,72 @@ const filterPanel =
 const filterOverlay =
   document.getElementById(
     "vitrineFilterOverlay"
-  );  
+  );
+
+let currentPage = 1;
+let hasMorePages = false;
+let isLoadingVitrine = false;
+
+const loadMoreButton =
+  document.createElement("button");
+
+loadMoreButton.type = "button";
+loadMoreButton.id =
+  "vitrineLoadMoreBtn";
+
+loadMoreButton.textContent =
+  "Carregar mais";
+
+loadMoreButton.style.display =
+  "none";
+
+loadMoreButton.style.margin =
+  "24px auto";
+
+loadMoreButton.style.padding =
+  "12px 24px";
+
+loadMoreButton.style.border =
+  "none";
+
+loadMoreButton.style.borderRadius =
+  "10px";
+
+loadMoreButton.style.background =
+  "#2563eb";
+
+loadMoreButton.style.color =
+  "#ffffff";
+
+loadMoreButton.style.fontWeight =
+  "700";
+
+loadMoreButton.style.cursor =
+  "pointer";
+
+grid.insertAdjacentElement(
+  "afterend",
+  loadMoreButton
+);
 
 function openVitrineFilterPanel() {
-  if (!filterPanel || !filterOverlay) {
+  if (
+    !filterPanel ||
+    !filterOverlay
+  ) {
     return;
   }
 
-  filterPanel.classList.add("open");
-  filterOverlay.classList.add("open");
+  filterPanel.classList.add(
+    "open"
+  );
 
-  document.body.style.overflow = "hidden";
+  filterOverlay.classList.add(
+    "open"
+  );
+
+  document.body.style.overflow =
+    "hidden";
 
   if (floatingFilterButton) {
     floatingFilterButton.setAttribute(
@@ -56,14 +117,23 @@ function openVitrineFilterPanel() {
 }
 
 function closeVitrineFilterPanel() {
-  if (!filterPanel || !filterOverlay) {
+  if (
+    !filterPanel ||
+    !filterOverlay
+  ) {
     return;
   }
 
-  filterPanel.classList.remove("open");
-  filterOverlay.classList.remove("open");
+  filterPanel.classList.remove(
+    "open"
+  );
 
-  document.body.style.overflow = "";
+  filterOverlay.classList.remove(
+    "open"
+  );
+
+  document.body.style.overflow =
+    "";
 
   if (floatingFilterButton) {
     floatingFilterButton.setAttribute(
@@ -92,13 +162,11 @@ async function loadStates() {
     );
 
     const response = await fetch(
-      "/locations/states",
-      {
-        cache: "no-store"
-      }
+      "/locations/states"
     );
 
-    const states = await response.json();
+    const states =
+      await response.json();
 
     if (
       !response.ok ||
@@ -111,13 +179,18 @@ async function loadStates() {
 
     states.forEach((state) => {
       const option =
-        document.createElement("option");
+        document.createElement(
+          "option"
+        );
 
       option.value = state.sigla;
+
       option.textContent =
         `${state.nome} (${state.sigla})`;
 
-      stateSelect.appendChild(option);
+      stateSelect.appendChild(
+        option
+      );
     });
   } catch (error) {
     console.error(
@@ -146,13 +219,11 @@ async function loadCities(state) {
     const response = await fetch(
       `/locations/cities?uf=${
         encodeURIComponent(state)
-      }`,
-      {
-        cache: "no-store"
-      }
+      }`
     );
 
-    const cities = await response.json();
+    const cities =
+      await response.json();
 
     if (
       !response.ok ||
@@ -165,12 +236,16 @@ async function loadCities(state) {
 
     cities.forEach((city) => {
       const option =
-        document.createElement("option");
+        document.createElement(
+          "option"
+        );
 
       option.value = city.nome;
       option.textContent = city.nome;
 
-      citySelect.appendChild(option);
+      citySelect.appendChild(
+        option
+      );
     });
   } catch (error) {
     console.error(
@@ -194,18 +269,16 @@ async function loadNeighborhoods(
   }
 
   try {
-    const params = new URLSearchParams({
-      city,
-      state
-    });
+    const params =
+      new URLSearchParams({
+        city,
+        state
+      });
 
     const response = await fetch(
       `/locations/neighborhoods?${
         params.toString()
-      }`,
-      {
-        cache: "no-store"
-      }
+      }`
     );
 
     const neighborhoods =
@@ -227,7 +300,9 @@ async function loadNeighborhoods(
           neighborhood;
 
         const option =
-          document.createElement("option");
+          document.createElement(
+            "option"
+          );
 
         option.value = name;
         option.textContent = name;
@@ -245,9 +320,111 @@ async function loadNeighborhoods(
   }
 }
 
-async function loadVitrine() {
+function createVitrineItem(
+  ad,
+  index
+) {
+  const item =
+    document.createElement("div");
+
+  item.className = "vitrine-item";
+
+  const imageLoading =
+    index < 4 &&
+    currentPage === 1
+      ? "eager"
+      : "lazy";
+
+  const imagePriority =
+    index < 4 &&
+    currentPage === 1
+      ? "high"
+      : "low";
+
+  const imageUrl =
+    ad.vitrine_image ||
+    ad.main_image ||
+    "";
+
+  item.innerHTML = `
+    <img
+      src="${imageUrl}"
+      alt="${ad.title || ""}"
+      loading="${imageLoading}"
+      decoding="async"
+      fetchpriority="${imagePriority}"
+      width="500"
+      height="500"
+    >
+
+    <div class="vitrine-caption">
+      <div class="vitrine-title">
+        ${ad.title || ""}
+      </div>
+
+      <div class="vitrine-phone">
+        📞 ${
+          ad.phone ||
+          "Não informado"
+        }
+      </div>
+
+      <div class="vitrine-address">
+        ${ad.city || ""}
+        ${
+          ad.neighborhood
+            ? " - " +
+              ad.neighborhood
+            : ""
+        }
+        ${
+          ad.street
+            ? " - " + ad.street
+            : ""
+        }
+      </div>
+    </div>
+  `;
+
+  item.addEventListener(
+    "click",
+    () => {
+      window.location.href =
+        `/item/${ad.id}/view?from=vitrine`;
+    }
+  );
+
+  return item;
+}
+
+async function loadVitrine({
+  reset = false
+} = {}) {
+  if (isLoadingVitrine) {
+    return;
+  }
+
+  isLoadingVitrine = true;
+
+  if (reset) {
+    currentPage = 1;
+    grid.innerHTML =
+      "<p>Carregando vitrine...</p>";
+
+    loadMoreButton.style.display =
+      "none";
+  } else {
+    loadMoreButton.disabled = true;
+
+    loadMoreButton.textContent =
+      "Carregando...";
+  }
+
   try {
-    const params = new URLSearchParams();
+    const params =
+      new URLSearchParams({
+        page: String(currentPage)
+      });
 
     if (stateSelect.value) {
       params.append(
@@ -270,96 +447,92 @@ async function loadVitrine() {
       );
     }
 
-    grid.innerHTML =
-      "<p>Carregando vitrine...</p>";
-
     const response = await fetch(
-      `/vitrine-ads?${params.toString()}`,
-      {
-        cache: "no-store"
-      }
+      `/vitrine-ads?${
+        params.toString()
+      }`
     );
 
-    const ads = await response.json();
+    const data =
+      await response.json();
 
     if (
       !response.ok ||
-      !Array.isArray(ads)
+      !data ||
+      !Array.isArray(data.items)
     ) {
       throw new Error(
         "Não foi possível carregar a vitrine."
       );
     }
 
-    grid.innerHTML = "";
+    if (reset) {
+      grid.innerHTML = "";
+    }
 
-    if (!ads.length) {
+    if (
+      reset &&
+      !data.items.length
+    ) {
       grid.innerHTML = `
         <p>
           Nenhum anúncio encontrado
           para essa região.
         </p>
       `;
+
+      hasMorePages = false;
+      loadMoreButton.style.display =
+        "none";
+
       return;
     }
 
-    ads.forEach((ad) => {
-      const div =
-        document.createElement("div");
+    const fragment =
+      document.createDocumentFragment();
 
-      div.className = "vitrine-item";
+    data.items.forEach(
+      (ad, index) => {
+        fragment.appendChild(
+          createVitrineItem(
+            ad,
+            index
+          )
+        );
+      }
+    );
 
-      div.innerHTML = `
-        <img
-          src="${ad.main_image}"
-          alt="${ad.title || ""}"
-          loading="lazy"
-        >
+    grid.appendChild(fragment);
 
-        <div class="vitrine-caption">
-          <div class="vitrine-title">
-            ${ad.title || ""}
-          </div>
+    hasMorePages =
+      Boolean(data.has_more);
 
-          <div class="vitrine-phone">
-            📞 ${ad.phone || "Não informado"}
-          </div>
+    loadMoreButton.style.display =
+      hasMorePages
+        ? "block"
+        : "none";
 
-          <div class="vitrine-address">
-            ${ad.city || ""}
-            ${
-              ad.neighborhood
-                ? " - " + ad.neighborhood
-                : ""
-            }
-            ${
-              ad.street
-                ? " - " + ad.street
-                : ""
-            }
-          </div>
-        </div>
-      `;
-
-      div.addEventListener(
-        "click",
-        () => {
-          window.location.href =
-            `/item/${ad.id}/view?from=vitrine`;
-        }
-      );
-
-      grid.appendChild(div);
-    });
   } catch (error) {
     console.error(
       "Erro ao carregar vitrine:",
       error
     );
 
-    grid.innerHTML = `
-      <p>Erro ao carregar vitrine.</p>
-    `;
+    if (reset) {
+      grid.innerHTML = `
+        <p>
+          Erro ao carregar vitrine.
+        </p>
+      `;
+    }
+  } finally {
+    isLoadingVitrine = false;
+
+    loadMoreButton.disabled =
+      false;
+
+    loadMoreButton.textContent =
+      "Carregar mais";
   }
 }
 
@@ -385,8 +558,29 @@ citySelect.addEventListener(
 filterButton.addEventListener(
   "click",
   async () => {
-    await loadVitrine();
+    await loadVitrine({
+      reset: true
+    });
+
     closeVitrineFilterPanel();
+  }
+);
+
+loadMoreButton.addEventListener(
+  "click",
+  async () => {
+    if (
+      isLoadingVitrine ||
+      !hasMorePages
+    ) {
+      return;
+    }
+
+    currentPage += 1;
+
+    await loadVitrine({
+      reset: false
+    });
   }
 );
 
@@ -424,6 +618,9 @@ document.addEventListener(
   "DOMContentLoaded",
   async () => {
     await loadStates();
-    await loadVitrine();
+
+    await loadVitrine({
+      reset: true
+    });
   }
 );
