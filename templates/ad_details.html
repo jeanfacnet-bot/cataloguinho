@@ -164,6 +164,36 @@
 	  align-items: center;
 	  gap: 7px;
 	}
+	
+	.report-footer {
+	  margin-top: 28px;
+	  padding-top: 18px;
+	  border-top: 1px solid #e5e7eb;
+
+	  display: flex;
+	  justify-content: flex-start;
+	}
+
+	.report-footer-btn {
+	  background: transparent;
+	  border: none;
+
+	  color: #dc2626;
+	  font-size: 15px;
+	  font-weight: 600;
+
+	  cursor: pointer;
+
+	  display: inline-flex;
+	  align-items: center;
+	  gap: 8px;
+
+	  padding: 0;
+	}
+
+	.report-footer-btn:hover {
+	  text-decoration: underline;
+	}
 
 	.back-link .button-icon {
 	  width: 18px;
@@ -437,6 +467,17 @@
 				<polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
 			  </svg>
 			`
+			report: `
+			  <svg
+				class="button-icon"
+				viewBox="0 0 24 24"
+				aria-hidden="true"
+			  >
+				<path d="M12 9v4"></path>
+				<path d="M12 17h.01"></path>
+				<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+			  </svg>
+			`  
 		  };
 
 		  return icons[iconName] || "";
@@ -456,6 +497,10 @@
 			`https://wa.me/?text=${encodeURIComponent(message)}`;
 
 		  window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+		}
+		
+		function reportAd(adId) {
+		  window.location.href = `/report/${adId}`;
 		}
 
 		function buildContactSection(ad) {
@@ -559,6 +604,17 @@
 
 			${imageHtml}
 			${videoHtml}
+
+			<div class="report-footer">
+			  <button
+				type="button"
+				class="report-footer-btn"
+				onclick="reportAd(currentAd.id)"
+			  >
+				${getDetailIcon("report")}
+				Denunciar anúncio
+			  </button>
+			</div>}
 		`;
 		}
 
