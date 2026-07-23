@@ -92,11 +92,8 @@ async function loadStates() {
     );
 
     const response = await fetch(
-      "/locations/states",
-      {
-        cache: "no-store"
-      }
-    );
+	  "/locations/states"
+	);
 
     const states = await response.json();
 
@@ -274,11 +271,8 @@ async function loadVitrine() {
       "<p>Carregando vitrine...</p>";
 
     const response = await fetch(
-      `/vitrine-ads?${params.toString()}`,
-      {
-        cache: "no-store"
-      }
-    );
+	  `/vitrine-ads?${params.toString()}`
+	);
 
     const ads = await response.json();
 
@@ -303,18 +297,20 @@ async function loadVitrine() {
       return;
     }
 
-    ads.forEach((ad) => {
+    ads.forEach((ad, index) => {
       const div =
         document.createElement("div");
 
       div.className = "vitrine-item";
 
       div.innerHTML = `
-        <img
-          src="${ad.main_image}"
-          alt="${ad.title || ""}"
-          loading="lazy"
-        >
+		  <img
+			  src="${ad.main_image}"
+			  alt="${ad.title || ""}"
+			  loading="${index < 4 ? 'eager' : 'lazy'}"
+			  decoding="async"
+			  fetchpriority="${index < 4 ? 'high' : 'low'}"
+			>
 
         <div class="vitrine-caption">
           <div class="vitrine-title">
