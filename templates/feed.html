@@ -551,8 +551,11 @@
 	  );
 
 	  const response = await fetch(
-		  "/locations/states"
-		);
+		"/locations/states",
+		{
+		  cache: "no-store"
+		}
+	  );
 
 	  const states = await response.json();
 
@@ -696,36 +699,41 @@
 	}
 	
 	function setupVideoAutoplay() {
-	  const videos =
-		document.querySelectorAll(
-		  ".feed-video"
-		);
+	  const cards = document.querySelectorAll(".feed-card");
 
-	  const observer =
-		new IntersectionObserver(
-		  (entries) => {
-			entries.forEach((entry) => {
-			  const video = entry.target;
+	  function updateVisibleVideo() {
+		let bestCard = null;
+		let bestVisibleArea = 0;
 
-			  if (
-				entry.isIntersecting &&
-				entry.intersectionRatio >= 0.6
-			  ) {
-				video.play().catch(() => {});
-			  } else {
-				video.pause();
-			  }
-			});
-		  },
-		  {
-			root: feedContent,
-			threshold: [0.6]
+		cards.forEach((card) => {
+		  const rect = card.getBoundingClientRect();
+		  const visibleTop = Math.max(rect.top, 0);
+		  const visibleBottom = Math.min(rect.bottom, window.innerHeight);
+		  const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+
+		  if (visibleHeight > bestVisibleArea) {
+			bestVisibleArea = visibleHeight;
+			bestCard = card;
 		  }
-		);
+		});
 
-	  videos.forEach((video) => {
-		observer.observe(video);
-	  });
+		cards.forEach((card) => {
+		  const video = card.querySelector(".feed-video");
+		  if (!video) return;
+
+		  if (card === bestCard) {
+			video.play().catch(() => {});
+		  } else {
+			video.pause();
+			video.currentTime = 0;
+		  }
+		});
+	  }
+
+	  feedContent.addEventListener("scroll", updateVisibleVideo);
+	  window.addEventListener("resize", updateVisibleVideo);
+
+	  setTimeout(updateVisibleVideo, 300);
 	}
 
     function renderFeed(items) {
@@ -736,29 +744,25 @@
       }
 
 		feedContent.className = "feed-grid";
-		feedContent.innerHTML = items.map((item, index) => `
+		feedContent.innerHTML = items.map(item => `
 		  <section class="feed-card">
 			<div class="feed-media-wrap">
 			  ${
 				item.type === "image"
-				  ? `<img
-					   src="${item.url}"
-					   alt="${item.title || ""}"
-					   class="feed-media"
-					   loading="${index === 0 ? 'eager' : 'lazy'}"
-					   decoding="async"
-					   fetchpriority="${index === 0 ? 'high' : 'low'}"
-					 >
+				  ? `<img src="${item.url}" alt="${item.title}" class="feed-media">`
 				  : `<video
 					  controls
 					  muted
+					  autoplay
 					  loop
 					  playsinline
 					  webkit-playsinline
-					  preload="metadata"
+					  preload="auto"
 					  class="feed-media feed-video"
 					  src="${item.url}"
 					  onclick="toggleVideo(this)">
+					  Seu navegador não suporta vídeo.
+				     </video>`
 			  }
 			</div>
 
@@ -810,7 +814,10 @@
 		  "<p>Carregando feed...</p>";
 
 		const response = await fetch(
-		  `/feed?${params.toString()}`
+		  `/feed?${params.toString()}`,
+		  {
+			cache: "no-store"
+		  }
 		);
 
 		const items = await response.json();
