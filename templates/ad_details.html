@@ -194,6 +194,66 @@
 	.report-footer-btn:hover {
 	  text-decoration: underline;
 	}
+	
+	.details-report-box {
+	  display: none;
+	  margin-top: 18px;
+	  padding: 18px;
+	  background: #fff7f7;
+	  border: 1px solid #fecaca;
+	  border-radius: 12px;
+	}
+
+	.details-report-box label {
+	  display: block;
+	  margin-bottom: 8px;
+	  font-weight: 700;
+	  color: #991b1b;
+	}
+
+	.details-report-box select,
+	.details-report-box textarea {
+	  width: 100%;
+	  box-sizing: border-box;
+	  border: 1px solid #d1d5db;
+	  border-radius: 10px;
+	  padding: 11px 12px;
+	  font-family: inherit;
+	  font-size: 14px;
+	}
+
+	.details-report-box textarea {
+	  min-height: 100px;
+	  resize: vertical;
+	  margin-top: 12px;
+	}
+
+	.details-report-actions {
+	  display: flex;
+	  gap: 10px;
+	  flex-wrap: wrap;
+	  margin-top: 12px;
+	}
+
+	.details-report-send,
+	.details-report-cancel {
+	  border: none;
+	  border-radius: 10px;
+	  padding: 11px 15px;
+	  font-family: inherit;
+	  font-weight: 700;
+	  cursor: pointer;
+	}
+
+	.details-report-send {
+	  background: #dc2626;
+	  color: white;
+	}
+
+	.details-report-cancel {
+	  background: #e5e7eb;
+	  color: #374151;
+	}
 
 	.back-link .button-icon {
 	  width: 18px;
@@ -466,7 +526,8 @@
 			  >
 				<polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
 			  </svg>
-			`
+			`,
+
 			report: `
 			  <svg
 				class="button-icon"
@@ -477,7 +538,7 @@
 				<path d="M12 17h.01"></path>
 				<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
 			  </svg>
-			`  
+			`
 		  };
 
 		  return icons[iconName] || "";
@@ -500,7 +561,90 @@
 		}
 		
 		function reportAd(adId) {
-		  window.location.href = `/report/${adId}`;
+		  const reportBox = document.getElementById("detailsReportBox");
+
+		  if (!reportBox) return;
+
+		  reportBox.style.display =
+			reportBox.style.display === "block"
+			  ? "none"
+			  : "block";
+		}
+		
+		async function sendDetailsReport(adId) {
+		  const select =
+			document.getElementById("detailsReportReason");
+
+		  const textArea =
+			document.getElementById("detailsReportText");
+
+		  if (!select || !textArea) return;
+
+		  const selectedReason = select.value.trim();
+		  const details = textArea.value.trim();
+
+		  if (!selectedReason) {
+			alert("Selecione o motivo da denúncia.");
+			return;
+		  }
+
+		  let finalReason = selectedReason;
+
+		  if (details) {
+			finalReason += ` | Detalhes: ${details}`;
+		  }
+
+		  try {
+			const response = await fetch("/reports", {
+			  method: "POST",
+			  credentials: "same-origin",
+			  headers: {
+				"Content-Type": "application/json"
+			  },
+			  body: JSON.stringify({
+				ad_id: adId,
+				reason: finalReason
+			  })
+			});
+
+			let data = {};
+
+			try {
+			  data = await response.json();
+			} catch (error) {
+			  console.warn(
+				"Resposta inválida ao enviar denúncia:",
+				error
+			  );
+			}
+
+			if (!response.ok) {
+			  alert(
+				data.message ||
+				"Não foi possível enviar a denúncia."
+			  );
+			  return;
+			}
+
+			alert("Denúncia enviada com sucesso.");
+
+			select.value = "";
+			textArea.value = "";
+
+			const reportBox =
+			  document.getElementById("detailsReportBox");
+
+			if (reportBox) {
+			  reportBox.style.display = "none";
+			}
+		  } catch (error) {
+			console.error(
+			  "Erro ao enviar denúncia:",
+			  error
+			);
+
+			alert("Erro ao enviar denúncia.");
+		  }
 		}
 
 		function buildContactSection(ad) {
@@ -614,7 +758,65 @@
 				${getDetailIcon("report")}
 				Denunciar anúncio
 			  </button>
-			</div>}
+			</div>
+
+			<div id="detailsReportBox" class="details-report-box">
+			  <label for="detailsReportReason">
+				Motivo da denúncia
+			  </label>
+
+			  <select id="detailsReportReason">
+				<option value="">Selecione um motivo</option>
+				<option value="Produto ou serviço não existe">
+				  Produto ou serviço não existe
+				</option>
+				<option value="Conteúdo inadequado">
+				  Conteúdo inadequado
+				</option>
+				<option value="Informações falsas ou enganosas">
+				  Informações falsas ou enganosas
+				</option>
+				<option value="Golpe ou tentativa de fraude">
+				  Golpe ou tentativa de fraude
+				</option>
+				<option value="Spam ou anúncio repetido">
+				  Spam ou anúncio repetido
+				</option>
+				<option value="Telefone ou contato inválido">
+				  Telefone ou contato inválido
+				</option>
+				<option value="Endereço incorreto">
+				  Endereço incorreto
+				</option>
+				<option value="Outro">
+				  Outro
+				</option>
+			  </select>
+
+			  <textarea
+				id="detailsReportText"
+				maxlength="300"
+				placeholder="Descreva melhor o problema (opcional)"
+			  ></textarea>
+
+			  <div class="details-report-actions">
+				<button
+				  type="button"
+				  class="details-report-send"
+				  onclick="sendDetailsReport(currentAd.id)"
+				>
+				  Enviar denúncia
+				</button>
+
+				<button
+				  type="button"
+				  class="details-report-cancel"
+				  onclick="reportAd(currentAd.id)"
+				>
+				  Cancelar
+				</button>
+			  </div>
+			</div>
 		`;
 		}
 
