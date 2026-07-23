@@ -3768,79 +3768,176 @@ def feed_page():
     return render_template("feed.html")
 
 
-@app.route("/feed", methods=["GET"])
+@app.route(
+    "/feed",
+    methods=["GET"]
+)
 def get_feed():
-    state = request.args.get("state", "").strip()
-    city = request.args.get("city", "").strip()
+    state = request.args.get(
+        "state",
+        ""
+    ).strip()
+
+    city = request.args.get(
+        "city",
+        ""
+    ).strip()
+
     neighborhood = request.args.get(
         "neighborhood",
         ""
     ).strip()
 
-    query = Ad.query.join(
-        User,
-        Ad.user_id == User.id
-    ).filter(
-        Ad.is_active == True,
-        or_(
-            Ad.main_image.isnot(None),
-            Ad.main_video.isnot(None)
-        ),
-        or_(
-            Ad.blocked_until.is_(None),
-            Ad.blocked_until <= utc_now()
-        ),
-        or_(
-            User.blocked_until.is_(None),
-            User.blocked_until <= utc_now()
+    try:
+        page = max(
+            int(
+                request.args.get(
+                    "page",
+                    1
+                )
+            ),
+            1
+        )
+    except (TypeError, ValueError):
+        page = 1
+
+    per_page = 8
+
+    query = (
+        db.session.query(
+            Ad.id,
+            Ad.title,
+            Ad.main_image,
+            Ad.main_video,
+            Ad.plan,
+            Ad.created_at
+        )
+        .join(
+            User,
+            Ad.user_id == User.id
+        )
+        .filter(
+            Ad.is_active.is_(True),
+            or_(
+                Ad.main_image.isnot(None),
+                Ad.main_video.isnot(None)
+            ),
+            or_(
+                Ad.blocked_until.is_(None),
+                Ad.blocked_until <= utc_now()
+            ),
+            or_(
+                User.blocked_until.is_(None),
+                User.blocked_until <= utc_now()
+            )
         )
     )
 
     if state:
-        query = query.filter(Ad.state == state)
+        query = query.filter(
+            Ad.state == state
+        )
 
     if city:
-        query = query.filter(Ad.city == city)
+        query = query.filter(
+            Ad.city == city
+        )
 
     if neighborhood:
         query = query.filter(
             Ad.neighborhood == neighborhood
         )
 
-    ads = query.order_by(
-        plan_priority_case(),
-        Ad.created_at.desc()
-    ).all()
+    rows = (
+        query
+        .order_by(
+            plan_priority_case(),
+            Ad.created_at.desc()
+        )
+        .offset(
+            (page - 1) * per_page
+        )
+        .limit(
+            per_page + 1
+        )
+        .all()
+    )
+
+    has_more = len(rows) > per_page
+
+    rows = rows[:per_page]
 
     feed_items = []
 
-    for ad in ads:
-        plan_rules = get_plan_rules(ad.plan)
+    for row in rows:
+        plan_rules = get_plan_rules(
+            row.plan
+        )
 
-        if not plan_rules.get("can_use_vitrine", False):
+        if not plan_rules.get(
+            "can_use_vitrine",
+            False
+        ):
             continue
 
-        if plan_rules.get("can_use_images", False) and ad.main_image:
+        if (
+            plan_rules.get(
+                "can_use_images",
+                False
+            )
+            and row.main_image
+        ):
             feed_items.append({
-                "ad_id": ad.id,
-                "title": ad.title,
+                "ad_id": row.id,
+                "title": row.title,
                 "type": "image",
-                "url": ad.main_image,
-                "plan": ad.plan,
-                "created_at": ad.created_at.isoformat() if ad.created_at else None
+                "url": (
+                    get_vitrine_thumbnail_url(
+                        row.main_image
+                    )
+                ),
+                "original_url": (
+                    row.main_image
+                ),
+                "plan": row.plan,
+                "created_at": (
+                    row.created_at.isoformat()
+                    if row.created_at
+                    else None
+                )
             })
 
-        if plan_rules.get("can_use_videos", False) and ad.main_video:
+        if (
+            plan_rules.get(
+                "can_use_videos",
+                False
+            )
+            and row.main_video
+        ):
             feed_items.append({
-                "ad_id": ad.id,
-                "title": ad.title,
+                "ad_id": row.id,
+                "title": row.title,
                 "type": "video",
-                "url": ad.main_video,
-                "plan": ad.plan,
-                "created_at": ad.created_at.isoformat() if ad.created_at else None
+                "url": row.main_video,
+                "plan": row.plan,
+                "created_at": (
+                    row.created_at.isoformat()
+                    if row.created_at
+                    else None
+                )
             })
 
-    return jsonify(feed_items) 
+    response = jsonify({
+        "items": feed_items,
+        "page": page,
+        "has_more": has_more
+    })
+
+    response.headers["Cache-Control"] = (
+        "public, max-age=60"
+    )
+
+    return response
 
 
 @app.route("/ads", methods=["GET"])

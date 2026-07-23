@@ -419,6 +419,17 @@
 
 		
 	function toggleVideo(video) {
+	  const videoSource =
+		video.dataset.src;
+
+	  if (
+		videoSource &&
+		!video.src
+	  ) {
+		video.src = videoSource;
+		video.load();
+	  }
+
 	  if (video.muted) {
 		video.muted = false;
 		video.play().catch(() => {});
@@ -432,28 +443,13 @@
 	  }
 	}
 	
-	function unmuteVisibleVideo() {
-	  const cards = document.querySelectorAll(".feed-card");
-
-	  cards.forEach((card) => {
-		const video = card.querySelector(".feed-video");
-		if (!video) return;
-
-		const rect = card.getBoundingClientRect();
-		const visibleTop = Math.max(rect.top, 0);
-		const visibleBottom = Math.min(rect.bottom, window.innerHeight);
-		const visibleHeight = Math.max(0, visibleBottom - visibleTop);
-
-		if (visibleHeight > window.innerHeight * 0.5) {
-		  video.muted = false;
-		  video.play().catch(() => {});
-		} else {
-		  video.muted = true;
-		}
-	  });
-	}
-	
+		
     const feedContent = document.getElementById("feedContent");
+	let currentFeedPage = 1;
+	let feedHasMore = false;
+	let feedIsLoading = false;
+	let feedObserver = null;
+	let feedScrollHandlerAdded = false;
 	
 	const feedState =
 	  document.getElementById("feedState");
@@ -699,94 +695,222 @@
 	}
 	
 	function setupVideoAutoplay() {
-	  const cards = document.querySelectorAll(".feed-card");
-
-	  function updateVisibleVideo() {
-		let bestCard = null;
-		let bestVisibleArea = 0;
-
-		cards.forEach((card) => {
-		  const rect = card.getBoundingClientRect();
-		  const visibleTop = Math.max(rect.top, 0);
-		  const visibleBottom = Math.min(rect.bottom, window.innerHeight);
-		  const visibleHeight = Math.max(0, visibleBottom - visibleTop);
-
-		  if (visibleHeight > bestVisibleArea) {
-			bestVisibleArea = visibleHeight;
-			bestCard = card;
-		  }
-		});
-
-		cards.forEach((card) => {
-		  const video = card.querySelector(".feed-video");
-		  if (!video) return;
-
-		  if (card === bestCard) {
-			video.play().catch(() => {});
-		  } else {
-			video.pause();
-			video.currentTime = 0;
-		  }
-		});
+	  if (feedObserver) {
+		feedObserver.disconnect();
 	  }
 
-	  feedContent.addEventListener("scroll", updateVisibleVideo);
-	  window.addEventListener("resize", updateVisibleVideo);
+	  const videos =
+		feedContent.querySelectorAll(
+		  ".feed-video"
+		);
 
-	  setTimeout(updateVisibleVideo, 300);
+	  feedObserver =
+		new IntersectionObserver(
+		  (entries) => {
+			entries.forEach((entry) => {
+			  const video = entry.target;
+
+			  if (
+				entry.isIntersecting &&
+				entry.intersectionRatio >= 0.65
+			  ) {
+				const videoSource =
+				  video.dataset.src;
+
+				if (
+				  videoSource &&
+				  !video.src
+				) {
+				  video.src = videoSource;
+				  video.load();
+				}
+
+				videos.forEach(
+				  (otherVideo) => {
+					if (
+					  otherVideo !== video
+					) {
+					  otherVideo.pause();
+					}
+				  }
+				);
+
+				video.play().catch(() => {});
+			  } else {
+				video.pause();
+			  }
+			});
+		  },
+		  {
+			root: feedContent,
+			threshold: [
+			  0,
+			  0.65,
+			  1
+			]
+		  }
+		);
+
+	  videos.forEach((video) => {
+		feedObserver.observe(video);
+	  });
 	}
 
-    function renderFeed(items) {
-      if (!items.length) {
-        feedContent.className = "empty-box";
-        feedContent.innerHTML = "<p>Nenhuma mídia cadastrada até o momento.</p>";
-        return;
-      }
+    function renderFeed(
+	  items,
+	  reset = false
+	) {
+	  if (
+		reset &&
+		!items.length
+	  ) {
+		feedContent.className =
+		  "empty-box";
 
-		feedContent.className = "feed-grid";
-		feedContent.innerHTML = items.map(item => `
-		  <section class="feed-card">
+		feedContent.innerHTML = `
+		  <p>
+			Nenhuma mídia cadastrada
+			até o momento.
+		  </p>
+		`;
+
+		return;
+	  }
+
+	  feedContent.className =
+		"feed-grid";
+
+	  if (reset) {
+		feedContent.innerHTML = "";
+	  }
+
+	  const fragment =
+		document.createDocumentFragment();
+
+	  items.forEach(
+		(item, index) => {
+		  const card =
+			document.createElement(
+			  "section"
+			);
+
+		  card.className =
+			"feed-card";
+
+		  const isFirstImage =
+			currentFeedPage === 1 &&
+			index === 0 &&
+			item.type === "image";
+
+		  const mediaHtml =
+			item.type === "image"
+			  ? `
+				<img
+				  src="${item.url}"
+				  alt="${item.title || ""}"
+				  class="feed-media"
+				  loading="${
+					isFirstImage
+					  ? "eager"
+					  : "lazy"
+				  }"
+				  decoding="async"
+				  fetchpriority="${
+					isFirstImage
+					  ? "high"
+					  : "low"
+				  }"
+				>
+			  `
+			  : `
+				<video
+				  controls
+				  muted
+				  loop
+				  playsinline
+				  webkit-playsinline
+				  preload="none"
+				  class="feed-media feed-video"
+				  data-src="${item.url}"
+				  onclick="toggleVideo(this)"
+				>
+				  Seu navegador não suporta vídeo.
+				</video>
+			  `;
+
+		  card.innerHTML = `
 			<div class="feed-media-wrap">
-			  ${
-				item.type === "image"
-				  ? `<img src="${item.url}" alt="${item.title}" class="feed-media">`
-				  : `<video
-					  controls
-					  muted
-					  autoplay
-					  loop
-					  playsinline
-					  webkit-playsinline
-					  preload="auto"
-					  class="feed-media feed-video"
-					  src="${item.url}"
-					  onclick="toggleVideo(this)">
-					  Seu navegador não suporta vídeo.
-				     </video>`
-			  }
+			  ${mediaHtml}
 			</div>
 
 			<div class="feed-info">
-			  <div class="feed-title">${item.title || ""}</div>
-			  <div class="feed-meta">
-				${item.plan === "VIP" ? "VIP" : "FREE"} • ${item.type === "image" ? "Foto" : "Vídeo"}
+			  <div class="feed-title">
+				${item.title || ""}
 			  </div>
+
+			  <div class="feed-meta">
+				${
+				  item.plan === "VIP"
+					? "VIP"
+					: item.plan || "FREE"
+				}
+				•
+				${
+				  item.type === "image"
+					? "Foto"
+					: "Vídeo"
+				}
+			  </div>
+
 			  <a
-			    class="feed-link"
-			    href="/item/${item.ad_id}/view?from=feed"
+				class="feed-link"
+				href="/item/${
+				  item.ad_id
+				}/view?from=feed"
 			  >
-			    Ver anúncio
+				Ver anúncio
 			  </a>
 			</div>
-		  </section>
-		`).join("");
-    }
+		  `;
+
+		  fragment.appendChild(card);
+		}
+	  );
+
+	  feedContent.appendChild(fragment);
+
+	  setupVideoAutoplay();
+	}
 	
 	
 
-    async function loadFeed() {
+    async function loadFeed({
+	  reset = false
+	} = {}) {
+	  if (feedIsLoading) {
+		return;
+	  }
+
+	  feedIsLoading = true;
+
+	  if (reset) {
+		currentFeedPage = 1;
+
+		feedContent.className =
+		  "empty-box";
+
+		feedContent.innerHTML = `
+		  <p>Carregando feed...</p>
+		`;
+	  }
+
 	  try {
-		const params = new URLSearchParams();
+		const params =
+		  new URLSearchParams({
+			page: String(
+			  currentFeedPage
+			)
+		  });
 
 		if (feedState.value) {
 		  params.append(
@@ -809,36 +933,88 @@
 		  );
 		}
 
-		feedContent.className = "empty-box";
-		feedContent.innerHTML =
-		  "<p>Carregando feed...</p>";
-
 		const response = await fetch(
-		  `/feed?${params.toString()}`,
-		  {
-			cache: "no-store"
-		  }
+		  `/feed?${params.toString()}`
 		);
 
-		const items = await response.json();
+		const data =
+		  await response.json();
 
 		if (
 		  !response.ok ||
-		  !Array.isArray(items)
+		  !data ||
+		  !Array.isArray(data.items)
 		) {
 		  throw new Error(
 			"Não foi possível carregar o feed."
 		  );
 		}
 
-		renderFeed(items);
-		setupVideoAutoplay();
+		feedHasMore =
+		  Boolean(data.has_more);
+
+		renderFeed(
+		  data.items,
+		  reset
+		);
 	  } catch (error) {
-		feedContent.className = "empty-box";
-		feedContent.innerHTML = `
-		  <p>${error.message}</p>
-		`;
+		if (reset) {
+		  feedContent.className =
+			"empty-box";
+
+		  feedContent.innerHTML = `
+			<p>${error.message}</p>
+		  `;
+		} else {
+		  console.error(
+			"Erro ao carregar mais itens:",
+			error
+		  );
+		}
+	  } finally {
+		feedIsLoading = false;
 	  }
+	}
+	
+	function setupFeedPagination() {
+	  if (feedScrollHandlerAdded) {
+		return;
+	  }
+
+	  feedScrollHandlerAdded = true;
+
+	  feedContent.addEventListener(
+		"scroll",
+		async () => {
+		  if (
+			feedIsLoading ||
+			!feedHasMore
+		  ) {
+			return;
+		  }
+
+		  const distanceFromBottom =
+			feedContent.scrollHeight -
+			feedContent.scrollTop -
+			feedContent.clientHeight;
+
+		  if (
+			distanceFromBottom >
+			feedContent.clientHeight
+		  ) {
+			return;
+		  }
+
+		  currentFeedPage += 1;
+
+		  await loadFeed({
+			reset: false
+		  });
+		},
+		{
+		  passive: true
+		}
+	  );
 	}
 
 	(function () {
@@ -878,7 +1054,10 @@
 	feedFilterBtn.addEventListener(
 	  "click",
 	  async () => {
-		await loadFeed();
+		await loadFeed({
+		  reset: true
+		});
+
 		closeFeedFilterPanel();
 	  }
 	);
@@ -915,8 +1094,14 @@
 
 	async function initFeedPage() {
 	  await loadFeedStates();
+
 	  enableGlobalWheelScroll();
-	  await loadFeed();
+
+	  setupFeedPagination();
+
+	  await loadFeed({
+		reset: true
+	  });
 	}
 
 	initFeedPage();
