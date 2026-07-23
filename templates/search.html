@@ -285,6 +285,10 @@
 		margin-bottom: 8px;
 		flex-wrap: wrap;
 	  }
+	  
+	  .mobile-ad-title {
+	    display: none;
+	  }
 
 	  .ad-title-row h3,
 	  .ad-title-row strong,
@@ -526,8 +530,32 @@
 		}
 
 		.result-card {
-		  flex-direction: column-reverse;
+		  flex-direction: column;
 		  padding: 16px;
+		}
+		
+		.mobile-ad-title {
+		  display: flex;
+		  order: 1;
+		  width: 100%;
+		  margin: 0;
+		}
+
+		.result-image {
+		  order: 2;
+		}
+
+		.result-info {
+		  order: 3;
+		  width: 100%;
+		}
+
+		.report-side {
+		  order: 4;
+		}
+
+		.desktop-ad-title {
+		  display: none;
 		}
 
 		.result-image {

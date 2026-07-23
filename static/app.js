@@ -241,10 +241,14 @@ function renderResults(items) {
 	  card.className = "result-card";
 
 	  card.innerHTML = `
-		<div class="result-info">
-		  <h3 class="ad-title-row">
+		  <h3 class="ad-title-row mobile-ad-title">
 			${item.title || ""} ${getPlanStar(item.plan)}
 		  </h3>
+
+		  <div class="result-info">
+			<h3 class="ad-title-row desktop-ad-title">
+			  ${item.title || ""} ${getPlanStar(item.plan)}
+			</h3>
 
 		  <div class="muted">
 			${item.city || ""}
