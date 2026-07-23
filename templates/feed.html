@@ -144,16 +144,10 @@
 
 	.feed-info {
 	  flex: none;
-	  min-height: 130px;
-	  padding: 14px 16px;
-
+	  padding: 10px 16px;
 	  background: white;
 	  border-top: 1px solid #eee;
 	  box-sizing: border-box;
-
-	  display: flex;
-	  flex-direction: column;
-	  justify-content: center;
 	}
 
 	.feed-title {
@@ -171,15 +165,11 @@
 	.feed-link {
 	  display: block;
 	  width: 100%;
-	  margin-top: 10px;
-	  padding: 11px 16px;
-
+	  padding: 12px 16px;
 	  border-radius: 10px;
 	  box-sizing: border-box;
-
 	  background: #2563eb;
 	  color: white;
-
 	  text-decoration: none;
 	  font-weight: bold;
 	  text-align: center;
@@ -913,33 +903,13 @@
 
 		  card.innerHTML = `
 			<div class="feed-media-wrap">
-			  ${mediaHtml}
-			</div>
+						  ${mediaHtml}
+						</div>
 
-			<div class="feed-info">
-			  <div class="feed-title">
-				${item.title || ""}
-			  </div>
-
-			  <div class="feed-meta">
-				${
-				  item.plan === "VIP"
-					? "VIP"
-					: item.plan || "FREE"
-				}
-				•
-				${
-				  item.type === "image"
-					? "Foto"
-					: "Vídeo"
-				}
-			  </div>
-
+						<div class="feed-info">
 			  <a
 				class="feed-link"
-				href="/item/${
-				  item.ad_id
-				}/view?from=feed"
+				href="/item/${item.ad_id}/view?from=feed"
 			  >
 				Ver anúncio
 			  </a>
