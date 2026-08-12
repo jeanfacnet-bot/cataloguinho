@@ -1918,6 +1918,25 @@ def sitemap():
     )
     
     
+# =========================
+# ROBOTS.TXT - SEO
+# =========================
+
+@app.route("/robots.txt")
+def robots_txt():
+    base_url = BASE_URL.rstrip("/")
+
+    content = f"""User-agent: *
+Allow: /
+
+Sitemap: {base_url}/sitemap.xml
+"""
+
+    return Response(
+        content,
+        mimetype="text/plain"
+    )    
+    
 @app.route("/")
 def home():
     return render_template("home.html")
