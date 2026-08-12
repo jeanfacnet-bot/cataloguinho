@@ -1798,31 +1798,126 @@ DF_NEIGHBORHOODS = {
 }
 
 # =========================
-# ROTA DE TESTE
+# SITEMAP SEO
 # =========================
 
 @app.route("/sitemap.xml")
 def sitemap():
-    return """<?xml version="1.0" encoding="UTF-8"?>
-    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-      <url>
-        <loc>https://www.cataloginpk.com.br/</loc>
-      </url>
-      <url>
-        <loc>https://www.cataloginpk.com.br/search-page</loc>
-      </url>
-      <url>
-        <loc>https://www.cataloginpk.com.br/auth-page</loc>
-      </url>
-      <url>
-        <loc>https://www.cataloginpk.com.br/register-page</loc>
-      </url>
-      <url>
-        <loc>https://cataloguinho.onrender.com/create-ad-page</loc>
-      </url>
-    </urlset>
-    """, 200, {"Content-Type": "application/xml"}
+    ads = (
+        Ad.query
+        .join(
+            User,
+            Ad.user_id == User.id
+        )
+        .filter(
+            Ad.is_active.is_(True),
+            Ad.slug.isnot(None),
+            Ad.slug != "",
+            or_(
+                Ad.blocked_until.is_(None),
+                Ad.blocked_until <= utc_now()
+            ),
+            or_(
+                User.blocked_until.is_(None),
+                User.blocked_until <= utc_now()
+            )
+        )
+        .order_by(
+            Ad.created_at.desc()
+        )
+        .all()
+    )
 
+    base_url = BASE_URL.rstrip("/")
+
+    xml_parts = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+    ]
+
+    # Página inicial
+    xml_parts.append(
+        f"""
+        <url>
+            <loc>{base_url}/</loc>
+        </url>
+        """
+    )
+
+    # Pesquisa
+    xml_parts.append(
+        f"""
+        <url>
+            <loc>{base_url}/search-page</loc>
+        </url>
+        """
+    )
+
+    # Vitrine
+    xml_parts.append(
+        f"""
+        <url>
+            <loc>{base_url}/vitrine-page</loc>
+        </url>
+        """
+    )
+
+    # Feed
+    xml_parts.append(
+        f"""
+        <url>
+            <loc>{base_url}/feed-page</loc>
+        </url>
+        """
+    )
+
+    # Páginas individuais dos anúncios
+    for ad in ads:
+        ad_url = (
+            f"{base_url}/anuncio/{ad.slug}"
+        )
+
+        lastmod = ""
+
+        if ad.created_at:
+            lastmod = (
+                ad.created_at
+                .date()
+                .isoformat()
+            )
+
+        if lastmod:
+            xml_parts.append(
+                f"""
+                <url>
+                    <loc>{ad_url}</loc>
+                    <lastmod>{lastmod}</lastmod>
+                </url>
+                """
+            )
+        else:
+            xml_parts.append(
+                f"""
+                <url>
+                    <loc>{ad_url}</loc>
+                </url>
+                """
+            )
+
+    xml_parts.append(
+        "</urlset>"
+    )
+
+    xml = "\n".join(
+        xml_parts
+    )
+
+    return Response(
+        xml,
+        mimetype="application/xml"
+    )
+    
+    
 @app.route("/")
 def home():
     return render_template("home.html")
