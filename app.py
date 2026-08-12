@@ -2974,6 +2974,20 @@ def public_ad_page(slug):
     if len(description_text) > 155:
         description_text = description_text[:152].rstrip() + "..."
 
+    seo_image = None
+
+    if item.main_image:
+        if item.main_image.startswith(
+            ("http://", "https://")
+        ):
+            seo_image = item.main_image
+        else:
+            seo_image = (
+                f"{BASE_URL.rstrip('/')}/"
+                f"{item.main_image.lstrip('/')}"
+            )
+
+
     return render_template(
         "ad_details.html",
         ad_id=item.id,
@@ -2982,8 +2996,7 @@ def public_ad_page(slug):
         seo_title=seo_title,
         seo_description=description_text,
         canonical_url=canonical_url,
-
-        seo_image=item.main_image
+        seo_image=seo_image
     )
 
 @app.route("/item/<int:item_id>/view")

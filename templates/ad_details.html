@@ -46,6 +46,18 @@
     property="og:url"
     content="{{ canonical_url }}"
   >
+  
+  {% if seo_image %}
+  <meta
+    property="og:image"
+    content="{{ seo_image }}"
+  >
+
+  <meta
+    property="og:image:alt"
+    content="{{ seo_title }}"
+  >
+  {% endif %}
 
   <!-- Twitter / X -->
 
@@ -63,6 +75,13 @@
     name="twitter:description"
     content="{{ seo_description }}"
   >
+  
+  {% if seo_image %}
+  <meta
+    name="twitter:image"
+    content="{{ seo_image }}"
+  >
+  {% endif %}
 
   <link rel="stylesheet" href="{{ static_asset('style.css') }}">
 
@@ -403,7 +422,13 @@
 	  }
 
 		const adId = {{ ad_id }};
-		const adContent = document.getElementById("adContent");
+
+		const canonicalAdUrl =
+		  {{ canonical_url | tojson }};
+
+		const adContent =
+		  document.getElementById("adContent");
+
 		let currentAd = null;
 	  
 		const backLink = document.getElementById("backLink");
@@ -606,19 +631,22 @@
 		}
 		
 		function shareAdDetailsOnWhatsApp(ad) {
-		  const adUrl =
-			`${window.location.origin}/item/${ad.id}/view?from=share`;
-
 		  const message = [
 			`Olha este anúncio no CataLogin:`,
 			`"${ad.title || "Anúncio"}"`,
-			adUrl
+			canonicalAdUrl
 		  ].join("\n");
 
 		  const whatsappUrl =
-			`https://wa.me/?text=${encodeURIComponent(message)}`;
+			`https://wa.me/?text=${
+			  encodeURIComponent(message)
+			}`;
 
-		  window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+		  window.open(
+			whatsappUrl,
+			"_blank",
+			"noopener,noreferrer"
+		  );
 		}
 		
 		function reportAd(adId) {
