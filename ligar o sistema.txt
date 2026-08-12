@@ -1,4 +1,4 @@
 git add .
-git commit -m "slug5"
+git commit -m "7"
 git push
 
