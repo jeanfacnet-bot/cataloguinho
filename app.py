@@ -4050,6 +4050,7 @@ def get_feed():
     query = (
         db.session.query(
             Ad.id,
+            Ad.slug,
             Ad.title,
             Ad.main_image,
             Ad.main_video,
@@ -4133,6 +4134,7 @@ def get_feed():
         ):
             feed_items.append({
                 "ad_id": row.id,
+                "slug": row.slug,
                 "title": row.title,
                 "type": "image",
                 "url": (
@@ -4160,6 +4162,7 @@ def get_feed():
         ):
             feed_items.append({
                 "ad_id": row.id,
+                "slug": row.slug,
                 "title": row.title,
                 "type": "video",
                 "url": row.main_video,

@@ -173,7 +173,7 @@ function getAppVersion() {
   );
 }
 
-function openAdDetailsFromSearch(adId) {
+function openAdDetailsFromSearch(adId, adSlug) {
   try {
     saveSearchState(lastSearchResults);
   } catch (error) {
@@ -183,8 +183,17 @@ function openAdDetailsFromSearch(adId) {
     );
   }
 
+  let detailsPath;
+
+  if (adSlug) {
+    detailsPath = `/anuncio/${adSlug}`;
+  } else {
+    // Fallback para anúncios antigos que eventualmente estejam sem slug
+    detailsPath = `/item/${adId}/view`;
+  }
+
   const detailsUrl = new URL(
-    `/item/${adId}/view`,
+    detailsPath,
     window.location.origin
   );
 
@@ -194,9 +203,16 @@ function openAdDetailsFromSearch(adId) {
   window.location.href = detailsUrl.toString();
 }
 
-function shareAdOnWhatsApp(adId, adTitle) {
-  const adUrl =
-	`${window.location.origin}/item/${adId}/view?from=share`;
+function shareAdOnWhatsApp(adId, adTitle, adSlug) {
+  let adUrl;
+
+  if (adSlug) {
+    adUrl =
+      `${window.location.origin}/anuncio/${adSlug}`;
+  } else {
+    adUrl =
+      `${window.location.origin}/item/${adId}/view`;
+  }
 
   const message = [
     "Olha este anúncio no CataLogin:",
@@ -270,7 +286,7 @@ function renderResults(items) {
 					<button
 					  type="button"
 					  class="view-details-btn"
-					  onclick="openAdDetailsFromSearch(${item.id})"
+					  onclick="openAdDetailsFromSearch(${item.id}, '${item.slug || ""}')"
 					>
 					  Ver detalhes
 					</button>
@@ -279,6 +295,9 @@ function renderResults(items) {
 					  type="button"
 					  class="share-whatsapp-btn"
 					  data-ad-id="${item.id}"
+					  data-ad-slug="${encodeURIComponent(
+					    item.slug || ""
+					  )}"
 					  data-ad-title="${encodeURIComponent(
 						item.title || "Anúncio"
 					  )}"
@@ -351,11 +370,20 @@ resultsContainer
   .forEach(button => {
     button.addEventListener("click", () => {
       const adId = button.dataset.adId;
-      const adTitle = decodeURIComponent(
-        button.dataset.adTitle || "Anúncio"
-      );
 
-      shareAdOnWhatsApp(adId, adTitle);
+	  const adTitle = decodeURIComponent(
+	    button.dataset.adTitle || "Anúncio"
+	  );
+
+	  const adSlug = decodeURIComponent(
+	    button.dataset.adSlug || ""
+	  );
+
+	  shareAdOnWhatsApp(
+	    adId,
+	    adTitle,
+	    adSlug
+	  );
     });
   });
 }

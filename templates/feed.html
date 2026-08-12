@@ -1073,14 +1073,18 @@
 						  ${mediaHtml}
 						</div>
 
-						<div class="feed-info">
+			<div class="feed-info">
 			  <a
 				class="feed-link"
-				href="/item/${item.ad_id}/view?from=feed"
+				href="${
+				  item.slug
+					? `/anuncio/${item.slug}?from=feed`
+					: `/item/${item.ad_id}/view?from=feed`
+				}"
 			  >
 				Ver anúncio
 			  </a>
-			</div>
+			</div>			
 		  `;
 
 		  fragment.appendChild(card);

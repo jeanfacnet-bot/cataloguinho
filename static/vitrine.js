@@ -325,9 +325,19 @@ function createVitrineItem(
   index
 ) {
   const item =
-    document.createElement("div");
+    document.createElement("a");
 
   item.className = "vitrine-item";
+
+  // URL amigável para SEO.
+  // Mantém fallback para anúncio antigo sem slug.
+  if (ad.slug) {
+    item.href =
+      `/anuncio/${ad.slug}?from=vitrine`;
+  } else {
+    item.href =
+      `/item/${ad.id}/view?from=vitrine`;
+  }
 
   const imageLoading =
     index < 4 &&
@@ -358,6 +368,7 @@ function createVitrineItem(
     >
 
     <div class="vitrine-caption">
+
       <div class="vitrine-title">
         ${ad.title || ""}
       </div>
@@ -383,16 +394,9 @@ function createVitrineItem(
             : ""
         }
       </div>
+
     </div>
   `;
-
-  item.addEventListener(
-    "click",
-    () => {
-      window.location.href =
-        `/item/${ad.id}/view?from=vitrine`;
-    }
-  );
 
   return item;
 }
