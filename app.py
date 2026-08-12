@@ -32,6 +32,8 @@ from functools import wraps
 from flask_mail import Mail, Message
 import secrets
 import hashlib
+import re
+import unicodedata
 
 
 
@@ -362,6 +364,13 @@ class Ad(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
     title = db.Column(db.String(200), nullable=False)
+    
+    slug = db.Column(
+        db.String(255),
+        nullable=True,
+        index=True
+    )
+    
     description = db.Column(db.Text)
 
     phone = db.Column(db.String(30))
@@ -553,6 +562,41 @@ def hash_reset_token(raw_token):
     
 def utc_now():
     return datetime.now(UTC).replace(tzinfo=None)    
+    
+def generate_slug(text):
+    text = str(text or "").strip().lower()
+
+    text = unicodedata.normalize(
+        "NFKD",
+        text
+    )
+
+    text = "".join(
+        char
+        for char in text
+        if not unicodedata.combining(char)
+    )
+
+    text = re.sub(
+        r"[^a-z0-9]+",
+        "-",
+        text
+    )
+
+    return text.strip("-")    
+    
+def build_ad_slug(ad):
+    city_slug = generate_slug(ad.city)
+
+    title_slug = generate_slug(ad.title)
+
+    if not city_slug:
+        city_slug = "local"
+
+    if not title_slug:
+        title_slug = "anuncio"
+
+    return f"{city_slug}/{title_slug}-{ad.id}"    
 
 
 def send_password_reset_email(user, raw_token):
@@ -1404,6 +1448,7 @@ def serialize_ad(ad):
 
     return {
         "id": ad.id,
+        "slug": ad.slug,
         "title": ad.title,
         "description": ad.description,
         "phone": ad.phone,
@@ -3126,6 +3171,8 @@ def create_ad():
     db.session.add(ad)
     db.session.flush()
 
+    ad.slug = build_ad_slug(ad)
+
     for keyword in cleaned_keywords:
         db.session.add(Keyword(ad_id=ad.id, keyword=keyword))
 
@@ -4173,6 +4220,7 @@ def update_ad(ad_id):
         ad.country = country
         ad.state = state
         ad.city = city
+        ad.slug = build_ad_slug(ad)
         ad.municipality = city if state.upper() == "DF" else request.form.get("municipality", "").strip()
         ad.neighborhood = neighborhood
         ad.street = street
