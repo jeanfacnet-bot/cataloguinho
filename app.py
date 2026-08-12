@@ -2922,9 +2922,11 @@ def get_item(item_id):
     return build_item_response(item_id)
 
 
-@app.route("/item/<int:item_id>/view")
-def item_details_page(item_id):
-    item = Ad.query.get(item_id)
+@app.route("/anuncio/<path:slug>")
+def public_ad_page(slug):
+    item = Ad.query.filter_by(
+        slug=slug
+    ).first()
 
     if not item or not item.is_active:
         return "Conteúdo não encontrado", 404
@@ -2939,22 +2941,53 @@ def item_details_page(item_id):
     if not get_plan_rules(
         item.plan
     )["can_show_full_details"]:
-        if not current_user or not current_user.is_admin:
+        if (
+            not current_user
+            or not current_user.is_admin
+        ):
             return (
                 "Detalhes disponíveis apenas para "
                 "planos compatíveis"
             ), 403
 
-    origin = request.args.get("from", "search")
+    origin = request.args.get(
+        "from",
+        "search"
+    )
 
     return render_template(
         "ad_details.html",
-        ad_id=item_id,
+        ad_id=item.id,
         origin=origin
     )
 
+@app.route("/item/<int:item_id>/view")
+def item_details_page(item_id):
+    item = Ad.query.get(item_id)
 
-# Compatibilidade com links antigos
+    if not item or not item.is_active:
+        return "Conteúdo não encontrado", 404
+
+    if not item.slug:
+        return "URL do anúncio não disponível", 404
+
+    origin = request.args.get(
+        "from",
+        "search"
+    )
+
+    return redirect(
+        url_for(
+            "public_ad_page",
+            slug=item.slug,
+            **{
+                "from": origin
+            }
+        ),
+        code=301
+    )
+    
+    
 @app.route("/ads/<int:ad_id>", methods=["GET"])
 def get_ad(ad_id):
     return build_item_response(ad_id)
