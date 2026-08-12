@@ -3106,6 +3106,7 @@ def public_ad_page(slug):
         "ad_details.html",
         ad_id=item.id,
         origin=origin,
+        ad=serialize_ad(item),
 
         seo_title=seo_title,
         seo_description=description_text,
