@@ -63,7 +63,7 @@
 
   <meta
     name="twitter:card"
-    content="summary"
+    content="summary_large_image"
   >
 
   <meta
@@ -82,6 +82,56 @@
     content="{{ seo_image }}"
   >
   {% endif %}
+  
+  <script type="application/ld+json">
+	{
+	  "@context": "https://schema.org",
+	  "@type": "LocalBusiness",
+
+	  "name": {{ schema_name | tojson }},
+
+	  "url": {{ canonical_url | tojson }},
+
+	  {% if seo_image %}
+	  "image": {{ seo_image | tojson }},
+	  {% endif %}
+
+	  {% if schema_phone %}
+	  "telephone": {{ schema_phone | tojson }},
+	  {% endif %}
+
+	  "address": {
+		"@type": "PostalAddress",
+
+		{% if schema_street or schema_number %}
+		"streetAddress": {{ ((schema_street or '') ~ (' ' ~ schema_number if schema_number else '')) | trim | tojson }},
+		{% endif %}
+
+		{% if schema_city %}
+		"addressLocality": {{ schema_city | tojson }},
+		{% endif %}
+
+		{% if schema_state %}
+		"addressRegion": {{ schema_state | tojson }},
+		{% endif %}
+
+		{% if schema_zipcode %}
+		"postalCode": {{ schema_zipcode | tojson }},
+		{% endif %}
+
+		"addressCountry": "BR"
+	  }
+
+	  {% if schema_latitude is not none and schema_longitude is not none %}
+	  ,
+	  "geo": {
+		"@type": "GeoCoordinates",
+		"latitude": {{ schema_latitude }},
+		"longitude": {{ schema_longitude }}
+	  }
+	  {% endif %}
+	}
+	</script>
 
   <link rel="stylesheet" href="{{ static_asset('style.css') }}">
 

@@ -2996,7 +2996,19 @@ def public_ad_page(slug):
         seo_title=seo_title,
         seo_description=description_text,
         canonical_url=canonical_url,
-        seo_image=seo_image
+        seo_image=seo_image,
+
+        schema_name=item.title,
+        schema_phone=item.phone,
+        schema_country=item.country or "Brasil",
+        schema_state=item.state,
+        schema_city=item.city,
+        schema_neighborhood=item.neighborhood,
+        schema_street=item.street,
+        schema_number=item.number,
+        schema_zipcode=item.zipcode,
+        schema_latitude=item.latitude,
+        schema_longitude=item.longitude
     )
 
 @app.route("/item/<int:item_id>/view")
