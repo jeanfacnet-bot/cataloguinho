@@ -2,9 +2,70 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Detalhes do Anúncio</title>
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>{{ seo_title }}</title>
+
+  <meta
+    name="description"
+    content="{{ seo_description }}"
+  >
+
+  <link
+    rel="canonical"
+    href="{{ canonical_url }}"
+  >
+
+  <!-- Open Graph / WhatsApp / Facebook -->
+
+  <meta
+    property="og:type"
+    content="website"
+  >
+
+  <meta
+    property="og:site_name"
+    content="CataLogin"
+  >
+
+  <meta
+    property="og:title"
+    content="{{ seo_title }}"
+  >
+
+  <meta
+    property="og:description"
+    content="{{ seo_description }}"
+  >
+
+  <meta
+    property="og:url"
+    content="{{ canonical_url }}"
+  >
+
+  <!-- Twitter / X -->
+
+  <meta
+    name="twitter:card"
+    content="summary"
+  >
+
+  <meta
+    name="twitter:title"
+    content="{{ seo_title }}"
+  >
+
+  <meta
+    name="twitter:description"
+    content="{{ seo_description }}"
+  >
+
   <link rel="stylesheet" href="{{ static_asset('style.css') }}">
+
   <style>
     .details-container {
       max-width: 1000px;

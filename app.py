@@ -2955,10 +2955,35 @@ def public_ad_page(slug):
         "search"
     )
 
+    canonical_url = url_for(
+        "public_ad_page",
+        slug=item.slug,
+        _external=True
+    )
+
+    seo_title = f"{item.title} em {item.city} | CataLogin"
+
+    description_text = (
+        item.description or
+        f"Encontre {item.title} em {item.city}. "
+        f"Veja contato, localização e mais informações no CataLogin."
+    )
+
+    description_text = " ".join(description_text.split())
+
+    if len(description_text) > 155:
+        description_text = description_text[:152].rstrip() + "..."
+
     return render_template(
         "ad_details.html",
         ad_id=item.id,
-        origin=origin
+        origin=origin,
+
+        seo_title=seo_title,
+        seo_description=description_text,
+        canonical_url=canonical_url,
+
+        seo_image=item.main_image
     )
 
 @app.route("/item/<int:item_id>/view")
