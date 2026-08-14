@@ -283,13 +283,17 @@ function renderResults(items) {
 			  ${
 				item.can_show_full_details
 				  ? `
-					<button
-					  type="button"
+					<a
 					  class="view-details-btn"
-					  onclick="openAdDetailsFromSearch(${item.id}, '${item.slug || ""}')"
+					  href="${
+						item.slug
+						  ? `/anuncio/${item.slug}`
+						  : `/item/${item.id}/view`
+					  }"
+					  onclick="saveSearchState(lastSearchResults)"
 					>
 					  Ver detalhes
-					</button>
+					</a>
 
 					<button
 					  type="button"
