@@ -333,10 +333,10 @@ function createVitrineItem(
   // Mantém fallback para anúncio antigo sem slug.
   if (ad.slug) {
     item.href =
-      `/anuncio/${ad.slug}?from=vitrine`;
+      `/anuncio/${ad.slug}`;
   } else {
     item.href =
-      `/item/${ad.id}/view?from=vitrine`;
+      `/item/${ad.id}/view`;
   }
 
   const imageLoading =

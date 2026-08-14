@@ -1888,6 +1888,15 @@ def sitemap():
         </url>
         """
     )
+    
+    # Catálogo
+    xml_parts.append(
+        f"""
+        <url>
+            <loc>{base_url}/catalogo</loc>
+        </url>
+        """
+    )
 
     # Páginas individuais dos anúncios
     for ad in ads:
@@ -1966,6 +1975,81 @@ def anunciar_empresa():
 @app.route("/buscar-empresas")
 def buscar_empresas():
     return render_template("buscar_empresas.html")    
+
+@app.route("/catalogo")
+def catalogo():
+    page = request.args.get(
+        "page",
+        1,
+        type=int
+    )
+
+    page = max(
+        page,
+        1
+    )
+
+    per_page = 20
+
+    query = (
+        Ad.query
+        .join(
+            User,
+            Ad.user_id == User.id
+        )
+        .filter(
+            Ad.is_active.is_(True),
+            Ad.slug.isnot(None),
+            Ad.slug != "",
+            or_(
+                Ad.blocked_until.is_(None),
+                Ad.blocked_until <= utc_now()
+            ),
+            or_(
+                User.blocked_until.is_(None),
+                User.blocked_until <= utc_now()
+            )
+        )
+    )
+
+    total_ads = query.count()
+
+    ads = (
+        query
+        .order_by(
+            Ad.created_at.desc()
+        )
+        .offset(
+            (page - 1) * per_page
+        )
+        .limit(
+            per_page
+        )
+        .all()
+    )
+
+    total_pages = max(
+        1,
+        (
+            total_ads + per_page - 1
+        ) // per_page
+    )
+
+    if page > total_pages:
+        return redirect(
+            url_for(
+                "catalogo",
+                page=total_pages
+            )
+        )
+
+    return render_template(
+        "catalogo.html",
+        ads=ads,
+        page=page,
+        total_pages=total_pages,
+        total_ads=total_ads
+    )
 
 @app.route("/auth-page")
 def auth_page():
