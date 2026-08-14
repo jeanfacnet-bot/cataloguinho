@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Anunciar empresa grátis | Divulgue seu negócio no CataLogin</title>
+
+  <meta
+    name="description"
+    content="Anuncie sua empresa, serviço ou negócio gratuitamente no CataLogin e aumente suas chances de ser encontrado por clientes da sua região."
+  >
+
+  <link
+    rel="canonical"
+    href="https://www.cataloginpk.com.br/anunciar-empresa"
+  >
+
+  <link
+    rel="stylesheet"
+    href="{{ static_asset('style.css') }}"
+  >
+
+  <style>
+    body {
+      margin: 0;
+      background:
+        radial-gradient(
+          circle at top left,
+          rgba(59, 130, 246, 0.10),
+          transparent 28%
+        ),
+        radial-gradient(
+          circle at top right,
+          rgba(168, 85, 247, 0.08),
+          transparent 24%
+        ),
+        linear-gradient(
+          180deg,
+          #f8fbff 0%,
+          #eef4ff 45%,
+          #f7f8fc 100%
+        );
+    }
+
+    .seo-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 20px 60px;
+    }
+
+    .seo-hero {
+      text-align: center;
+      padding: 60px 24px;
+      background: linear-gradient(
+        135deg,
+        #1d4ed8,
+        #111827
+      );
+      color: white;
+      border-radius: 28px;
+      margin-bottom: 34px;
+      box-shadow:
+        0 20px 40px rgba(
+          17,
+          24,
+          39,
+          0.16
+        );
+    }
+
+    .seo-hero h1 {
+      margin: 0 0 16px;
+      font-size: 42px;
+      line-height: 1.15;
+    }
+
+    .seo-hero p {
+      max-width: 760px;
+      margin: 0 auto;
+      font-size: 18px;
+      line-height: 1.7;
+      opacity: 0.94;
+    }
+
+    .seo-actions {
+      margin-top: 26px;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .seo-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 14px 22px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      transition:
+        transform 0.18s ease,
+        box-shadow 0.18s ease;
+    }
+
+    .seo-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .seo-btn-primary {
+      background: #f59e0b;
+      color: white;
+      box-shadow:
+        0 12px 24px rgba(
+          245,
+          158,
+          11,
+          0.22
+        );
+    }
+
+    .seo-btn-secondary {
+      background: white;
+      color: #111827;
+    }
+
+    .seo-section {
+      margin-bottom: 26px;
+    }
+
+    .seo-box {
+      background: white;
+      padding: 28px;
+      border-radius: 22px;
+      border: 1px solid #e5e7eb;
+      box-shadow:
+        0 12px 28px rgba(
+          15,
+          23,
+          42,
+          0.06
+        );
+    }
+
+    .seo-section h2 {
+      margin: 0 0 14px;
+      font-size: 29px;
+      color: #111827;
+    }
+
+    .seo-section p {
+      color: #475569;
+      font-size: 15px;
+      line-height: 1.8;
+      margin: 0 0 14px;
+    }
+
+    .seo-list {
+      margin: 0;
+      padding-left: 22px;
+      color: #334155;
+      line-height: 1.9;
+      font-size: 15px;
+    }
+
+    .benefits-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(
+          auto-fit,
+          minmax(220px, 1fr)
+        );
+      gap: 16px;
+    }
+
+    .benefit-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow:
+        0 10px 22px rgba(
+          15,
+          23,
+          42,
+          0.05
+        );
+    }
+
+    .benefit-card strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 18px;
+      color: #111827;
+    }
+
+    .benefit-card p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.7;
+      color: #475569;
+    }
+
+    .seo-highlight {
+      background:
+        linear-gradient(
+          180deg,
+          #ecfdf5 0%,
+          #f0fdf4 100%
+        );
+      border: 1px solid #86efac;
+      border-radius: 18px;
+      padding: 20px;
+      color: #166534;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .seo-final {
+      text-align: center;
+      padding: 38px 24px;
+      border-radius: 24px;
+      background:
+        linear-gradient(
+          135deg,
+          #f8fbff,
+          #eef4ff
+        );
+      border: 1px solid #dbeafe;
+    }
+
+    .seo-final h2 {
+      margin-top: 0;
+    }
+
+    .seo-final p {
+      max-width: 720px;
+      margin: 0 auto 20px;
+    }
+
+    @media (max-width: 768px) {
+      .seo-container {
+        padding:
+          24px
+          16px
+          40px;
+      }
+
+      .seo-hero {
+        padding:
+          40px
+          18px;
+        border-radius: 22px;
+      }
+
+      .seo-hero h1 {
+        font-size: 32px;
+      }
+
+      .seo-hero p {
+        font-size: 16px;
+      }
+
+      .seo-section h2 {
+        font-size: 24px;
+      }
+
+      .seo-actions {
+        flex-direction: column;
+      }
+
+      .seo-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  {% include "partials/topbar.html" %}
+
+  <main class="seo-container">
+
+    <section class="seo-hero">
+
+      <h1>
+        Anuncie sua empresa gratuitamente
+      </h1>
+
+      <p>
+        Divulgue sua empresa, serviço,
+        loja ou negócio no CataLogin
+        e aumente suas chances de ser
+        encontrado por pessoas que
+        procuram produtos e serviços
+        na sua região.
+      </p>
+
+      <div class="seo-actions">
+
+        <button
+          type="button"
+          class="seo-btn seo-btn-primary"
+          onclick="goToCreate()"
+        >
+          Anunciar minha empresa grátis
+        </button>
+
+        <button
+          type="button"
+          class="seo-btn seo-btn-secondary"
+          onclick="window.location.href='/search-page'"
+        >
+          Buscar empresas
+        </button>
+
+      </div>
+
+    </section>
+
+    <section class="seo-section">
+
+      <div class="seo-box">
+
+        <h2>
+          Divulgue sua empresa na internet
+        </h2>
+
+        <p>
+          Ter presença na internet ajuda
+          sua empresa a ser encontrada
+          por novos clientes. No CataLogin,
+          você pode cadastrar seu negócio
+          gratuitamente e criar uma página
+          pública com informações importantes
+          sobre sua empresa ou serviço.
+        </p>
+
+        <p>
+          O anúncio pode apresentar o nome
+          da empresa, descrição, telefone,
+          localização e outros dados,
+          de acordo com os recursos
+          disponíveis no seu plano.
+        </p>
+
+      </div>
+
+    </section>
+
+    <section class="seo-section">
+
+      <h2>
+        Por que anunciar sua empresa no CataLogin?
+      </h2>
+
+      <div class="benefits-grid">
+
+        <div class="benefit-card">
+
+          <strong>
+            📢 Divulgação gratuita
+          </strong>
+
+          <p>
+            Você pode começar a divulgar
+            sua empresa sem pagar pela
+            criação do anúncio.
+          </p>
+
+        </div>
+
+        <div class="benefit-card">
+
+          <strong>
+            🔎 Mais chances de ser encontrado
+          </strong>
+
+          <p>
+            Sua empresa pode aparecer nas
+            pesquisas feitas dentro do
+            CataLogin e também possuir
+            uma página pública própria.
+          </p>
+
+        </div>
+
+        <div class="benefit-card">
+
+          <strong>
+            📍 Divulgação regional
+          </strong>
+
+          <p>
+            Informe sua localização para
+            ajudar pessoas da sua região
+            a encontrar seu negócio.
+          </p>
+
+        </div>
+
+        <div class="benefit-card">
+
+          <strong>
+            🚀 Recursos opcionais
+          </strong>
+
+          <p>
+            Os planos VIP são opcionais
+            e podem liberar recursos extras
+            e mais destaque para o anúncio.
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <section class="seo-section">
+
+      <div class="seo-box">
+
+        <h2>
+          O que você pode anunciar?
+        </h2>
+
+        <p>
+          O CataLogin pode ser utilizado
+          para divulgar diferentes tipos
+          de empresas, profissionais,
+          produtos e serviços.
+        </p>
+
+        <ul class="seo-list">
+
+          <li>
+            Empresas e lojas
+          </li>
+
+          <li>
+            Prestadores de serviços
+          </li>
+
+          <li>
+            Profissionais autônomos
+          </li>
+
+          <li>
+            Comércios locais
+          </li>
+
+          <li>
+            Produtos e serviços
+            oferecidos na sua região
+          </li>
+
+        </ul>
+
+      </div>
+
+    </section>
+
+    <section class="seo-section">
+
+      <div class="seo-highlight">
+
+        <strong>
+          Anunciar no CataLogin é gratuito.
+        </strong>
+
+        Você não precisa contratar um plano
+        VIP para criar seu anúncio. Os planos
+        pagos são opcionais e servem para
+        ampliar os recursos e o destaque
+        disponíveis dentro da plataforma.
+
+      </div>
+
+    </section>
+
+    <section class="seo-section">
+
+      <div class="seo-box">
+
+        <h2>
+          Como anunciar sua empresa
+        </h2>
+
+        <ul class="seo-list">
+
+          <li>
+            Crie sua conta no CataLogin.
+          </li>
+
+          <li>
+            Acesse a opção para cadastrar
+            um anúncio.
+          </li>
+
+          <li>
+            Informe o nome da empresa,
+            serviço ou negócio.
+          </li>
+
+          <li>
+            Adicione descrição, contato
+            e localização.
+          </li>
+
+          <li>
+            Publique e comece a divulgar
+            sua empresa.
+          </li>
+
+        </ul>
+
+      </div>
+
+    </section>
+
+    <section class="seo-section seo-final">
+
+      <h2>
+        Comece a divulgar seu negócio
+      </h2>
+
+      <p>
+        Crie seu anúncio e ajude potenciais
+        clientes a encontrar sua empresa,
+        seus produtos ou seus serviços
+        no CataLogin.
+      </p>
+
+      <button
+        type="button"
+        class="seo-btn seo-btn-primary"
+        onclick="goToCreate()"
+      >
+        Anunciar gratuitamente
+      </button>
+
+    </section>
+
+  </main>
+
+  <script>
+    function goToCreate() {
+      const rawUser =
+        localStorage.getItem(
+          "catalogo_user"
+        );
+
+      let user = null;
+
+      try {
+        user =
+          rawUser
+            ? JSON.parse(rawUser)
+            : null;
+      } catch (error) {
+        localStorage.removeItem(
+          "catalogo_user"
+        );
+      }
+
+      if (user) {
+        window.location.href =
+          "/create-ad-page";
+      } else {
+        window.location.href =
+          "/auth-page";
+      }
+    }
+  </script>
+
+  <script
+    src="{{ static_asset('common_layout.js') }}"
+  ></script>
+
+</body>
+</html>

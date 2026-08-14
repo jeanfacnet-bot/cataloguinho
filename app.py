@@ -1870,6 +1870,15 @@ def sitemap():
         </url>
         """
     )
+    
+    # Anunciar empresa
+    xml_parts.append(
+        f"""
+        <url>
+            <loc>{base_url}/anunciar-empresa</loc>
+        </url>
+        """
+    )
 
     # Páginas individuais dos anúncios
     for ad in ads:
@@ -1940,6 +1949,10 @@ Sitemap: {base_url}/sitemap.xml
 @app.route("/")
 def home():
     return render_template("home.html")
+    
+@app.route("/anunciar-empresa")
+def anunciar_empresa():
+    return render_template("anunciar_empresa.html")    
 
 @app.route("/auth-page")
 def auth_page():
