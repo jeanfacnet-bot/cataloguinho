@@ -596,7 +596,136 @@ def build_ad_slug(ad):
     if not title_slug:
         title_slug = "anuncio"
 
-    return f"{city_slug}/{title_slug}-{ad.id}"    
+    return f"{city_slug}/{title_slug}-{ad.id}"   
+
+
+def get_seo_service_links(
+    min_ads=2,
+    limit=40
+):
+    ads = (
+        Ad.query
+        .join(
+            User,
+            Ad.user_id == User.id
+        )
+        .filter(
+            Ad.is_active.is_(True),
+            Ad.slug.isnot(None),
+            Ad.slug != "",
+            Ad.city.isnot(None),
+            Ad.city != "",
+            or_(
+                Ad.blocked_until.is_(None),
+                Ad.blocked_until <= utc_now()
+            ),
+            or_(
+                User.blocked_until.is_(None),
+                User.blocked_until <= utc_now()
+            )
+        )
+        .all()
+    )
+
+    ignored_keywords = {
+        "a",
+        "o",
+        "as",
+        "os",
+        "de",
+        "da",
+        "do",
+        "das",
+        "dos",
+        "e",
+        "em",
+        "para",
+        "com",
+        "por",
+        "um",
+        "uma"
+    }
+
+    grouped = {}
+
+    for ad in ads:
+        city_name = (
+            ad.city or ""
+        ).strip()
+
+        city_slug = generate_slug(
+            city_name
+        )
+
+        if not city_slug:
+            continue
+
+        for keyword_obj in ad.keywords:
+            keyword = (
+                keyword_obj.keyword or ""
+            ).strip()
+
+            service_slug = generate_slug(
+                keyword
+            )
+
+            if (
+                not service_slug
+                or service_slug in ignored_keywords
+                or len(service_slug) < 3
+            ):
+                continue
+
+            key = (
+                city_slug,
+                service_slug
+            )
+
+            if key not in grouped:
+                grouped[key] = {
+                    "city": city_name,
+                    "city_slug": city_slug,
+                    "service": keyword,
+                    "service_slug": service_slug,
+                    "ad_ids": set()
+                }
+
+            grouped[key]["ad_ids"].add(
+                ad.id
+            )
+
+    links = []
+
+    for item in grouped.values():
+        total = len(
+            item["ad_ids"]
+        )
+
+        if total < min_ads:
+            continue
+
+        links.append({
+            "city": item["city"],
+            "city_slug": item["city_slug"],
+            "service": item["service"],
+            "service_slug": item["service_slug"],
+            "total_ads": total,
+            "url": (
+                f"/servicos/"
+                f"{item['city_slug']}/"
+                f"{item['service_slug']}"
+            )
+        })
+
+    links.sort(
+        key=lambda item: (
+            -item["total_ads"],
+            item["city"].casefold(),
+            item["service"].casefold()
+        )
+    )
+
+    return links[:limit]    
 
 
 def send_password_reset_email(user, raw_token):
@@ -1931,6 +2060,28 @@ def sitemap():
                 """
             )
 
+    # ============================================================
+    # PÁGINAS SEO DINÂMICAS — SERVIÇOS POR CIDADE
+    # ============================================================
+
+    seo_service_links = get_seo_service_links(
+        min_ads=1,
+        limit=1000
+    )
+
+    for item in seo_service_links:
+        service_url = (
+            f"{base_url}{item['url']}"
+        )
+
+        xml_parts.append(
+            f"""
+            <url>
+                <loc>{service_url}</loc>
+            </url>
+            """
+        )
+
     xml_parts.append(
         "</urlset>"
     )
@@ -2043,13 +2194,150 @@ def catalogo():
             )
         )
 
+    seo_service_links = (
+        get_seo_service_links(
+            min_ads=1,
+            limit=40
+        )
+    )
+
     return render_template(
         "catalogo.html",
         ads=ads,
         page=page,
         total_pages=total_pages,
-        total_ads=total_ads
+        total_ads=total_ads,
+        seo_service_links=seo_service_links
     )
+    
+@app.route("/servicos/<city_slug>/<service_slug>")
+def seo_service_page(city_slug, service_slug):
+    city_slug = generate_slug(city_slug)
+    service_slug = generate_slug(service_slug)
+
+    if not city_slug or not service_slug:
+        abort(404)
+
+    # Descobre qual cidade real corresponde ao slug da URL.
+    city_rows = (
+        db.session.query(Ad.city)
+        .join(
+            User,
+            Ad.user_id == User.id
+        )
+        .filter(
+            Ad.is_active.is_(True),
+            Ad.city.isnot(None),
+            Ad.city != "",
+            or_(
+                Ad.blocked_until.is_(None),
+                Ad.blocked_until <= utc_now()
+            ),
+            or_(
+                User.blocked_until.is_(None),
+                User.blocked_until <= utc_now()
+            )
+        )
+        .distinct()
+        .all()
+    )
+
+    real_city = None
+
+    for row in city_rows:
+        city_name = row[0]
+
+        if generate_slug(city_name) == city_slug:
+            real_city = city_name
+            break
+
+    if not real_city:
+        abort(404)
+
+    # O slug "pet-shop" vira "pet shop" para a pesquisa.
+    service_term = service_slug.replace("-", " ").strip()
+
+    query = (
+        Ad.query
+        .join(
+            User,
+            Ad.user_id == User.id
+        )
+        .filter(
+            Ad.is_active.is_(True),
+            Ad.slug.isnot(None),
+            Ad.slug != "",
+            Ad.city == real_city,
+            or_(
+                Ad.blocked_until.is_(None),
+                Ad.blocked_until <= utc_now()
+            ),
+            or_(
+                User.blocked_until.is_(None),
+                User.blocked_until <= utc_now()
+            ),
+            or_(
+                Ad.title.ilike(f"%{service_term}%"),
+                Ad.description.ilike(f"%{service_term}%"),
+                Ad.keywords.any(
+                    Keyword.keyword.ilike(
+                        f"%{service_term}%"
+                    )
+                )
+            )
+        )
+        .order_by(
+            plan_priority_case(),
+            Ad.created_at.desc()
+        )
+    )
+
+    ads = query.all()
+
+    # Não criamos página SEO sem conteúdo real.
+    if not ads:
+        abort(404)
+
+    # Recupera uma forma mais natural do nome do serviço
+    # a partir das palavras-chave cadastradas.
+    service_name = service_term.title()
+
+    for ad in ads:
+        for keyword in ad.keywords:
+            if generate_slug(keyword.keyword) == service_slug:
+                service_name = keyword.keyword.strip()
+                break
+        else:
+            continue
+        break
+
+    canonical_url = (
+        f"{BASE_URL.rstrip('/')}/servicos/"
+        f"{city_slug}/{service_slug}"
+    )
+
+    seo_title = (
+        f"{service_name} em {real_city} | CataLogin"
+    )
+
+    seo_description = (
+        f"Encontre {service_name} em {real_city}. "
+        f"Veja empresas, profissionais e serviços "
+        f"cadastrados no CataLogin."
+    )
+
+    return render_template(
+        "seo_service.html",
+        ads=ads,
+        city=real_city,
+        city_slug=city_slug,
+        service_name=service_name,
+        service_slug=service_slug,
+        total_ads=len(ads),
+        canonical_url=canonical_url,
+        seo_title=seo_title,
+        seo_description=seo_description
+    )    
 
 @app.route("/auth-page")
 def auth_page():

@@ -367,6 +367,79 @@
       </div>
 
     {% endif %}
+	
+	{% if seo_service_links %}
+
+	  <section
+		style="
+		  margin-top: 34px;
+		  background: white;
+		  border: 1px solid #e5e7eb;
+		  border-radius: 18px;
+		  padding: 24px;
+		"
+	  >
+
+		<h2
+		  style="
+			margin: 0 0 8px;
+			color: #111827;
+			font-size: 24px;
+		  "
+		>
+		  Serviços por região
+		</h2>
+
+		<p
+		  style="
+			margin: 0 0 20px;
+			color: #64748b;
+			line-height: 1.6;
+		  "
+		>
+		  Explore serviços com anúncios disponíveis
+		  em diferentes cidades.
+		</p>
+
+		<div
+		  style="
+			display: flex;
+			flex-wrap: wrap;
+			gap: 10px;
+		  "
+		>
+
+		  {% for item in seo_service_links %}
+
+			<a
+			  href="{{ item.url }}"
+			  style="
+				display: inline-flex;
+				align-items: center;
+				background: #eff6ff;
+				color: #1d4ed8;
+				border: 1px solid #dbeafe;
+				border-radius: 999px;
+				padding: 10px 14px;
+				text-decoration: none;
+				font-weight: 700;
+				font-size: 14px;
+			  "
+			>
+			  {{ item.service }}
+			  em
+			  {{ item.city }}
+			  ·
+			  {{ item.total_ads }}
+			</a>
+
+		  {% endfor %}
+
+		</div>
+
+	  </section>
+
+	{% endif %}
 
     <div class="catalog-links">
 

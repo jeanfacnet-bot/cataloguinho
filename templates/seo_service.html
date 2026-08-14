@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>{{ seo_title }}</title>
+
+  <meta
+    name="description"
+    content="{{ seo_description }}"
+  >
+
+  <link
+    rel="canonical"
+    href="{{ canonical_url }}"
+  >
+
+  <link
+    rel="stylesheet"
+    href="{{ static_asset('style.css') }}"
+  >
+
+  <style>
+    body {
+      margin: 0;
+      background:
+        linear-gradient(
+          180deg,
+          #f8fbff 0%,
+          #eef4ff 45%,
+          #f7f8fc 100%
+        );
+    }
+
+    .seo-container {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 38px 20px 60px;
+    }
+
+    .seo-hero {
+      background:
+        linear-gradient(
+          135deg,
+          #1d4ed8,
+          #111827
+        );
+      color: white;
+      border-radius: 28px;
+      padding: 46px 24px;
+      text-align: center;
+      margin-bottom: 30px;
+      box-shadow:
+        0 20px 40px rgba(
+          17,
+          24,
+          39,
+          0.16
+        );
+    }
+
+    .seo-hero h1 {
+      margin: 0 0 14px;
+      font-size: 38px;
+      line-height: 1.15;
+    }
+
+    .seo-hero p {
+      max-width: 760px;
+      margin: 0 auto;
+      line-height: 1.7;
+      font-size: 16px;
+      opacity: 0.94;
+    }
+
+    .seo-summary {
+      margin-bottom: 22px;
+      color: #475569;
+      font-size: 15px;
+    }
+
+    .seo-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(
+          auto-fit,
+          minmax(250px, 1fr)
+        );
+      gap: 18px;
+    }
+
+    .seo-card {
+      display: block;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      padding: 20px;
+      text-decoration: none;
+      color: inherit;
+      box-shadow:
+        0 10px 24px rgba(
+          15,
+          23,
+          42,
+          0.06
+        );
+      transition:
+        transform 0.18s ease,
+        box-shadow 0.18s ease;
+    }
+
+    .seo-card:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 16px 30px rgba(
+          15,
+          23,
+          42,
+          0.10
+        );
+    }
+
+    .seo-card h2 {
+      margin: 0 0 10px;
+      font-size: 19px;
+      color: #111827;
+    }
+
+    .seo-location {
+      color: #64748b;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .seo-description {
+      margin-top: 12px;
+      color: #475569;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .seo-links {
+      margin-top: 32px;
+      padding: 24px;
+      background: white;
+      border-radius: 18px;
+      border: 1px solid #e5e7eb;
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    .seo-links a {
+      color: #1d4ed8;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    @media (max-width: 768px) {
+      .seo-container {
+        padding:
+          24px
+          16px
+          40px;
+      }
+
+      .seo-hero {
+        padding:
+          38px
+          18px;
+        border-radius: 22px;
+      }
+
+      .seo-hero h1 {
+        font-size: 30px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  {% include "partials/topbar.html" %}
+
+  <main class="seo-container">
+
+    <section class="seo-hero">
+
+      <h1>
+        {{ service_name }} em {{ city }}
+      </h1>
+
+      <p>
+        Encontre empresas, profissionais e serviços
+        relacionados a {{ service_name }}
+        em {{ city }} no CataLogin.
+      </p>
+
+    </section>
+
+    <div class="seo-summary">
+      {{ total_ads }}
+      {% if total_ads == 1 %}
+        resultado encontrado.
+      {% else %}
+        resultados encontrados.
+      {% endif %}
+    </div>
+
+    <section class="seo-grid">
+
+      {% for ad in ads %}
+
+        <a
+          class="seo-card"
+          href="/anuncio/{{ ad.slug }}"
+        >
+
+          <h2>
+            {{ ad.title }}
+          </h2>
+
+          <div class="seo-location">
+
+            {% if ad.city %}
+              {{ ad.city }}
+            {% endif %}
+
+            {% if ad.neighborhood %}
+              · {{ ad.neighborhood }}
+            {% endif %}
+
+            {% if ad.state %}
+              · {{ ad.state }}
+            {% endif %}
+
+          </div>
+
+          {% if ad.description %}
+
+            <div class="seo-description">
+
+              {{ ad.description[:180] }}
+
+              {% if ad.description|length > 180 %}
+                ...
+              {% endif %}
+
+            </div>
+
+          {% endif %}
+
+        </a>
+
+      {% endfor %}
+
+    </section>
+
+    <div class="seo-links">
+
+      <a href="/catalogo">
+        Ver catálogo completo
+      </a>
+
+      <br>
+
+      <a href="/buscar-empresas">
+        Buscar outras empresas e serviços
+      </a>
+
+      <br>
+
+      <a href="/anunciar-empresa">
+        Anunciar empresa ou serviço
+      </a>
+
+    </div>
+
+  </main>
+
+  <script
+    src="{{ static_asset('common_layout.js') }}"
+  ></script>
+
+</body>
+</html>
