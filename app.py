@@ -1879,6 +1879,15 @@ def sitemap():
         </url>
         """
     )
+    
+    # Buscar empresas
+    xml_parts.append(
+        f"""
+        <url>
+            <loc>{base_url}/buscar-empresas</loc>
+        </url>
+        """
+    )
 
     # Páginas individuais dos anúncios
     for ad in ads:
@@ -1952,7 +1961,11 @@ def home():
     
 @app.route("/anunciar-empresa")
 def anunciar_empresa():
-    return render_template("anunciar_empresa.html")    
+    return render_template("anunciar_empresa.html")
+
+@app.route("/buscar-empresas")
+def buscar_empresas():
+    return render_template("buscar_empresas.html")    
 
 @app.route("/auth-page")
 def auth_page():
