@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>{{ trip.title }} | CataLogin</title>
+
+  <link
+    rel="stylesheet"
+    href="{{ static_asset('style.css') }}"
+  >
+
+  <style>
+    body {
+      margin: 0;
+      background: #f4f7fb;
+    }
+
+    .trip-page {
+      max-width: 850px;
+      margin: 0 auto;
+      padding: 30px 18px 60px;
+    }
+
+    .trip-info,
+    .registration-box {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .trip-info h1 {
+      margin-top: 0;
+    }
+
+    .trip-detail {
+      margin: 8px 0;
+      color: #475569;
+    }
+
+    .registration-box h2 {
+      margin-top: 0;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    .form-group label {
+      font-weight: 700;
+    }
+
+    .form-group input,
+    .form-group select {
+      padding: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font: inherit;
+    }
+
+    .platoon-box {
+      padding: 12px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+
+    .submit-btn {
+      margin-top: 18px;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      background: #1d4ed8;
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .closed-box {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #9a3412;
+      padding: 18px;
+      border-radius: 14px;
+    }
+
+    .powered {
+      text-align: center;
+      color: #64748b;
+      font-size: 14px;
+      margin-top: 24px;
+    }
+
+    .powered a {
+      color: #1d4ed8;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    @media (max-width: 700px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="trip-page">
+
+    <section class="trip-info">
+
+      <h1>{{ trip.title }}</h1>
+
+      {% if trip.description %}
+        <p>
+          {{ trip.description }}
+        </p>
+      {% endif %}
+
+      {% if trip.destination %}
+        <div class="trip-detail">
+          <strong>Destino:</strong>
+          {{ trip.destination }}
+        </div>
+      {% endif %}
+
+      <div class="trip-detail">
+        <strong>Data:</strong>
+        {{ trip.event_date.strftime('%d/%m/%Y') }}
+      </div>
+
+      {% if trip.departure_time %}
+        <div class="trip-detail">
+          <strong>Saída:</strong>
+          {{ trip.departure_time.strftime('%H:%M') }}
+        </div>
+      {% endif %}
+
+      {% if trip.return_time %}
+        <div class="trip-detail">
+          <strong>Retorno previsto:</strong>
+          {{ trip.return_time.strftime('%H:%M') }}
+        </div>
+      {% endif %}
+
+      <div class="trip-detail">
+        <strong>Valor:</strong>
+        R$ {{ "%.2f"|format(trip.price) }}
+      </div>
+
+      
+      {% if trip.payment_instructions %}
+        <div class="trip-detail">
+          <strong>Pagamento:</strong><br>
+          {{ trip.payment_instructions }}
+        </div>
+      {% endif %}
+
+    </section>
+
+    {% if registrations_open %}
+
+      <section class="registration-box">
+
+        <h2>Inscrição do aluno</h2>
+
+        <form
+          id="registrationForm"
+          enctype="multipart/form-data"
+        >
+
+          <div class="form-grid">
+
+            <div class="form-group full">
+              <label>Nome do aluno</label>
+
+              <input
+                type="text"
+                name="student_name"
+                required
+              >
+            </div>
+
+            <div class="form-group full">
+              <label>Nome do responsável</label>
+
+              <input
+                type="text"
+                name="guardian_name"
+                required
+              >
+            </div>
+
+            <div class="form-group">
+              <label>Idade do aluno</label>
+
+              <select
+                name="age"
+                id="age"
+                required
+              >
+                <option value="">
+                  Selecione
+                </option>
+
+                {% for age in range(7, 16) %}
+                  <option value="{{ age }}">
+                    {{ age }} anos
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Pelotão</label>
+
+              <div
+                class="platoon-box"
+                id="platoonPreview"
+              >
+                Selecione a idade
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Turno</label>
+
+              <select
+                name="shift"
+                required
+              >
+                <option value="">
+                  Selecione
+                </option>
+
+                <option value="MATUTINO">
+                  Matutino
+                </option>
+
+                <option value="VESPERTINO">
+                  Vespertino
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>WhatsApp do responsável</label>
+
+              <input
+                type="tel"
+                name="guardian_whatsapp"
+                placeholder="(61) 99999-9999"
+                required
+              >
+            </div>
+
+            <div class="form-group full">
+              <label>
+                Comprovante de pagamento
+              </label>
+
+              <input
+                type="file"
+                name="payment_receipt"
+                accept=".png,.jpg,.jpeg,.webp,.pdf"
+              >
+            </div>
+
+          </div>
+
+          <button
+            type="submit"
+            class="submit-btn"
+          >
+            Enviar inscrição
+          </button>
+
+        </form>
+
+      </section>
+
+    {% else %}
+
+      <div class="closed-box">
+	    As inscrições para este passeio estão encerradas.
+	  </div>
+
+    {% endif %}
+
+    <div class="powered">
+      Inscrição realizada pelo
+      <a href="/">
+        CataLogin
+      </a>.
+    </div>
+
+  </main>
+
+  <script>
+    const ageSelect =
+      document.getElementById("age");
+
+    const platoonPreview =
+      document.getElementById(
+        "platoonPreview"
+      );
+
+    function updatePlatoon() {
+      const age =
+        Number(ageSelect.value);
+
+      let platoon =
+        "Selecione a idade";
+
+      if ([7, 8, 9].includes(age)) {
+        platoon =
+          "1º Pelotão";
+      }
+
+      if ([10, 11].includes(age)) {
+        platoon =
+          "2º Pelotão";
+      }
+
+      if (
+        [12, 13, 14, 15]
+        .includes(age)
+      ) {
+        platoon =
+          "3º Pelotão";
+      }
+
+      platoonPreview.textContent =
+        platoon;
+    }
+
+    if (ageSelect) {
+      ageSelect.addEventListener(
+        "change",
+        updatePlatoon
+      );
+    }
+
+    const registrationForm =
+      document.getElementById(
+        "registrationForm"
+      );
+
+    if (registrationForm) {
+      registrationForm.addEventListener(
+        "submit",
+        async (event) => {
+          event.preventDefault();
+
+          const formData =
+            new FormData(
+              registrationForm
+            );
+
+          const response =
+            await fetch(
+              window.location.pathname +
+              "/inscrever",
+              {
+                method: "POST",
+                body: formData
+              }
+            );
+
+          const data =
+            await response.json();
+
+          if (!response.ok) {
+            alert(
+              data.message ||
+              "Não foi possível realizar a inscrição."
+            );
+            return;
+          }
+
+          alert(
+            "Inscrição realizada com sucesso!\n" +
+            "Pelotão: " +
+            data.platoon
+          );
+
+          window.location.reload();
+        }
+      );
+    }
+  </script>
+
+</body>
+</html>

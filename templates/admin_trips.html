@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Passeios | Administração CataLogin</title>
+
+  <link
+    rel="stylesheet"
+    href="{{ static_asset('style.css') }}"
+  >
+
+  <style>
+    body {
+      margin: 0;
+      background: #f4f7fb;
+    }
+
+    .trip-admin {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 30px 20px 60px;
+    }
+
+    .trip-header {
+      margin-bottom: 24px;
+    }
+
+    .trip-header h1 {
+      margin: 0 0 8px;
+    }
+
+    .trip-header p {
+      margin: 0;
+      color: #64748b;
+    }
+
+    .trip-form,
+    .trip-list {
+      background: white;
+      border-radius: 18px;
+      padding: 24px;
+      border: 1px solid #e5e7eb;
+      margin-bottom: 24px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(
+          2,
+          minmax(0, 1fr)
+        );
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    .form-group label {
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      font: inherit;
+    }
+
+    .form-group textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .save-btn {
+      margin-top: 18px;
+      padding: 13px 18px;
+      border: none;
+      border-radius: 10px;
+      background: #1d4ed8;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .trip-card {
+      padding: 16px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .trip-card:last-child {
+      border-bottom: none;
+    }
+
+    .trip-card h3 {
+      margin: 0 0 6px;
+    }
+
+    .trip-card p {
+      margin: 4px 0;
+      color: #64748b;
+    }
+
+    @media (max-width: 700px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  {% include "partials/topbar.html" %}
+
+  <main class="trip-admin">
+
+    <div class="trip-header">
+      <h1>Gerenciar passeios</h1>
+
+      <p>
+        Crie novos passeios e acompanhe os eventos cadastrados.
+      </p>
+    </div>
+
+    <section class="trip-form">
+
+      <h2>Novo passeio</h2>
+
+      <form id="tripForm">
+
+        <div class="form-grid">
+
+          <div class="form-group full">
+            <label>Nome do passeio</label>
+            <input
+              type="text"
+              name="title"
+              required
+            >
+          </div>
+
+          <div class="form-group full">
+            <label>Descrição</label>
+            <textarea
+              name="description"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Destino</label>
+            <input
+              type="text"
+              name="destination"
+            >
+          </div>
+
+          <div class="form-group">
+            <label>Data</label>
+            <input
+              type="date"
+              name="event_date"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label>Horário de saída</label>
+            <input
+              type="time"
+              name="departure_time"
+            >
+          </div>
+
+          <div class="form-group">
+            <label>Horário de retorno</label>
+            <input
+              type="time"
+              name="return_time"
+            >
+          </div>
+
+          <div class="form-group">
+            <label>Valor</label>
+            <input
+              type="number"
+              name="price"
+              step="0.01"
+              min="0"
+              value="0"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label>Prazo para inscrição</label>
+            <input
+              type="datetime-local"
+              name="registration_deadline"
+            >
+          </div>
+
+          <div class="form-group full">
+            <label>Instruções de pagamento</label>
+            <textarea
+              name="payment_instructions"
+              placeholder="Ex.: efetuar pagamento via PIX e enviar comprovante no formulário."
+            ></textarea>
+          </div>
+
+        </div>
+
+        <button
+          type="submit"
+          class="save-btn"
+        >
+          Criar passeio
+        </button>
+
+      </form>
+
+    </section>
+
+    <section class="trip-list">
+
+      <h2>Passeios cadastrados</h2>
+
+      {% if trips %}
+
+        {% for trip in trips %}
+
+          <div class="trip-card">
+
+            <h3>
+              {{ trip.title }}
+            </h3>
+			
+			<p>
+			  <a
+				href="/admin/passeios/{{ trip.id }}"
+				style="
+				  color: #1d4ed8;
+				  font-weight: 700;
+				  text-decoration: none;
+				"
+			  >
+				Ver inscritos e pagamentos
+			  </a>
+			</p>
+
+            <p>
+              Data:
+              {{ trip.event_date.strftime('%d/%m/%Y') }}
+            </p>
+
+            {% if trip.destination %}
+              <p>
+                Destino:
+                {{ trip.destination }}
+              </p>
+            {% endif %}
+
+            <p>
+              Valor:
+              R$ {{ "%.2f"|format(trip.price) }}
+            </p>
+
+            <p>
+              Link público:
+              <a
+                href="/passeios/{{ trip.slug }}"
+                target="_blank"
+              >
+                /passeios/{{ trip.slug }}
+              </a>
+            </p>
+
+          </div>
+
+        {% endfor %}
+
+      {% else %}
+
+        <p>
+          Nenhum passeio cadastrado ainda.
+        </p>
+
+      {% endif %}
+
+    </section>
+
+  </main>
+
+  <script>
+    const tripForm =
+      document.getElementById("tripForm");
+
+    tripForm.addEventListener(
+      "submit",
+      async (event) => {
+        event.preventDefault();
+
+        const formData =
+          new FormData(tripForm);
+
+        const response =
+          await fetch(
+            "/admin/passeios",
+            {
+              method: "POST",
+              body: formData
+            }
+          );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          alert(
+            data.message ||
+            "Erro ao criar passeio."
+          );
+          return;
+        }
+
+        alert(
+          "Passeio criado com sucesso."
+        );
+
+        window.location.reload();
+      }
+    );
+  </script>
+
+</body>
+</html>

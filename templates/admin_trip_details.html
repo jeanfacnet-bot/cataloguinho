@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>{{ trip.title }} | Inscritos</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ static_asset('style.css') }}"
+    >
+
+    <style>
+        body {
+            margin: 0;
+            background: #f4f7fb;
+        }
+
+        .page {
+            max-width: 1250px;
+            margin: 0 auto;
+            padding: 30px 20px 60px;
+        }
+
+        .header {
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            margin: 0 0 8px;
+        }
+
+        .header p {
+            margin: 0;
+            color: #64748b;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #1d4ed8;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .stat {
+            background: white;
+            border-radius: 16px;
+            padding: 18px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .stat span {
+            display: block;
+            color: #64748b;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .stat strong {
+            font-size: 24px;
+            color: #111827;
+        }
+
+        .filters {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 20px;
+        }
+
+        .filters form {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filters select,
+        .filters button {
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .filters button {
+            background: #1d4ed8;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .table-box {
+            background: white;
+            border-radius: 18px;
+            border: 1px solid #e5e7eb;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1050px;
+        }
+
+        th,
+        td {
+            padding: 13px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            background: #f8fafc;
+            color: #334155;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .paid {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .receipt-link {
+            color: #1d4ed8;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .payment-btn {
+            padding: 8px 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .mark-paid {
+            background: #16a34a;
+            color: white;
+        }
+
+        .mark-pending {
+            background: #f59e0b;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    {% include "partials/topbar.html" %}
+
+    <main class="page">
+
+        <a
+            href="/admin/passeios"
+            class="back-link"
+        >
+            ← Voltar para passeios
+        </a>
+
+        <div class="header">
+
+            <h1>{{ trip.title }}</h1>
+
+            <p>
+                Controle de inscrições e pagamentos
+            </p>
+
+        </div>
+
+        <!-- RESUMO -->
+
+		<section class="stats">
+
+			<div class="stat">
+				<span>Total de inscrições</span>
+				<strong>{{ total }}</strong>
+			</div>
+
+			<div class="stat">
+				<span>Inscrições ativas</span>
+				<strong>{{ active }}</strong>
+			</div>
+
+			<div class="stat">
+				<span>Canceladas</span>
+				<strong>{{ cancelled }}</strong>
+			</div>
+
+			<div class="stat">
+				<span>Pagamentos confirmados</span>
+				<strong>{{ paid }}</strong>
+			</div>
+
+			<div class="stat">
+				<span>Pagamentos pendentes</span>
+				<strong>{{ pending }}</strong>
+			</div>
+
+			<div class="stat">
+				<span>Valor arrecadado</span>
+
+				<strong>
+					R$ {{ "%.2f"|format(total_received) }}
+				</strong>
+			</div>
+
+			<div class="stat">
+				<span>Valor ainda pendente</span>
+
+				<strong>
+					R$ {{ "%.2f"|format(total_pending) }}
+				</strong>
+			</div>
+
+		</section>
+
+        <!-- FILTROS -->
+
+        <section class="filters">
+
+            <form method="GET">
+
+                <select name="platoon">
+
+                    <option value="">
+                        Todos os pelotões
+                    </option>
+
+                    <option
+                        value="1º Pelotão"
+                        {% if selected_platoon == "1º Pelotão" %}
+                            selected
+                        {% endif %}
+                    >
+                        1º Pelotão
+                    </option>
+
+                    <option
+                        value="2º Pelotão"
+                        {% if selected_platoon == "2º Pelotão" %}
+                            selected
+                        {% endif %}
+                    >
+                        2º Pelotão
+                    </option>
+
+                    <option
+                        value="3º Pelotão"
+                        {% if selected_platoon == "3º Pelotão" %}
+                            selected
+                        {% endif %}
+                    >
+                        3º Pelotão
+                    </option>
+
+                </select>
+
+                <select name="shift">
+
+                    <option value="">
+                        Todos os turnos
+                    </option>
+
+                    <option
+                        value="MATUTINO"
+                        {% if selected_shift == "MATUTINO" %}
+                            selected
+                        {% endif %}
+                    >
+                        Matutino
+                    </option>
+
+                    <option
+                        value="VESPERTINO"
+                        {% if selected_shift == "VESPERTINO" %}
+                            selected
+                        {% endif %}
+                    >
+                        Vespertino
+                    </option>
+
+                </select>
+
+                <select name="payment_status">
+
+                    <option value="">
+                        Todos os pagamentos
+                    </option>
+
+                    <option
+                        value="PAGO"
+                        {% if selected_payment_status == "PAGO" %}
+                            selected
+                        {% endif %}
+                    >
+                        Pago
+                    </option>
+
+                    <option
+                        value="PENDENTE"
+                        {% if selected_payment_status == "PENDENTE" %}
+                            selected
+                        {% endif %}
+                    >
+                        Pendente
+                    </option>
+
+                </select>
+
+                <button type="submit">
+                    Filtrar
+                </button>
+
+            </form>
+			
+			<div style="margin-top: 14px;">
+
+				<a
+					href="/admin/passeios/{{ trip.id }}/exportar-excel?platoon={{ selected_platoon|urlencode }}&shift={{ selected_shift|urlencode }}&payment_status={{ selected_payment_status|urlencode }}"
+					style="
+						display: inline-block;
+						padding: 11px 16px;
+						background: #16a34a;
+						color: white;
+						border-radius: 10px;
+						text-decoration: none;
+						font-weight: 700;
+					"
+				>
+					Exportar para Excel
+				</a>
+
+			</div>
+
+        </section>
+
+        <!-- LISTA DE INSCRITOS -->
+
+        <section class="table-box">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Aluno</th>
+                        <th>Responsável</th>
+                        <th>Idade</th>
+                        <th>Pelotão</th>
+                        <th>Turno</th>
+                        <th>WhatsApp</th>
+                        <th>Pagamento</th>
+                        <th>Comprovante</th>
+                        <th>Ação</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for item in registrations %}
+
+                        <tr>
+
+                            <td>
+                                {{ item.student_name }}
+                            </td>
+
+                            <td>
+                                {{ item.guardian_name }}
+                            </td>
+
+                            <td>
+                                {{ item.age }}
+                            </td>
+
+                            <td>
+                                {{ item.platoon }}
+                            </td>
+
+                            <td>
+                                {% if item.shift == "MATUTINO" %}
+                                    Matutino
+                                {% else %}
+                                    Vespertino
+                                {% endif %}
+                            </td>
+
+                            <td>
+							  <a
+								href="https://wa.me/55{{ item.guardian_whatsapp | replace('(', '') | replace(')', '') | replace(' ', '') | replace('-', '') }}"
+								target="_blank"
+								style="
+								  color: #16a34a;
+								  font-weight: 700;
+								  text-decoration: none;
+								"
+							  >
+								{{ item.guardian_whatsapp }}
+							  </a>
+							</td>
+
+                            <td>
+
+								{% if item.registration_status == "CANCELADA" %}
+
+									<span
+										class="status"
+										style="
+											background: #fee2e2;
+											color: #991b1b;
+										"
+									>
+										Cancelada
+									</span>
+
+								{% elif item.payment_status == "PAGO" %}
+
+									<span class="status paid">
+										Pago
+									</span>
+
+								{% else %}
+
+									<span class="status pending">
+										Pendente
+									</span>
+
+								{% endif %}
+
+							</td>
+
+                            <td>
+
+                                {% if item.payment_receipt %}
+
+                                    <a
+                                        class="receipt-link"
+                                        href="{{ item.payment_receipt }}"
+                                        target="_blank"
+                                    >
+                                        Ver comprovante
+                                    </a>
+
+                                {% else %}
+
+                                    Sem comprovante
+
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+
+								{% if item.registration_status == "CANCELADA" %}
+
+									<strong style="color: #991b1b;">
+										Inscrição cancelada
+									</strong>
+
+									<br>
+
+									<button
+										class="payment-btn"
+										style="
+											background: #2563eb;
+											color: white;
+											margin-top: 6px;
+										"
+										onclick="uncancelRegistration({{ item.id }})"
+									>
+										Reativar inscrição
+									</button>
+
+								{% else %}
+
+									<!-- EDITAR -->
+
+									<button
+										class="payment-btn"
+										style="
+											background: #475569;
+											color: white;
+											margin-bottom: 6px;
+										"
+										onclick='editRegistration(
+											{{ item.id }},
+											{{ item.student_name|tojson }},
+											{{ item.guardian_name|tojson }},
+											{{ item.age }},
+											{{ item.shift|tojson }},
+											{{ item.guardian_whatsapp|tojson }}
+										)'
+									>
+										Editar
+									</button>
+
+									<br>
+
+									<!-- PAGAMENTO -->
+
+									{% if item.payment_status == "PAGO" %}
+
+										<button
+											class="payment-btn mark-pending"
+											onclick="changePayment(
+												{{ item.id }},
+												'PENDENTE'
+											)"
+										>
+											Marcar pendente
+										</button>
+
+									{% else %}
+
+										<button
+											class="payment-btn mark-paid"
+											onclick="changePayment(
+												{{ item.id }},
+												'PAGO'
+											)"
+										>
+											Marcar pago
+										</button>
+
+									{% endif %}
+
+									<br>
+
+									<!-- CANCELAMENTO -->
+
+									<button
+										class="payment-btn"
+										style="
+											background: #dc2626;
+											color: white;
+											margin-top: 6px;
+										"
+										onclick="cancelRegistration({{ item.id }})"
+									>
+										Cancelar inscrição
+									</button>
+
+								{% endif %}
+
+							</td>
+
+                        </tr>
+
+                    {% else %}
+
+                        <tr>
+
+                            <td colspan="9">
+                                Nenhuma inscrição encontrada.
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </section>
+
+    </main>
+
+    <script>
+
+        async function changePayment(
+            registrationId,
+            status
+        ) {
+
+            const response = await fetch(
+                `/admin/passeios/inscricoes/${registrationId}/pagamento`,
+                {
+                    method: "PATCH",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        status: status
+                    })
+                }
+            );
+
+            const data =
+                await response.json();
+
+            if (!response.ok) {
+
+                alert(
+                    data.message ||
+                    "Não foi possível atualizar o pagamento."
+                );
+
+                return;
+            }
+
+            window.location.reload();
+        }
+		
+		async function cancelRegistration(
+			registrationId
+		) {
+			const confirmed = confirm(
+				"Tem certeza que deseja cancelar esta inscrição?"
+			);
+
+			if (!confirmed) {
+				return;
+			}
+
+			try {
+				const response = await fetch(
+					`/admin/passeios/inscricoes/${registrationId}/cancelar`,
+					{
+						method: "PATCH"
+					}
+				);
+
+				const text = await response.text();
+
+				let data = {};
+
+				try {
+					data = JSON.parse(text);
+				} catch (error) {
+					console.error(
+						"Resposta do servidor:",
+						text
+					);
+				}
+
+				if (!response.ok) {
+					alert(
+						data.message ||
+						`Erro ao cancelar inscrição (${response.status}).`
+					);
+					return;
+				}
+
+				alert(
+					data.message ||
+					"Inscrição cancelada com sucesso."
+				);
+
+				window.location.reload();
+
+			} catch (error) {
+
+				console.error(error);
+
+				alert(
+					"Erro de comunicação ao cancelar a inscrição."
+				);
+			}
+		}
+		
+		async function uncancelRegistration(
+			registrationId
+		) {
+			const confirmed = confirm(
+				"Deseja reativar esta inscrição?"
+			);
+
+			if (!confirmed) {
+				return;
+			}
+
+			try {
+				const response = await fetch(
+					`/admin/passeios/inscricoes/${registrationId}/descancelar`,
+					{
+						method: "PATCH"
+					}
+				);
+
+				const text = await response.text();
+
+				let data = {};
+
+				try {
+					data = JSON.parse(text);
+				} catch (error) {
+					console.error(
+						"Resposta do servidor:",
+						text
+					);
+				}
+
+				if (!response.ok) {
+					alert(
+						data.message ||
+						`Erro ao reativar inscrição (${response.status}).`
+					);
+					return;
+				}
+
+				alert(
+					data.message ||
+					"Inscrição reativada com sucesso."
+				);
+
+				window.location.reload();
+
+			} catch (error) {
+
+				console.error(error);
+
+				alert(
+					"Erro de comunicação ao reativar a inscrição."
+				);
+			}
+		}
+		
+		async function editRegistration(
+			registrationId,
+			currentStudentName,
+			currentGuardianName,
+			currentAge,
+			currentShift,
+			currentWhatsapp
+		) {
+			const studentName = prompt(
+				"Nome do aluno:",
+				currentStudentName
+			);
+
+			if (studentName === null) {
+				return;
+			}
+
+			const guardianName = prompt(
+				"Nome do responsável:",
+				currentGuardianName
+			);
+
+			if (guardianName === null) {
+				return;
+			}
+
+			const age = prompt(
+				"Idade do aluno (7 a 15):",
+				currentAge
+			);
+
+			if (age === null) {
+				return;
+			}
+
+			const shift = prompt(
+				"Turno: MATUTINO ou VESPERTINO",
+				currentShift
+			);
+
+			if (shift === null) {
+				return;
+			}
+
+			const whatsapp = prompt(
+				"WhatsApp do responsável:",
+				currentWhatsapp
+			);
+
+			if (whatsapp === null) {
+				return;
+			}
+
+			try {
+				const response = await fetch(
+					`/admin/passeios/inscricoes/${registrationId}/editar`,
+					{
+						method: "PATCH",
+
+						headers: {
+							"Content-Type": "application/json"
+						},
+
+						body: JSON.stringify({
+							student_name: studentName,
+							guardian_name: guardianName,
+							age: age,
+							shift: shift,
+							guardian_whatsapp: whatsapp
+						})
+					}
+				);
+
+				const data =
+					await response.json();
+
+				if (!response.ok) {
+					alert(
+						data.message ||
+						"Não foi possível editar a inscrição."
+					);
+
+					return;
+				}
+
+				alert(
+					data.message +
+					"\nPelotão: " +
+					data.platoon
+				);
+
+				window.location.reload();
+
+			} catch (error) {
+
+				console.error(error);
+
+				alert(
+					"Erro de comunicação ao editar a inscrição."
+				);
+			}
+		}
+
+    </script>
+
+</body>
+</html>

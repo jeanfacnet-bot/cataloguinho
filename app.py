@@ -8,8 +8,12 @@ from flask import (
     url_for,
     send_from_directory,
     Response,
+    send_file,
     abort
 )
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.utils import get_column_letter
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import case, or_
@@ -426,7 +430,175 @@ class Report(db.Model):
     action_days = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     reviewed_at = db.Column(db.DateTime, nullable=True)
-    reviewed_by_admin_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)   
+    reviewed_by_admin_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)  
+
+# =========================
+# PASSEIOS / EVENTOS
+# =========================
+
+class TripEvent(db.Model):
+    __tablename__ = "trip_events"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    title = db.Column(
+        db.String(200),
+        nullable=False
+    )
+
+    slug = db.Column(
+        db.String(255),
+        nullable=False,
+        unique=True,
+        index=True
+    )
+
+    description = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    destination = db.Column(
+        db.String(200),
+        nullable=True
+    )
+
+    event_date = db.Column(
+        db.Date,
+        nullable=False
+    )
+
+    departure_time = db.Column(
+        db.Time,
+        nullable=True
+    )
+
+    return_time = db.Column(
+        db.Time,
+        nullable=True
+    )
+
+    price = db.Column(
+        db.Float,
+        nullable=False,
+        default=0
+    )
+
+    max_spots = db.Column(
+        db.Integer,
+        nullable=True
+    )
+
+    registration_deadline = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
+    payment_instructions = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    banner = db.Column(
+        db.String(500),
+        nullable=True
+    )
+
+    is_active = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=True,
+        index=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+    registrations = db.relationship(
+        "TripRegistration",
+        backref="trip",
+        lazy=True,
+        cascade="all, delete-orphan"
+    )
+
+
+class TripRegistration(db.Model):
+    __tablename__ = "trip_registrations"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    trip_id = db.Column(
+        db.Integer,
+        db.ForeignKey("trip_events.id"),
+        nullable=False,
+        index=True
+    )
+
+    student_name = db.Column(
+        db.String(200),
+        nullable=False
+    )
+
+    guardian_name = db.Column(
+        db.String(200),
+        nullable=False
+    )
+
+    age = db.Column(
+        db.Integer,
+        nullable=False
+    )
+
+    platoon = db.Column(
+        db.String(30),
+        nullable=False,
+        index=True
+    )
+
+    shift = db.Column(
+        db.String(20),
+        nullable=False,
+        index=True
+    )
+
+    guardian_whatsapp = db.Column(
+        db.String(30),
+        nullable=False
+    )
+
+    payment_receipt = db.Column(
+        db.String(500),
+        nullable=True
+    )
+
+    payment_status = db.Column(
+        db.String(20),
+        nullable=False,
+        default="PENDENTE",
+        index=True
+    )
+
+    registration_status = db.Column(
+        db.String(30),
+        nullable=False,
+        default="AGUARDANDO_PAGAMENTO",
+        index=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )    
 
 class SiteVisitor(db.Model):
     __tablename__ = "site_visitors"
@@ -598,6 +770,23 @@ def build_ad_slug(ad):
 
     return f"{city_slug}/{title_slug}-{ad.id}"   
 
+
+def get_platoon_by_age(age):
+    try:
+        age = int(age)
+    except (TypeError, ValueError):
+        return None
+
+    if age in (7, 8, 9):
+        return "1º Pelotão"
+
+    if age in (10, 11):
+        return "2º Pelotão"
+
+    if age in (12, 13, 14, 15):
+        return "3º Pelotão"
+
+    return None
 
 def get_seo_service_links(
     min_ads=2,
@@ -3319,7 +3508,881 @@ def admin_delete_location(location_id):
     db.session.delete(location)
     db.session.commit()
 
-    return jsonify({"message": "Localidade excluída com sucesso"})    
+    return jsonify({"message": "Localidade excluída com sucesso"}) 
+
+@app.route("/admin/passeios")
+@admin_required_page
+def admin_trips_page():
+    trips = (
+        TripEvent.query
+        .order_by(
+            TripEvent.event_date.desc(),
+            TripEvent.created_at.desc()
+        )
+        .all()
+    )
+
+    return render_template(
+        "admin_trips.html",
+        trips=trips,
+        active_page="trips"
+    )
+
+@app.route(
+    "/admin/passeios",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_create_trip():
+    title = (
+        request.form.get("title")
+        or ""
+    ).strip()
+
+    description = (
+        request.form.get("description")
+        or ""
+    ).strip()
+
+    destination = (
+        request.form.get("destination")
+        or ""
+    ).strip()
+
+    event_date_raw = (
+        request.form.get("event_date")
+        or ""
+    ).strip()
+
+    departure_time_raw = (
+        request.form.get("departure_time")
+        or ""
+    ).strip()
+
+    return_time_raw = (
+        request.form.get("return_time")
+        or ""
+    ).strip()
+
+    price_raw = (
+        request.form.get("price")
+        or "0"
+    ).strip()
+
+    
+    registration_deadline_raw = (
+        request.form.get(
+            "registration_deadline"
+        )
+        or ""
+    ).strip()
+
+    payment_instructions = (
+        request.form.get(
+            "payment_instructions"
+        )
+        or ""
+    ).strip()
+
+    if not title:
+        return jsonify({
+            "message": "Informe o nome do passeio."
+        }), 400
+
+    if not event_date_raw:
+        return jsonify({
+            "message": "Informe a data do passeio."
+        }), 400
+
+    try:
+        event_date = datetime.strptime(
+            event_date_raw,
+            "%Y-%m-%d"
+        ).date()
+    except ValueError:
+        return jsonify({
+            "message": "Data inválida."
+        }), 400
+
+    departure_time = None
+
+    if departure_time_raw:
+        try:
+            departure_time = datetime.strptime(
+                departure_time_raw,
+                "%H:%M"
+            ).time()
+        except ValueError:
+            return jsonify({
+                "message": "Horário de saída inválido."
+            }), 400
+
+    return_time = None
+
+    if return_time_raw:
+        try:
+            return_time = datetime.strptime(
+                return_time_raw,
+                "%H:%M"
+            ).time()
+        except ValueError:
+            return jsonify({
+                "message": "Horário de retorno inválido."
+            }), 400
+
+    try:
+        price = float(
+            price_raw.replace(",", ".")
+        )
+    except ValueError:
+        return jsonify({
+            "message": "Valor inválido."
+        }), 400
+
+    
+    registration_deadline = None
+
+    if registration_deadline_raw:
+        try:
+            registration_deadline = (
+                datetime.fromisoformat(
+                    registration_deadline_raw
+                )
+            )
+        except ValueError:
+            return jsonify({
+                "message": "Prazo de inscrição inválido."
+            }), 400
+
+    base_slug = generate_slug(
+        title
+    )
+
+    if not base_slug:
+        base_slug = "passeio"
+
+    slug = base_slug
+    suffix = 2
+
+    while TripEvent.query.filter_by(
+        slug=slug
+    ).first():
+        slug = f"{base_slug}-{suffix}"
+        suffix += 1
+
+    trip = TripEvent(
+        title=title,
+        slug=slug,
+        description=description or None,
+        destination=destination or None,
+        event_date=event_date,
+        departure_time=departure_time,
+        return_time=return_time,
+        price=price,
+        registration_deadline=(
+            registration_deadline
+        ),
+        payment_instructions=(
+            payment_instructions or None
+        ),
+        is_active=True
+    )
+
+    db.session.add(trip)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Passeio criado com sucesso.",
+        "trip_id": trip.id,
+        "slug": trip.slug,
+        "public_url": (
+            f"/passeios/{trip.slug}"
+        )
+    }), 201 
+
+@app.route("/passeios/<slug>")
+def public_trip_page(slug):
+    trip = TripEvent.query.filter_by(
+        slug=slug,
+        is_active=True
+    ).first_or_404()
+
+    registrations_open = True
+
+    if (
+        trip.registration_deadline
+        and trip.registration_deadline < utc_now()
+    ):
+        registrations_open = False
+
+    return render_template(
+        "trip_public.html",
+        trip=trip,
+        registrations_open=registrations_open
+    )
+
+@app.route(
+    "/passeios/<slug>/inscrever",
+    methods=["POST"]
+)
+def register_trip_student(slug):
+    trip = TripEvent.query.filter_by(
+        slug=slug,
+        is_active=True
+    ).first_or_404()
+
+    if (
+        trip.registration_deadline
+        and trip.registration_deadline < utc_now()
+    ):
+        return jsonify({
+            "message": "As inscrições para este passeio foram encerradas."
+        }), 400
+
+    
+    student_name = (
+        request.form.get("student_name")
+        or ""
+    ).strip()
+
+    guardian_name = (
+        request.form.get("guardian_name")
+        or ""
+    ).strip()
+
+    age_raw = (
+        request.form.get("age")
+        or ""
+    ).strip()
+
+    shift = (
+        request.form.get("shift")
+        or ""
+    ).strip()
+
+    guardian_whatsapp = (
+        request.form.get("guardian_whatsapp")
+        or ""
+    ).strip()
+
+    receipt_file = request.files.get(
+        "payment_receipt"
+    )
+
+    if not student_name:
+        return jsonify({
+            "message": "Informe o nome do aluno."
+        }), 400
+
+    if not guardian_name:
+        return jsonify({
+            "message": "Informe o nome do responsável."
+        }), 400
+
+    try:
+        age = int(age_raw)
+    except (TypeError, ValueError):
+        return jsonify({
+            "message": "Informe uma idade válida."
+        }), 400
+
+    platoon = get_platoon_by_age(age)
+
+    if not platoon:
+        return jsonify({
+            "message": "A idade permitida é de 7 a 15 anos."
+        }), 400
+
+    if shift not in ("MATUTINO", "VESPERTINO"):
+        return jsonify({
+            "message": "Selecione o turno."
+        }), 400
+
+    if not guardian_whatsapp:
+        return jsonify({
+            "message": "Informe o WhatsApp do responsável."
+        }), 400
+
+    receipt_path = None
+
+    if receipt_file and receipt_file.filename:
+        filename = receipt_file.filename.lower()
+
+        allowed_receipt_extensions = {
+            "png",
+            "jpg",
+            "jpeg",
+            "webp",
+            "pdf"
+        }
+
+        if (
+            "." not in filename
+            or filename.rsplit(".", 1)[1]
+            not in allowed_receipt_extensions
+        ):
+            return jsonify({
+                "message": (
+                    "O comprovante deve ser uma imagem "
+                    "ou arquivo PDF."
+                )
+            }), 400
+
+        extension = filename.rsplit(".", 1)[1]
+
+        receipt_filename = (
+            f"trip_{trip.id}_"
+            f"{uuid.uuid4().hex}.{extension}"
+        )
+
+        receipt_folder = os.path.join(
+            UPLOAD_BASE,
+            "trip_receipts"
+        )
+
+        os.makedirs(
+            receipt_folder,
+            exist_ok=True
+        )
+
+        receipt_full_path = os.path.join(
+            receipt_folder,
+            receipt_filename
+        )
+
+        receipt_file.save(
+            receipt_full_path
+        )
+
+        receipt_path = (
+            f"/media/trip-receipts/"
+            f"{receipt_filename}"
+        )
+
+    registration = TripRegistration(
+        trip_id=trip.id,
+        student_name=student_name,
+        guardian_name=guardian_name,
+        age=age,
+        platoon=platoon,
+        shift=shift,
+        guardian_whatsapp=guardian_whatsapp,
+        payment_receipt=receipt_path,
+        payment_status="PENDENTE",
+        registration_status="AGUARDANDO_PAGAMENTO"
+    )
+
+    db.session.add(registration)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Inscrição realizada com sucesso.",
+        "registration_id": registration.id,
+        "platoon": registration.platoon
+    }), 201
+
+@app.route(
+    "/media/trip-receipts/<path:filename>"
+)
+@admin_required_page
+def serve_trip_receipt(filename):
+    receipt_folder = os.path.join(
+        UPLOAD_BASE,
+        "trip_receipts"
+    )
+
+    return send_from_directory(
+        receipt_folder,
+        filename,
+        conditional=True
+    )    
+    
+@app.route("/admin/passeios/<int:trip_id>")
+@admin_required_page
+def admin_trip_details(trip_id):
+    trip = TripEvent.query.get_or_404(trip_id)
+
+    platoon = (
+        request.args.get("platoon")
+        or ""
+    ).strip()
+
+    shift = (
+        request.args.get("shift")
+        or ""
+    ).strip()
+
+    payment_status = (
+        request.args.get("payment_status")
+        or ""
+    ).strip()
+
+    query = (
+        TripRegistration.query
+        .filter_by(
+            trip_id=trip.id
+        )
+    )
+
+    if platoon:
+        query = query.filter(
+            TripRegistration.platoon == platoon
+        )
+
+    if shift:
+        query = query.filter(
+            TripRegistration.shift == shift
+        )
+
+    if payment_status:
+        query = query.filter(
+            TripRegistration.payment_status == payment_status
+        )
+
+    registrations = (
+        query
+        .order_by(
+            TripRegistration.created_at.desc()
+        )
+        .all()
+    )
+
+    all_registrations = (
+        TripRegistration.query
+        .filter_by(
+            trip_id=trip.id
+        )
+        .all()
+    )
+
+    total = len(all_registrations)
+
+    cancelled = sum(
+        1
+        for item in all_registrations
+        if item.registration_status == "CANCELADA"
+    )
+
+    active = sum(
+        1
+        for item in all_registrations
+        if item.registration_status != "CANCELADA"
+    )
+
+    paid = sum(
+        1
+        for item in all_registrations
+        if (
+            item.registration_status != "CANCELADA"
+            and item.payment_status == "PAGO"
+        )
+    )
+
+    pending = sum(
+        1
+        for item in all_registrations
+        if (
+            item.registration_status != "CANCELADA"
+            and item.payment_status == "PENDENTE"
+        )
+    )
+
+    trip_price = float(
+        trip.price or 0
+    )
+
+    total_received = (
+        paid * trip_price
+    )
+
+    total_pending = (
+        pending * trip_price
+    )
+
+    return render_template(
+        "admin_trip_details.html",
+        trip=trip,
+        registrations=registrations,
+        total=total,
+        active=active,
+        paid=paid,
+        pending=pending,
+        cancelled=cancelled,
+        total_received=total_received,
+        total_pending=total_pending,
+        selected_platoon=platoon,
+        selected_shift=shift,
+        selected_payment_status=payment_status
+    )
+    
+@app.route("/admin/passeios/<int:trip_id>/exportar-excel")
+@admin_required_page
+def admin_export_trip_excel(trip_id):
+    trip = TripEvent.query.get_or_404(trip_id)
+
+    platoon = (
+        request.args.get("platoon")
+        or ""
+    ).strip()
+
+    shift = (
+        request.args.get("shift")
+        or ""
+    ).strip()
+
+    payment_status = (
+        request.args.get("payment_status")
+        or ""
+    ).strip()
+
+    query = (
+        TripRegistration.query
+        .filter_by(
+            trip_id=trip.id
+        )
+    )
+
+    if platoon:
+        query = query.filter(
+            TripRegistration.platoon == platoon
+        )
+
+    if shift:
+        query = query.filter(
+            TripRegistration.shift == shift
+        )
+
+    if payment_status:
+        query = query.filter(
+            TripRegistration.payment_status
+            == payment_status
+        )
+
+    registrations = (
+        query
+        .order_by(
+            TripRegistration.platoon.asc(),
+            TripRegistration.shift.asc(),
+            TripRegistration.student_name.asc()
+        )
+        .all()
+    )
+
+    workbook = Workbook()
+
+    worksheet = workbook.active
+    worksheet.title = "Inscritos"
+
+    headers = [
+        "Aluno",
+        "Responsável",
+        "Idade",
+        "Pelotão",
+        "Turno",
+        "WhatsApp",
+        "Pagamento",
+        "Situação da Inscrição",
+        "Data da Inscrição"
+    ]
+
+    worksheet.append(headers)
+
+    for cell in worksheet[1]:
+        cell.font = Font(
+            bold=True,
+            color="FFFFFF"
+        )
+
+        cell.fill = PatternFill(
+            fill_type="solid",
+            fgColor="1D4ED8"
+        )
+
+        cell.alignment = Alignment(
+            horizontal="center",
+            vertical="center"
+        )
+
+    for item in registrations:
+        if item.shift == "MATUTINO":
+            shift_label = "Matutino"
+        else:
+            shift_label = "Vespertino"
+
+        if item.payment_status == "PAGO":
+            payment_label = "Pago"
+        else:
+            payment_label = "Pendente"
+
+        if item.registration_status == "CANCELADA":
+            registration_label = "Cancelada"
+
+        elif item.registration_status == "CONFIRMADA":
+            registration_label = "Confirmada"
+
+        else:
+            registration_label = "Aguardando pagamento"
+
+        created_at = ""
+
+        if item.created_at:
+            created_at = (
+                item.created_at.strftime(
+                    "%d/%m/%Y %H:%M"
+                )
+            )
+
+        worksheet.append([
+            item.student_name,
+            item.guardian_name,
+            item.age,
+            item.platoon,
+            shift_label,
+            item.guardian_whatsapp,
+            payment_label,
+            registration_label,
+            created_at
+        ])
+
+    column_widths = {
+        "A": 28,
+        "B": 28,
+        "C": 10,
+        "D": 18,
+        "E": 15,
+        "F": 20,
+        "G": 15,
+        "H": 24,
+        "I": 20
+    }
+
+    for column, width in column_widths.items():
+        worksheet.column_dimensions[
+            column
+        ].width = width
+
+    worksheet.freeze_panes = "A2"
+
+    output = io.BytesIO()
+
+    workbook.save(output)
+
+    output.seek(0)
+
+    safe_title = generate_slug(
+        trip.title
+    )
+
+    filename = (
+        f"inscritos-{safe_title}.xlsx"
+    )
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=filename,
+        mimetype=(
+            "application/vnd.openxmlformats-"
+            "officedocument.spreadsheetml.sheet"
+        )
+    )    
+
+@app.route(
+    "/admin/passeios/inscricoes/<int:registration_id>/pagamento",
+    methods=["PATCH"]
+)
+@admin_required_page
+def admin_update_trip_payment(registration_id):
+    registration = (
+        TripRegistration.query
+        .get_or_404(registration_id)
+    )
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    status = (
+        data.get("status")
+        or ""
+    ).strip().upper()
+
+    if status not in (
+        "PAGO",
+        "PENDENTE"
+    ):
+        return jsonify({
+            "message": "Status de pagamento inválido."
+        }), 400
+
+    registration.payment_status = status
+
+    if status == "PAGO":
+        registration.registration_status = (
+            "CONFIRMADA"
+        )
+    else:
+        registration.registration_status = (
+            "AGUARDANDO_PAGAMENTO"
+        )
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Pagamento atualizado com sucesso.",
+        "payment_status": (
+            registration.payment_status
+        ),
+        "registration_status": (
+            registration.registration_status
+        )
+    }) 
+
+@app.route(
+    "/admin/passeios/inscricoes/<int:registration_id>/cancelar",
+    methods=["PATCH"]
+)
+@admin_required_page
+def admin_cancel_trip_registration(registration_id):
+    registration = (
+        TripRegistration.query
+        .get_or_404(registration_id)
+    )
+
+    registration.registration_status = "CANCELADA"
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Inscrição cancelada com sucesso."
+    })  
+
+@app.route(
+    "/admin/passeios/inscricoes/<int:registration_id>/descancelar",
+    methods=["PATCH"]
+)
+@admin_required_page
+def admin_uncancel_trip_registration(registration_id):
+    registration = (
+        TripRegistration.query
+        .get_or_404(registration_id)
+    )
+
+    if registration.payment_status == "PAGO":
+        registration.registration_status = "CONFIRMADA"
+    else:
+        registration.registration_status = "AGUARDANDO_PAGAMENTO"
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Inscrição reativada com sucesso.",
+        "registration_status": registration.registration_status
+    })   
+
+@app.route(
+    "/admin/passeios/inscricoes/<int:registration_id>/editar",
+    methods=["PATCH"]
+)
+@admin_required_page
+def admin_edit_trip_registration(registration_id):
+    registration = (
+        TripRegistration.query
+        .get_or_404(registration_id)
+    )
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    student_name = (
+        data.get("student_name")
+        or ""
+    ).strip()
+
+    guardian_name = (
+        data.get("guardian_name")
+        or ""
+    ).strip()
+
+    guardian_whatsapp = (
+        data.get("guardian_whatsapp")
+        or ""
+    ).strip()
+
+    shift = (
+        data.get("shift")
+        or ""
+    ).strip().upper()
+
+    try:
+        age = int(
+            data.get("age")
+        )
+    except (TypeError, ValueError):
+        return jsonify({
+            "message": "Informe uma idade válida."
+        }), 400
+
+    if not student_name:
+        return jsonify({
+            "message": "Informe o nome do aluno."
+        }), 400
+
+    if not guardian_name:
+        return jsonify({
+            "message": "Informe o nome do responsável."
+        }), 400
+
+    if not guardian_whatsapp:
+        return jsonify({
+            "message": "Informe o WhatsApp do responsável."
+        }), 400
+
+    if shift not in (
+        "MATUTINO",
+        "VESPERTINO"
+    ):
+        return jsonify({
+            "message": "Turno inválido."
+        }), 400
+
+    platoon = get_platoon_by_age(
+        age
+    )
+
+    if not platoon:
+        return jsonify({
+            "message": (
+                "A idade permitida é de "
+                "7 a 15 anos."
+            )
+        }), 400
+
+    registration.student_name = (
+        student_name
+    )
+
+    registration.guardian_name = (
+        guardian_name
+    )
+
+    registration.age = age
+
+    registration.platoon = platoon
+
+    registration.shift = shift
+
+    registration.guardian_whatsapp = (
+        guardian_whatsapp
+    )
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Inscrição atualizada com sucesso.",
+        "platoon": platoon
+    })    
 
 # =========================
 # SEED INICIAL OPCIONAL
