@@ -171,12 +171,29 @@
             background: #f59e0b;
             color: white;
         }
+
+    /* Integração com a sidebar global do CataLogin */
+    body.admin-has-sidebar .page {
+      max-width: none;
+      margin-left: 270px;
+      margin-right: 24px;
+    }
+
+    @media (max-width: 900px) {
+      body.admin-has-sidebar .page {
+        max-width: 1250px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+    }
+
     </style>
 </head>
 
 <body>
 
     {% include "partials/topbar.html" %}
+  {% include "partials/admin_sidebar.html" %}
 
     <main class="page">
 
@@ -853,6 +870,41 @@
 		}
 
     </script>
+
+
+  <script>
+    (function () {
+      const adminLayoutUser = JSON.parse(
+        localStorage.getItem("catalogo_user") || "null"
+      );
+
+      const adminSidebar =
+        document.getElementById("adminSidebar");
+
+      function isAdmin(user) {
+        if (!user) return false;
+
+        return (
+          user.is_admin === true ||
+          user.role === "admin"
+        );
+      }
+
+      if (
+        isAdmin(adminLayoutUser) &&
+        adminSidebar
+      ) {
+        document.body.classList.add(
+          "admin-has-sidebar"
+        );
+
+        adminSidebar.style.display =
+          "flex";
+      }
+    })();
+  </script>
+
+  <script src="{{ static_asset('common_layout.js') }}"></script>
 
 </body>
 </html>

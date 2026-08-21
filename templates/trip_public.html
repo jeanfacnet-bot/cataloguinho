@@ -2,418 +2,127 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ trip.title }} | CataLogin</title>
-
-  <link
-    rel="stylesheet"
-    href="{{ static_asset('style.css') }}"
-  >
-
+  <meta name="description" content="Inscrição para {{ trip.title }} realizada pelo CataLogin.">
+  <link rel="stylesheet" href="{{ static_asset('style.css') }}">
   <style>
-    body {
-      margin: 0;
-      background: #f4f7fb;
-    }
+    :root{--blue:#1d4ed8;--blue2:#1e3a8a;--green:#16a34a;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f4f7fb;--white:#fff}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:var(--text);background:radial-gradient(circle at top left,#dbeafe 0,transparent 34%),linear-gradient(#f8fbff,var(--bg))}a{color:inherit}
+    .top{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+    .top-inner{max-width:1120px;margin:auto;padding:0 18px;min-height:66px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-size:21px;font-weight:900;color:var(--blue2)}.brand-icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--blue),#2563eb);color:#fff;box-shadow:0 8px 22px rgba(37,99,235,.22)}
+    .nav{display:flex;gap:8px;align-items:center}.nav a{text-decoration:none;font-size:14px;font-weight:800;padding:10px 13px;border-radius:10px}.nav .cta{background:var(--blue);color:#fff}
+    .page{max-width:1120px;margin:auto;padding:30px 18px 64px}.hero{position:relative;overflow:hidden;padding:34px;border-radius:28px;background:linear-gradient(135deg,#0f172a,#1e3a8a 70%,#2563eb);color:#fff;box-shadow:0 18px 45px rgba(15,23,42,.12);margin-bottom:22px}.hero:after{content:"";position:absolute;width:280px;height:280px;border-radius:50%;right:-90px;top:-120px;background:rgba(255,255,255,.08)}.kicker{position:relative;z-index:1;display:inline-block;padding:7px 11px;border-radius:999px;background:rgba(255,255,255,.13);font-size:13px;font-weight:800;margin-bottom:14px}.hero h1{position:relative;z-index:1;margin:0 0 12px;font-size:clamp(32px,5vw,52px);line-height:1.05;letter-spacing:-1.2px}.hero-desc{position:relative;z-index:1;max-width:760px;color:#dbeafe;line-height:1.65;margin:0 0 24px}.facts{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.fact{padding:15px;border:1px solid rgba(255,255,255,.14);border-radius:16px;background:rgba(255,255,255,.1)}.fact span{display:block;color:#bfdbfe;font-size:12px;font-weight:800;text-transform:uppercase;margin-bottom:5px}.fact strong{font-size:17px}
+    .grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(330px,.8fr);gap:22px;align-items:start}.card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:0 10px 32px rgba(15,23,42,.05)}.card+.card{margin-top:20px}.card h2{margin:0 0 6px;font-size:23px}.sub{margin:0 0 20px;color:var(--muted);line-height:1.55}
+    .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.group{display:flex;flex-direction:column;gap:7px}.group.full{grid-column:1/-1}.group label{font-weight:800;color:#334155;font-size:14px}.group input,.group select{width:100%;padding:13px 14px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;font:inherit;outline:none}.group input:focus,.group select:focus{border-color:#60a5fa;box-shadow:0 0 0 4px rgba(96,165,250,.15)}.platoon{min-height:48px;display:flex;align-items:center;padding:12px 14px;border-radius:12px;background:#eff6ff;border:1px solid #bfdbfe;color:var(--blue2);font-weight:900}.hint{font-size:12px;color:var(--muted)}.submit{width:100%;margin-top:18px;padding:15px;border:0;border-radius:12px;background:linear-gradient(135deg,var(--blue),#2563eb);color:#fff;font-weight:800;font-size:16px;cursor:pointer;box-shadow:0 10px 26px rgba(37,99,235,.2)}
+    .pix{text-align:center;background:linear-gradient(#fff,#f8fafc)}.price{display:inline-flex;gap:6px;align-items:baseline;padding:10px 15px;border-radius:999px;background:#ecfdf5;color:#166534;font-weight:900;margin:3px 0 18px}.price strong{font-size:25px}.qr{display:inline-block;padding:13px;border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:0 10px 32px rgba(15,23,42,.08)}.qr img{display:block;width:250px;max-width:100%;border-radius:8px}.pix-key{color:#475569;line-height:1.5;word-break:break-word}.copy-area{text-align:left;margin-top:18px}.copy-area label{display:block;font-weight:800;margin-bottom:8px}.copy-area textarea{width:100%;min-height:88px;padding:12px;border:1px solid #cbd5e1;border-radius:12px;resize:none}.copy{width:100%;margin-top:10px;padding:13px;border:0;border-radius:12px;background:var(--green);color:#fff;font-weight:800;cursor:pointer}.note{padding:14px;border:1px solid var(--line);border-radius:14px;background:#f8fafc;color:#475569;line-height:1.55}
+    .promo{position:relative;overflow:hidden;margin-top:22px;padding:28px;border-radius:24px;background:linear-gradient(135deg,#0f172a,#172554 55%,#1d4ed8);color:#fff;box-shadow:0 18px 45px rgba(15,23,42,.12)}.promo-inner{position:relative;z-index:1;display:grid;grid-template-columns:1fr auto;gap:22px;align-items:center}.promo h2{margin:0 0 8px;font-size:27px}.promo p{margin:0;color:#dbeafe;line-height:1.6;max-width:680px}.promo-btns{display:flex;gap:10px;flex-wrap:wrap}.promo-btns a{text-decoration:none;font-weight:800;padding:12px 16px;border-radius:11px;background:#fff;color:var(--blue2)}.promo-btns .secondary{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2)}
+    .closed{padding:20px;border:1px solid #fed7aa;border-radius:16px;background:#fff7ed;color:#9a3412;font-weight:700}.success{display:none;text-align:center;padding:24px;border:1px solid #bbf7d0;border-radius:18px;background:#ecfdf5}.success.show{display:block}.success-icon{width:54px;height:54px;margin:0 auto 12px;display:grid;place-items:center;border-radius:50%;background:var(--green);color:#fff;font-size:28px;font-weight:900}.success h3{margin:0 0 8px;color:#166534;font-size:23px}.success p{color:#166534;line-height:1.55}.success-links{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.success-links a{text-decoration:none;padding:11px 15px;border-radius:10px;background:var(--blue);color:#fff;font-weight:800}.powered{text-align:center;color:var(--muted);font-size:13px;line-height:1.6;margin-top:26px}.powered a{color:var(--blue);font-weight:900;text-decoration:none}
 
-    .trip-page {
-      max-width: 850px;
-      margin: 0 auto;
-      padding: 30px 18px 60px;
-    }
+    .catalogin-discovery{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.9fr);gap:22px;align-items:center;margin-bottom:22px;padding:24px;background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 10px 32px rgba(15,23,42,.05)}
+    .catalogin-discovery h2{margin:0 0 8px;font-size:24px}.catalogin-discovery p{margin:0;color:var(--muted);line-height:1.6}
+    .discovery-badge{display:inline-block;margin-bottom:9px;padding:6px 10px;border-radius:999px;background:#eff6ff;color:var(--blue);font-size:12px;font-weight:900}
+    .discovery-actions{display:grid;gap:10px}.discovery-btn{width:100%;min-height:50px;display:flex;align-items:center;justify-content:center;padding:12px 16px;border:0;border-radius:12px;text-align:center;text-decoration:none;font:inherit;font-weight:900;cursor:pointer;color:#fff}.search-btn{background:var(--blue)}.promote-btn{background:var(--green)}
+    @media(max-width:900px){.catalogin-discovery{grid-template-columns:1fr}}
 
-    .trip-info,
-    .registration-box {
-      background: white;
-      border: 1px solid #e5e7eb;
-      border-radius: 20px;
-      padding: 24px;
-      margin-bottom: 20px;
-    }
-
-    .trip-info h1 {
-      margin-top: 0;
-    }
-
-    .trip-detail {
-      margin: 8px 0;
-      color: #475569;
-    }
-
-    .registration-box h2 {
-      margin-top: 0;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns:
-        repeat(2, minmax(0, 1fr));
-      gap: 16px;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .form-group.full {
-      grid-column: 1 / -1;
-    }
-
-    .form-group label {
-      font-weight: 700;
-    }
-
-    .form-group input,
-    .form-group select {
-      padding: 12px;
-      border: 1px solid #cbd5e1;
-      border-radius: 10px;
-      font: inherit;
-    }
-
-    .platoon-box {
-      padding: 12px;
-      background: #eff6ff;
-      color: #1d4ed8;
-      border-radius: 10px;
-      font-weight: 700;
-    }
-
-    .submit-btn {
-      margin-top: 18px;
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 12px;
-      background: #1d4ed8;
-      color: white;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .closed-box {
-      background: #fff7ed;
-      border: 1px solid #fed7aa;
-      color: #9a3412;
-      padding: 18px;
-      border-radius: 14px;
-    }
-
-    .powered {
-      text-align: center;
-      color: #64748b;
-      font-size: 14px;
-      margin-top: 24px;
-    }
-
-    .powered a {
-      color: #1d4ed8;
-      font-weight: 700;
-      text-decoration: none;
-    }
-
-    @media (max-width: 700px) {
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-    }
+    @media(max-width:900px){.facts{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.promo-inner{grid-template-columns:1fr}}
+    @media(max-width:700px){.nav a:not(.cta){display:none}.page{padding:18px 12px 48px}.hero{padding:25px 20px;border-radius:22px}.hero h1{font-size:34px}.form-grid{grid-template-columns:1fr}.group.full{grid-column:auto}.card{padding:20px 16px}.promo{padding:23px 18px}.promo-btns{display:grid;grid-template-columns:1fr}}
+    @media(max-width:430px){.facts{grid-template-columns:1fr}.brand{font-size:18px}.brand-icon{width:34px;height:34px}.nav .cta{font-size:13px;padding:9px 10px}}
   </style>
 </head>
-
 <body>
+  {% include "partials/topbar.html" %}
 
-  <main class="trip-page">
-
-    <section class="trip-info">
-
+  <main class="page">
+    <section class="hero">
+      <div class="kicker">Passeio com inscrição pelo CataLogin</div>
       <h1>{{ trip.title }}</h1>
-
-      {% if trip.description %}
-        <p>
-          {{ trip.description }}
-        </p>
-      {% endif %}
-
-      {% if trip.destination %}
-        <div class="trip-detail">
-          <strong>Destino:</strong>
-          {{ trip.destination }}
-        </div>
-      {% endif %}
-
-      <div class="trip-detail">
-        <strong>Data:</strong>
-        {{ trip.event_date.strftime('%d/%m/%Y') }}
+      {% if trip.description %}<p class="hero-desc">{{ trip.description }}</p>{% endif %}
+      <div class="facts">
+        {% if trip.destination %}<div class="fact"><span>Destino</span><strong>{{ trip.destination }}</strong></div>{% endif %}
+        <div class="fact"><span>Data</span><strong>{{ trip.event_date.strftime('%d/%m/%Y') }}</strong></div>
+        {% if trip.departure_time %}<div class="fact"><span>Saída</span><strong>{{ trip.departure_time.strftime('%H:%M') }}</strong></div>{% endif %}
+        {% if trip.return_time %}<div class="fact"><span>Retorno previsto</span><strong>{{ trip.return_time.strftime('%H:%M') }}</strong></div>{% endif %}
+        <div class="fact"><span>Valor</span><strong>R$ {{ "%.2f"|format(trip.price) }}</strong></div>
       </div>
-
-      {% if trip.departure_time %}
-        <div class="trip-detail">
-          <strong>Saída:</strong>
-          {{ trip.departure_time.strftime('%H:%M') }}
-        </div>
-      {% endif %}
-
-      {% if trip.return_time %}
-        <div class="trip-detail">
-          <strong>Retorno previsto:</strong>
-          {{ trip.return_time.strftime('%H:%M') }}
-        </div>
-      {% endif %}
-
-      <div class="trip-detail">
-        <strong>Valor:</strong>
-        R$ {{ "%.2f"|format(trip.price) }}
-      </div>
-
-      
-      {% if trip.payment_instructions %}
-        <div class="trip-detail">
-          <strong>Pagamento:</strong><br>
-          {{ trip.payment_instructions }}
-        </div>
-      {% endif %}
-
     </section>
 
-    {% if registrations_open %}
+    <section class="catalogin-discovery">
+      <div>
+        <span class="discovery-badge">Aproveite o CataLogin</span>
+        <h2>Encontre ou divulgue serviços na sua região</h2>
+        <p>Além da inscrição no passeio, você pode encontrar empresas, profissionais, produtos e serviços ou divulgar gratuitamente o que você oferece.</p>
+      </div>
+      <div class="discovery-actions">
+        <a href="/search-page" class="discovery-btn search-btn">🔎 Buscar empresas ou serviços</a>
+        <button type="button" class="discovery-btn promote-btn" onclick="goToCreate()">📢 Divulgue sua empresa ou serviço gratuitamente em poucos cliques</button>
+      </div>
+    </section>
 
-      <section class="registration-box">
-
-        <h2>Inscrição do aluno</h2>
-
-        <form
-          id="registrationForm"
-          enctype="multipart/form-data"
-        >
-
-          <div class="form-grid">
-
-            <div class="form-group full">
-              <label>Nome do aluno</label>
-
-              <input
-                type="text"
-                name="student_name"
-                required
-              >
+    <div class="grid">
+      <div>
+        {% if registrations_open %}
+        <section class="card" id="inscricao">
+          <h2>Inscrição do aluno</h2>
+          <p class="sub">Preencha os dados abaixo. O pelotão será definido automaticamente pela idade.</p>
+          <form id="registrationForm" enctype="multipart/form-data">
+            <div class="form-grid">
+              <div class="group full"><label>Nome do aluno</label><input type="text" name="student_name" required></div>
+              <div class="group full"><label>Nome do responsável</label><input type="text" name="guardian_name" required></div>
+              <div class="group"><label>Idade do aluno</label><select name="age" id="age" required><option value="">Selecione</option>{% for age in range(7,16) %}<option value="{{ age }}">{{ age }} anos</option>{% endfor %}</select></div>
+              <div class="group"><label>Pelotão</label><div class="platoon" id="platoonPreview">Selecione a idade</div></div>
+              <div class="group"><label>Turno</label><select name="shift" required><option value="">Selecione</option><option value="MATUTINO">Matutino</option><option value="VESPERTINO">Vespertino</option></select></div>
+              <div class="group"><label>WhatsApp do responsável</label><input type="tel" name="guardian_whatsapp" placeholder="(61) 99999-9999" inputmode="tel" required></div>
+              <div class="group full"><label>Comprovante de pagamento</label><input type="file" name="payment_receipt" accept=".png,.jpg,.jpeg,.webp,.pdf"><span class="hint">Envie uma imagem ou PDF do comprovante.</span></div>
             </div>
-
-            <div class="form-group full">
-              <label>Nome do responsável</label>
-
-              <input
-                type="text"
-                name="guardian_name"
-                required
-              >
-            </div>
-
-            <div class="form-group">
-              <label>Idade do aluno</label>
-
-              <select
-                name="age"
-                id="age"
-                required
-              >
-                <option value="">
-                  Selecione
-                </option>
-
-                {% for age in range(7, 16) %}
-                  <option value="{{ age }}">
-                    {{ age }} anos
-                  </option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Pelotão</label>
-
-              <div
-                class="platoon-box"
-                id="platoonPreview"
-              >
-                Selecione a idade
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>Turno</label>
-
-              <select
-                name="shift"
-                required
-              >
-                <option value="">
-                  Selecione
-                </option>
-
-                <option value="MATUTINO">
-                  Matutino
-                </option>
-
-                <option value="VESPERTINO">
-                  Vespertino
-                </option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>WhatsApp do responsável</label>
-
-              <input
-                type="tel"
-                name="guardian_whatsapp"
-                placeholder="(61) 99999-9999"
-                required
-              >
-            </div>
-
-            <div class="form-group full">
-              <label>
-                Comprovante de pagamento
-              </label>
-
-              <input
-                type="file"
-                name="payment_receipt"
-                accept=".png,.jpg,.jpeg,.webp,.pdf"
-              >
-            </div>
-
+            <button type="submit" class="submit" id="submitRegistrationBtn">Enviar inscrição</button>
+          </form>
+          <div class="success" id="successPanel">
+            <div class="success-icon">✓</div>
+            <h3>Inscrição realizada com sucesso!</h3>
+            <p id="successText">Os dados foram recebidos pela organização.</p>
+            <div class="success-links"><a href="/search-page">Buscar empresas no CataLogin</a><a href="/vitrine-page">Ver vitrine</a></div>
           </div>
+        </section>
+        {% else %}<div class="closed">As inscrições para este passeio estão encerradas.</div>{% endif %}
+      </div>
 
-          <button
-            type="submit"
-            class="submit-btn"
-          >
-            Enviar inscrição
-          </button>
-
-        </form>
-
-      </section>
-
-    {% else %}
-
-      <div class="closed-box">
-	    As inscrições para este passeio estão encerradas.
-	  </div>
-
-    {% endif %}
-
-    <div class="powered">
-      Inscrição realizada pelo
-      <a href="/">
-        CataLogin
-      </a>.
+      <aside>
+        {% if pix_payload and pix_qr_base64 %}
+        <section class="card pix">
+          <h2>Pagamento via PIX</h2>
+          <p class="sub">Escaneie o QR Code no aplicativo do seu banco ou copie o código PIX.</p>
+          <div class="price">Valor <strong>R$ {{ "%.2f"|format(trip.price) }}</strong></div><br>
+          <div class="qr"><img src="data:image/png;base64,{{ pix_qr_base64 }}" alt="QR Code PIX"></div>
+          <p class="pix-key"><strong>Chave PIX:</strong><br>{{ trip.pix_key }}</p>
+          <div class="copy-area"><label for="pixPayload">PIX Copia e Cola</label><textarea id="pixPayload" readonly>{{ pix_payload }}</textarea><button type="button" class="copy" id="copyPixButton" onclick="copyPixCode()">Copiar código PIX</button></div>
+        </section>
+        {% endif %}
+        {% if trip.payment_instructions %}<section class="card"><h2>Orientações de pagamento</h2><div class="note">{{ trip.payment_instructions }}</div></section>{% endif %}
+      </aside>
     </div>
 
+    <section class="promo">
+      <div class="promo-inner"><div><h2>Já conhece o CataLogin?</h2><p>Aproveite sua visita para encontrar empresas, produtos e serviços anunciados no CataLogin. Uma forma simples de descobrir negócios e profissionais.</p></div><div class="promo-btns"><a href="/search-page">Buscar empresas e serviços</a><a href="/vitrine-page" class="secondary">Ver vitrine</a></div></div>
+    </section>
+    <div class="powered">Página de inscrição disponibilizada pelo <a href="/">CataLogin</a>.<br>Encontre empresas, produtos e serviços em um só lugar.</div>
   </main>
 
+  <script src="{{ static_asset('common_layout.js') }}"></script>
+
   <script>
-    const ageSelect =
-      document.getElementById("age");
-
-    const platoonPreview =
-      document.getElementById(
-        "platoonPreview"
-      );
-
-    function updatePlatoon() {
-      const age =
-        Number(ageSelect.value);
-
-      let platoon =
-        "Selecione a idade";
-
-      if ([7, 8, 9].includes(age)) {
-        platoon =
-          "1º Pelotão";
-      }
-
-      if ([10, 11].includes(age)) {
-        platoon =
-          "2º Pelotão";
-      }
-
-      if (
-        [12, 13, 14, 15]
-        .includes(age)
-      ) {
-        platoon =
-          "3º Pelotão";
-      }
-
-      platoonPreview.textContent =
-        platoon;
+    const ageSelect=document.getElementById("age");const platoonPreview=document.getElementById("platoonPreview");
+    function updatePlatoon(){if(!ageSelect||!platoonPreview)return;const age=Number(ageSelect.value);let platoon="Selecione a idade";if([7,8,9].includes(age))platoon="1º Pelotão";if([10,11].includes(age))platoon="2º Pelotão";if([12,13,14,15].includes(age))platoon="3º Pelotão";platoonPreview.textContent=platoon}
+    if(ageSelect)ageSelect.addEventListener("change",updatePlatoon);
+    const registrationForm=document.getElementById("registrationForm");const successPanel=document.getElementById("successPanel");const successText=document.getElementById("successText");const submitBtn=document.getElementById("submitRegistrationBtn");
+    if(registrationForm){registrationForm.addEventListener("submit",async(event)=>{event.preventDefault();if(submitBtn){submitBtn.disabled=true;submitBtn.textContent="Enviando inscrição...";submitBtn.style.opacity=".75"}try{const formData=new FormData(registrationForm);const response=await fetch(window.location.pathname+"/inscrever",{method:"POST",body:formData});const data=await response.json();if(!response.ok){alert(data.message||"Não foi possível realizar a inscrição.");return}registrationForm.style.display="none";if(successText)successText.textContent="Inscrição recebida. Pelotão: "+data.platoon+". O pagamento será conferido pela organização.";if(successPanel){successPanel.classList.add("show");successPanel.scrollIntoView({behavior:"smooth",block:"center"})}}catch(error){console.error(error);alert("Erro de comunicação ao enviar a inscrição.")}finally{if(submitBtn&&registrationForm.style.display!=="none"){submitBtn.disabled=false;submitBtn.textContent="Enviar inscrição";submitBtn.style.opacity="1"}}})}
+    function goToCreate(){
+      const rawUser=localStorage.getItem("catalogo_user");
+      const user=rawUser?JSON.parse(rawUser):null;
+      window.location.href=user?"/create-ad-page":"/auth-page";
     }
 
-    if (ageSelect) {
-      ageSelect.addEventListener(
-        "change",
-        updatePlatoon
-      );
-    }
-
-    const registrationForm =
-      document.getElementById(
-        "registrationForm"
-      );
-
-    if (registrationForm) {
-      registrationForm.addEventListener(
-        "submit",
-        async (event) => {
-          event.preventDefault();
-
-          const formData =
-            new FormData(
-              registrationForm
-            );
-
-          const response =
-            await fetch(
-              window.location.pathname +
-              "/inscrever",
-              {
-                method: "POST",
-                body: formData
-              }
-            );
-
-          const data =
-            await response.json();
-
-          if (!response.ok) {
-            alert(
-              data.message ||
-              "Não foi possível realizar a inscrição."
-            );
-            return;
-          }
-
-          alert(
-            "Inscrição realizada com sucesso!\n" +
-            "Pelotão: " +
-            data.platoon
-          );
-
-          window.location.reload();
-        }
-      );
-    }
+    async function copyPixCode(){const field=document.getElementById("pixPayload");const button=document.getElementById("copyPixButton");if(!field)return;try{await navigator.clipboard.writeText(field.value)}catch(error){field.select();document.execCommand("copy")}if(button){const original=button.textContent;button.textContent="PIX copiado ✓";setTimeout(()=>button.textContent=original,2200)}}
   </script>
-
 </body>
 </html>

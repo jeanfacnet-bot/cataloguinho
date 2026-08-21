@@ -1,4 +1,4 @@
 git add .
-git commit -m "anunciar8"
+git commit -m "passeios"
 git push
 

@@ -38,6 +38,8 @@ import secrets
 import hashlib
 import re
 import unicodedata
+import base64
+import qrcode
 
 
 
@@ -501,6 +503,26 @@ class TripEvent(db.Model):
         db.Text,
         nullable=True
     )
+    
+    pix_key = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
+    pix_key_type = db.Column(
+        db.String(30),
+        nullable=True
+    )
+
+    pix_receiver_name = db.Column(
+        db.String(100),
+        nullable=True
+    )
+
+    pix_receiver_city = db.Column(
+        db.String(100),
+        nullable=True
+    )
 
     banner = db.Column(
         db.String(500),
@@ -787,6 +809,190 @@ def get_platoon_by_age(age):
         return "3º Pelotão"
 
     return None
+    
+def pix_crc16(payload):
+    polynomial = 0x1021
+    result = 0xFFFF
+
+    for byte in payload.encode("utf-8"):
+        result ^= byte << 8
+
+        for _ in range(8):
+            if result & 0x8000:
+                result = (
+                    (result << 1) ^ polynomial
+                ) & 0xFFFF
+            else:
+                result = (
+                    result << 1
+                ) & 0xFFFF
+
+    return f"{result:04X}"
+
+
+def pix_field(field_id, value):
+    value = str(value)
+
+    return (
+        f"{field_id}"
+        f"{len(value):02d}"
+        f"{value}"
+    )
+
+
+def normalize_pix_text(value, max_length):
+    value = str(value or "").strip().upper()
+
+    value = unicodedata.normalize(
+        "NFKD",
+        value
+    )
+
+    value = "".join(
+        char
+        for char in value
+        if not unicodedata.combining(char)
+    )
+
+    value = re.sub(
+        r"[^A-Z0-9 .-]",
+        "",
+        value
+    )
+
+    return value[:max_length]
+
+
+def build_pix_payload(
+    pix_key,
+    receiver_name,
+    receiver_city,
+    amount
+):
+    pix_key = str(
+        pix_key or ""
+    ).strip()
+
+    receiver_name = normalize_pix_text(
+        receiver_name,
+        25
+    )
+
+    receiver_city = normalize_pix_text(
+        receiver_city,
+        15
+    )
+
+    amount = float(
+        amount or 0
+    )
+
+    merchant_account = (
+        pix_field(
+            "00",
+            "BR.GOV.BCB.PIX"
+        )
+        + pix_field(
+            "01",
+            pix_key
+        )
+    )
+
+    additional_data = pix_field(
+        "05",
+        "***"
+    )
+
+    payload = ""
+
+    payload += pix_field(
+        "00",
+        "01"
+    )
+
+    payload += pix_field(
+        "26",
+        merchant_account
+    )
+
+    payload += pix_field(
+        "52",
+        "0000"
+    )
+
+    payload += pix_field(
+        "53",
+        "986"
+    )
+
+    if amount > 0:
+        payload += pix_field(
+            "54",
+            f"{amount:.2f}"
+        )
+
+    payload += pix_field(
+        "58",
+        "BR"
+    )
+
+    payload += pix_field(
+        "59",
+        receiver_name
+    )
+
+    payload += pix_field(
+        "60",
+        receiver_city
+    )
+
+    payload += pix_field(
+        "62",
+        additional_data
+    )
+
+    payload += "6304"
+
+    crc = pix_crc16(
+        payload
+    )
+
+    return payload + crc
+
+
+def generate_pix_qr_base64(payload):
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=(
+            qrcode.constants.ERROR_CORRECT_M
+        ),
+        box_size=8,
+        border=4
+    )
+
+    qr.add_data(
+        payload
+    )
+
+    qr.make(
+        fit=True
+    )
+
+    image = qr.make_image(
+        fill_color="black",
+        back_color="white"
+    )
+
+    buffer = io.BytesIO()
+
+    image.save(
+        buffer,
+        format="PNG"
+    )
+
+    return base64.b64encode(
+        buffer.getvalue()
+    ).decode("utf-8")    
 
 def get_seo_service_links(
     min_ads=2,
@@ -3583,6 +3789,26 @@ def admin_create_trip():
         )
         or ""
     ).strip()
+    
+    pix_key = (
+        request.form.get("pix_key")
+        or ""
+    ).strip()
+
+    pix_key_type = (
+        request.form.get("pix_key_type")
+        or ""
+    ).strip().upper()
+
+    pix_receiver_name = (
+        request.form.get("pix_receiver_name")
+        or ""
+    ).strip()
+
+    pix_receiver_city = (
+        request.form.get("pix_receiver_city")
+        or ""
+    ).strip()
 
     if not title:
         return jsonify({
@@ -3685,6 +3911,22 @@ def admin_create_trip():
         payment_instructions=(
             payment_instructions or None
         ),
+        
+        pix_key=(
+            pix_key or None
+        ),
+
+        pix_key_type=(
+            pix_key_type or None
+        ),
+
+        pix_receiver_name=(
+            pix_receiver_name or None
+        ),
+
+        pix_receiver_city=(
+            pix_receiver_city or None
+        ),
         is_active=True
     )
 
@@ -3715,10 +3957,45 @@ def public_trip_page(slug):
     ):
         registrations_open = False
 
+    pix_payload = None
+    pix_qr_base64 = None
+
+    if (
+        trip.pix_key
+        and trip.pix_receiver_name
+        and trip.pix_receiver_city
+    ):
+        try:
+            pix_payload = build_pix_payload(
+                pix_key=trip.pix_key,
+                receiver_name=(
+                    trip.pix_receiver_name
+                ),
+                receiver_city=(
+                    trip.pix_receiver_city
+                ),
+                amount=trip.price
+            )
+
+            pix_qr_base64 = (
+                generate_pix_qr_base64(
+                    pix_payload
+                )
+            )
+
+        except Exception as error:
+            print(
+                "Erro ao gerar PIX do passeio:",
+                error,
+                flush=True
+            )
+
     return render_template(
         "trip_public.html",
         trip=trip,
-        registrations_open=registrations_open
+        registrations_open=registrations_open,
+        pix_payload=pix_payload,
+        pix_qr_base64=pix_qr_base64
     )
 
 @app.route(

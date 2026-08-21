@@ -121,12 +121,29 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* Integração com a sidebar global do CataLogin */
+    body.admin-has-sidebar .trip-admin {
+      max-width: none;
+      margin-left: 270px;
+      margin-right: 24px;
+    }
+
+    @media (max-width: 900px) {
+      body.admin-has-sidebar .trip-admin {
+        max-width: 1100px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+    }
+
   </style>
 </head>
 
 <body>
 
   {% include "partials/topbar.html" %}
+  {% include "partials/admin_sidebar.html" %}
 
   <main class="trip-admin">
 
@@ -216,6 +233,67 @@
 
           <div class="form-group full">
             <label>Instruções de pagamento</label>
+			
+			<div class="form-group">
+				<label>Tipo da chave PIX</label>
+
+				<select name="pix_key_type">
+					<option value="">
+						Selecione
+					</option>
+
+					<option value="CPF">
+						CPF
+					</option>
+
+					<option value="CNPJ">
+						CNPJ
+					</option>
+
+					<option value="EMAIL">
+						E-mail
+					</option>
+
+					<option value="TELEFONE">
+						Telefone
+					</option>
+
+					<option value="ALEATORIA">
+						Chave aleatória
+					</option>
+				</select>
+			</div>
+
+			<div class="form-group">
+				<label>Chave PIX</label>
+
+				<input
+					type="text"
+					name="pix_key"
+					placeholder="Informe a chave PIX"
+				>
+			</div>
+
+			<div class="form-group">
+				<label>Nome do recebedor</label>
+
+				<input
+					type="text"
+					name="pix_receiver_name"
+					placeholder="Nome que aparecerá no PIX"
+				>
+			</div>
+
+			<div class="form-group">
+				<label>Cidade do recebedor</label>
+
+				<input
+					type="text"
+					name="pix_receiver_city"
+					placeholder="Ex.: Brasilia"
+				>
+			</div>
+			
             <textarea
               name="payment_instructions"
               placeholder="Ex.: efetuar pagamento via PIX e enviar comprovante no formulário."
@@ -345,6 +423,41 @@
       }
     );
   </script>
+
+
+  <script>
+    (function () {
+      const adminLayoutUser = JSON.parse(
+        localStorage.getItem("catalogo_user") || "null"
+      );
+
+      const adminSidebar =
+        document.getElementById("adminSidebar");
+
+      function isAdmin(user) {
+        if (!user) return false;
+
+        return (
+          user.is_admin === true ||
+          user.role === "admin"
+        );
+      }
+
+      if (
+        isAdmin(adminLayoutUser) &&
+        adminSidebar
+      ) {
+        document.body.classList.add(
+          "admin-has-sidebar"
+        );
+
+        adminSidebar.style.display =
+          "flex";
+      }
+    })();
+  </script>
+
+  <script src="{{ static_asset('common_layout.js') }}"></script>
 
 </body>
 </html>
