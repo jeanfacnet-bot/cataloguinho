@@ -79,6 +79,22 @@ MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "")
 
 BASE_URL = os.getenv("BASE_URL", "https://www.cataloginpk.com.br")
 
+# =========================
+# ADZUNA API
+# =========================
+
+ADZUNA_APP_ID = (
+    os.getenv("ADZUNA_APP_ID")
+    or ""
+).strip()
+
+ADZUNA_APP_KEY = (
+    os.getenv("ADZUNA_APP_KEY")
+    or ""
+).strip()
+
+ADZUNA_COUNTRY = "br"
+
 VIP_PLAN_PRICES = {
     "VIP_BRONZE": 19.90,
     "VIP_PRATA": 39.90,
@@ -872,9 +888,44 @@ def clean_job_description(value):
         text.split()
     ) 
 
-AUTO_JOB_SEARCHES = [
+EXTERNAL_JOB_MAX_AGE_DAYS = 30
+
+
+def deactivate_old_external_jobs():
+    cutoff_date = (
+        utc_now()
+        - timedelta(
+            days=EXTERNAL_JOB_MAX_AGE_DAYS
+        )
+    )
+
+    old_jobs = (
+        JobVacancy.query
+        .filter(
+            JobVacancy.source.in_(
+                [
+                    "JOOBLE",
+                    "ADZUNA"
+                ]
+            ),
+            JobVacancy.is_active.is_(True),
+            JobVacancy.published_at.isnot(None),
+            JobVacancy.published_at < cutoff_date
+        )
+        .all()
+    )
+
+    deactivated = 0
+
+    for vacancy in old_jobs:
+        vacancy.is_active = False
+        deactivated += 1
+
+    return deactivated
+
+JOOBLE_AUTO_SEARCHES = [
     {
-        "keywords": "emprego",
+        "keywords": "administrativo",
         "location": "Brasilia"
     },
     {
@@ -886,14 +937,34 @@ AUTO_JOB_SEARCHES = [
         "location": "Brasilia"
     },
     {
+        "keywords": "vendas",
+        "location": "Brasilia"
+    }
+]
+
+
+ADZUNA_AUTO_SEARCHES = [
+    {
         "keywords": "administrativo",
         "location": "Brasilia"
     },
     {
-        "keywords": "atendimento vendas logistica tecnologia",
+        "keywords": "estagio",
+        "location": "Brasilia"
+    },
+    {
+        "keywords": "atendimento",
+        "location": "Brasilia"
+    },
+    {
+        "keywords": "logistica",
+        "location": "Brasilia"
+    },
+    {
+        "keywords": "tecnologia",
         "location": "Brasilia"
     }
-]    
+]
 
 def import_jooble_search(
     keywords,
@@ -1061,6 +1132,34 @@ def import_jooble_search(
             updated += 1
 
             continue
+            
+        cross_duplicate = (
+            find_cross_source_job_duplicate(
+                source="JOOBLE",
+                title=title,
+                company=company,
+                city=city
+            )
+        )
+
+        if cross_duplicate:
+
+            print(
+                "DUPLICATA ENTRE APIS IGNORADA:",
+                "JOOBLE",
+                "->",
+                cross_duplicate.source,
+                "|",
+                title,
+                "|",
+                company,
+                "|",
+                city,
+                flush=True
+            )
+
+            ignored += 1
+            continue    
 
         vacancy = JobVacancy(
             source="JOOBLE",
@@ -1097,46 +1196,157 @@ def import_jooble_search(
     }
     
 def run_automatic_job_import():
+
     summary = {
         "searches": 0,
         "received": 0,
         "created": 0,
         "updated": 0,
-        "ignored": 0
+        "ignored": 0,
+
+        "jooble": {
+            "searches": 0,
+            "received": 0,
+            "created": 0,
+            "updated": 0,
+            "ignored": 0,
+            "error": None
+        },
+
+        "adzuna": {
+            "searches": 0,
+            "received": 0,
+            "created": 0,
+            "updated": 0,
+            "ignored": 0,
+            "error": None
+        }
     }
 
-    for search in AUTO_JOB_SEARCHES:
+    # =========================
+    # JOOBLE
+    # =========================
 
-        result = import_jooble_search(
-            keywords=search[
-                "keywords"
-            ],
-            location=search[
-                "location"
-            ]
+    for search in JOOBLE_AUTO_SEARCHES:
+
+        try:
+            result = import_jooble_search(
+                keywords=search["keywords"],
+                location=search["location"]
+            )
+
+            summary["jooble"]["searches"] += 1
+            summary["jooble"]["received"] += (
+                result["received"]
+            )
+            summary["jooble"]["created"] += (
+                result["created"]
+            )
+            summary["jooble"]["updated"] += (
+                result["updated"]
+            )
+            summary["jooble"]["ignored"] += (
+                result["ignored"]
+            )
+
+        except Exception as error:
+
+            print(
+                "ERRO JOOBLE AUTOMÁTICA:",
+                search,
+                repr(error),
+                flush=True
+            )
+
+            summary["jooble"]["error"] = str(
+                error
+            )
+
+            # Não interrompe a Adzuna
+            break
+
+    # =========================
+    # ADZUNA
+    # =========================
+
+    for search in ADZUNA_AUTO_SEARCHES:
+
+        try:
+            result = import_adzuna_search(
+                keywords=search["keywords"],
+                location=search["location"],
+                page=1,
+                results_per_page=30
+            )
+
+            summary["adzuna"]["searches"] += 1
+            summary["adzuna"]["received"] += (
+                result["received"]
+            )
+            summary["adzuna"]["created"] += (
+                result["created"]
+            )
+            summary["adzuna"]["updated"] += (
+                result["updated"]
+            )
+            summary["adzuna"]["ignored"] += (
+                result["ignored"]
+            )
+
+        except Exception as error:
+
+            print(
+                "ERRO ADZUNA AUTOMÁTICA:",
+                search,
+                repr(error),
+                flush=True
+            )
+
+            summary["adzuna"]["error"] = str(
+                error
+            )
+
+            break
+
+    # =========================
+    # TOTAL GERAL
+    # =========================
+
+    for source in (
+        "jooble",
+        "adzuna"
+    ):
+        summary["searches"] += (
+            summary[source]["searches"]
         )
 
-        summary["searches"] += 1
-
         summary["received"] += (
-            result["received"]
+            summary[source]["received"]
         )
 
         summary["created"] += (
-            result["created"]
+            summary[source]["created"]
         )
 
         summary["updated"] += (
-            result["updated"]
+            summary[source]["updated"]
         )
 
         summary["ignored"] += (
-            result["ignored"]
+            summary[source]["ignored"]
         )
+        
+    deactivated = (
+        deactivate_old_external_jobs()
+    )
+
+    summary["deactivated"] = (
+        deactivated
+    )    
 
     db.session.commit()
 
-    return summary    
+    return summary  
 
 # =========================
 # HELPERS
@@ -1292,6 +1502,101 @@ def normalized_job_column(column):
             "aaaaaeeeeiiiiooooouuuucAAAAAEEEEIIIIOOOOOUUUUC"
         )
     )  
+    
+def find_cross_source_job_duplicate(
+    source,
+    title,
+    company,
+    city
+):
+    source = (
+        str(source or "")
+        .strip()
+        .upper()
+    )
+
+    # Deduplicação somente entre APIs externas.
+    if source not in {
+        "JOOBLE",
+        "ADZUNA"
+    }:
+        return None
+
+    title = (
+        str(title or "")
+        .strip()
+    )
+
+    company = (
+        str(company or "")
+        .strip()
+    )
+
+    city = (
+        str(city or "")
+        .strip()
+    )
+
+    # Sem empresa ou cidade, não arriscamos
+    # considerar duas vagas como iguais.
+    if (
+        not title
+        or not company
+        or not city
+    ):
+        return None
+
+    normalized_title = (
+        normalize_job_search_text(
+            title
+        )
+    )
+
+    normalized_company = (
+        normalize_job_search_text(
+            company
+        )
+    )
+
+    normalized_city = (
+        normalize_job_search_text(
+            city
+        )
+    )
+
+    other_sources = [
+        item
+        for item in [
+            "JOOBLE",
+            "ADZUNA"
+        ]
+        if item != source
+    ]
+
+    duplicate = (
+        JobVacancy.query
+        .filter(
+            JobVacancy.source.in_(
+                other_sources
+            ),
+            normalized_job_column(
+                JobVacancy.title
+            ) == normalized_title,
+            normalized_job_column(
+                JobVacancy.company
+            ) == normalized_company,
+            normalized_job_column(
+                JobVacancy.city
+            ) == normalized_city
+        )
+        .order_by(
+            JobVacancy.is_active.desc(),
+            JobVacancy.published_at.desc()
+        )
+        .first()
+    )
+
+    return duplicate    
     
 def generate_slug(text):
     text = str(text or "").strip().lower()
@@ -8019,7 +8324,559 @@ def publish_job():
         "job_id": vacancy.id
     }), 201
 
+def adzuna_request(
+    keywords,
+    location,
+    page=1,
+    results_per_page=50
+):
+    if not ADZUNA_APP_ID:
+        raise RuntimeError(
+            "ADZUNA_APP_ID não configurado."
+        )
 
+    if not ADZUNA_APP_KEY:
+        raise RuntimeError(
+            "ADZUNA_APP_KEY não configurada."
+        )
+
+    url = (
+        f"https://api.adzuna.com/v1/api/jobs/"
+        f"{ADZUNA_COUNTRY}/search/{page}"
+    )
+
+    params = {
+        "app_id": ADZUNA_APP_ID,
+        "app_key": ADZUNA_APP_KEY,
+        "results_per_page": results_per_page,
+        "what": keywords,
+        "where": location,
+        "content-type": "application/json"
+    }
+
+    try:
+        response = requests.get(
+            url,
+            params=params,
+            timeout=40
+        )
+
+    except requests.RequestException as error:
+        raise RuntimeError(
+            "Não foi possível conectar à Adzuna."
+        ) from error
+
+    print(
+        "ADZUNA HTTP STATUS:",
+        response.status_code,
+        flush=True
+    )
+
+    if response.status_code != 200:
+        print(
+            "ADZUNA RESPOSTA:",
+            response.text[:500],
+            flush=True
+        )
+
+        raise RuntimeError(
+            f"A Adzuna retornou HTTP "
+            f"{response.status_code}."
+        )
+
+    try:
+        data = response.json()
+
+    except ValueError as error:
+        print(
+            "RESPOSTA ADZUNA INVÁLIDA:",
+            response.text[:500],
+            flush=True
+        )
+
+        raise RuntimeError(
+            "A Adzuna retornou uma resposta inválida."
+        ) from error
+
+    if not isinstance(data, dict):
+        raise RuntimeError(
+            "Formato inesperado da resposta da Adzuna."
+        )
+
+    return data
+    
+def format_adzuna_salary(
+    salary_min,
+    salary_max
+):
+    def format_brl(value):
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            return None
+
+        formatted = (
+            f"{value:,.2f}"
+            .replace(",", "X")
+            .replace(".", ",")
+            .replace("X", ".")
+        )
+
+        return f"R$ {formatted}"
+
+    minimum = format_brl(salary_min)
+    maximum = format_brl(salary_max)
+
+    if minimum and maximum:
+        if minimum == maximum:
+            return minimum
+
+        return (
+            f"{minimum} a {maximum}"
+        )
+
+    if minimum:
+        return minimum
+
+    if maximum:
+        return maximum
+
+    return None
+
+def import_adzuna_search(
+    keywords,
+    location,
+    page=1,
+    results_per_page=50
+):
+    result = adzuna_request(
+        keywords=keywords,
+        location=location,
+        page=page,
+        results_per_page=results_per_page
+    )
+
+    jobs = result.get("results") or []
+
+    created = 0
+    updated = 0
+    ignored = 0
+
+    for item in jobs:
+
+        external_id = str(
+            item.get("id") or ""
+        ).strip()
+
+        if not external_id:
+            ignored += 1
+            continue
+
+        title = (
+            item.get("title") or ""
+        ).strip()
+
+        if not title:
+            ignored += 1
+            continue
+
+        # -------------------------
+        # EMPRESA
+        # -------------------------
+
+        company_data = (
+            item.get("company") or {}
+        )
+
+        company = (
+            company_data.get(
+                "display_name"
+            )
+            or ""
+        ).strip()
+
+        # -------------------------
+        # LOCALIZAÇÃO
+        # -------------------------
+
+        location_data = (
+            item.get("location") or {}
+        )
+
+        location_text = (
+            location_data.get(
+                "display_name"
+            )
+            or ""
+        ).strip()
+
+        city = None
+        state = None
+
+        if location_text:
+            parts = [
+                part.strip()
+                for part
+                in location_text.split(",")
+                if part.strip()
+            ]
+
+            if parts:
+                city = parts[0]
+
+            if len(parts) > 1:
+                state = parts[-1]
+
+        # -------------------------
+        # DESCRIÇÃO
+        # -------------------------
+
+        description = (
+            item.get("description")
+            or ""
+        ).strip()
+
+        description = (
+            clean_job_description(
+                description
+            )
+        )
+
+        # -------------------------
+        # SALÁRIO
+        # -------------------------
+
+        salary = format_adzuna_salary(
+            item.get("salary_min"),
+            item.get("salary_max")
+        )
+
+        # -------------------------
+        # LINK
+        # -------------------------
+
+        external_url = (
+            item.get("redirect_url")
+            or ""
+        ).strip()
+
+        # -------------------------
+        # TIPO DA VAGA
+        # -------------------------
+
+        contract_type = (
+            item.get("contract_type")
+            or ""
+        ).strip()
+
+        job_type = classify_job_type(
+            title,
+            contract_type
+        )
+
+        # -------------------------
+        # DATA ORIGINAL
+        # -------------------------
+
+        published_at = None
+
+        created_raw = (
+            item.get("created")
+            or ""
+        ).strip()
+
+        if created_raw:
+            try:
+                published_at = (
+                    datetime.fromisoformat(
+                        created_raw.replace(
+                            "Z",
+                            "+00:00"
+                        )
+                    )
+                )
+
+                if (
+                    published_at.tzinfo
+                    is not None
+                ):
+                    published_at = (
+                        published_at.replace(
+                            tzinfo=None
+                        )
+                    )
+
+            except Exception:
+                published_at = utc_now()
+
+        # -------------------------
+        # JÁ EXISTE?
+        # -------------------------
+
+        existing = (
+            JobVacancy.query
+            .filter_by(
+                source="ADZUNA",
+                external_id=external_id
+            )
+            .first()
+        )
+
+        if existing:
+
+            existing.title = title
+
+            existing.company = (
+                company or None
+            )
+
+            existing.description = (
+                description or None
+            )
+
+            existing.country = "Brasil"
+            existing.state = state
+            existing.city = city
+
+            existing.location_text = (
+                location_text or None
+            )
+
+            existing.job_type = job_type
+
+            existing.salary = salary
+
+            existing.external_url = (
+                external_url or None
+            )
+
+            existing.published_at = (
+                published_at
+            )
+
+            existing.is_active = True
+
+            updated += 1
+            continue
+            
+        cross_duplicate = (
+            find_cross_source_job_duplicate(
+                source="ADZUNA",
+                title=title,
+                company=company,
+                city=city
+            )
+        )
+
+        if cross_duplicate:
+
+            print(
+                "DUPLICATA ENTRE APIS IGNORADA:",
+                "ADZUNA",
+                "->",
+                cross_duplicate.source,
+                "|",
+                title,
+                "|",
+                company,
+                "|",
+                city,
+                flush=True
+            )
+
+            ignored += 1
+            continue    
+
+        # -------------------------
+        # NOVA VAGA
+        # -------------------------
+
+        vacancy = JobVacancy(
+            source="ADZUNA",
+            external_id=external_id,
+            title=title,
+            company=company or None,
+            description=description or None,
+            country="Brasil",
+            state=state,
+            city=city,
+            location_text=(
+                location_text or None
+            ),
+            job_type=job_type,
+            work_model=None,
+            salary=salary,
+            external_url=(
+                external_url or None
+            ),
+            is_active=True,
+            is_featured=False,
+            published_at=published_at
+        )
+
+        db.session.add(vacancy)
+
+        created += 1
+
+    db.session.commit()
+
+    return {
+        "received": len(jobs),
+        "created": created,
+        "updated": updated,
+        "ignored": ignored,
+        "total_available": (
+            result.get("count") or 0
+        )
+    }  
+
+@app.route(
+    "/admin/empregos/importar-adzuna",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_import_adzuna_jobs():
+
+    data = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
+
+    keywords = (
+        data.get("keywords")
+        or "emprego"
+    ).strip()
+
+    location = (
+        data.get("location")
+        or "Brasilia"
+    ).strip()
+
+    try:
+        result = import_adzuna_search(
+            keywords=keywords,
+            location=location,
+            page=1,
+            results_per_page=50
+        )
+
+        return jsonify({
+            "message":
+                "Importação da Adzuna concluída com sucesso.",
+            "keywords": keywords,
+            "location": location,
+            "vagas_recebidas":
+                result["received"],
+            "novas":
+                result["created"],
+            "atualizadas":
+                result["updated"],
+            "ignoradas":
+                result["ignored"],
+            "total_disponivel":
+                result["total_available"]
+        })
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO IMPORTAÇÃO ADZUNA:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message": str(error)
+        }), 500
+
+@app.route(
+    "/admin/importar-adzuna-teste",
+    methods=["GET"]
+)
+@admin_required_page
+def admin_import_adzuna_test():
+    try:
+
+        result = import_adzuna_search(
+            keywords="auxiliar administrativo",
+            location="Brasilia",
+            page=1,
+            results_per_page=5
+        )
+
+        return jsonify({
+            "ok": True,
+            **result
+        })
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO IMPORTAÇÃO ADZUNA:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "ok": False,
+            "erro": str(error)
+        }), 500    
+    
+@app.route(
+    "/admin/testar-adzuna",
+    methods=["GET"]
+)
+@admin_required_page
+def admin_test_adzuna():
+    try:
+        result = adzuna_request(
+            keywords="auxiliar administrativo",
+            location="Brasilia",
+            page=1,
+            results_per_page=5
+        )
+
+        jobs = result.get("results") or []
+
+        return jsonify({
+            "ok": True,
+            "total_encontrado": result.get("count"),
+            "recebidas": len(jobs),
+            "vagas": [
+                {
+                    "id": job.get("id"),
+                    "titulo": job.get("title"),
+                    "empresa": (
+                        job.get("company") or {}
+                    ).get("display_name"),
+                    "local": (
+                        job.get("location") or {}
+                    ).get("display_name"),
+                    "publicada_em": job.get("created"),
+                    "url": job.get("redirect_url")
+                }
+                for job in jobs
+            ]
+        })
+
+    except Exception as error:
+        print(
+            "ERRO TESTE ADZUNA:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "ok": False,
+            "erro": str(error)
+        }), 500    
+    
 def jooble_request(payload):
     api_key = (
         os.getenv("JOOBLE_API_KEY")
@@ -8291,16 +9148,32 @@ def admin_run_automatic_job_import():
         return jsonify({
             "message":
                 "Importação automática concluída.",
+
             "pesquisas":
                 summary["searches"],
+
             "recebidas":
                 summary["received"],
+
             "novas":
                 summary["created"],
+
             "atualizadas":
                 summary["updated"],
+
             "ignoradas":
-                summary["ignored"]
+                summary["ignored"],
+
+            "jooble":
+                summary["jooble"],
+
+            "adzuna":
+                summary["adzuna"],
+                
+            "desativadas": summary.get(
+                "deactivated",
+                0
+            ),    
         })
 
     except Exception as error:
@@ -8714,6 +9587,14 @@ def admin_jobs_page():
         )
         .count()
     )
+    
+    adzuna_jobs = (
+        JobVacancy.query
+        .filter(
+            JobVacancy.source == "ADZUNA"
+        )
+        .count()
+    )
 
     return render_template(
         "admin_jobs.html",
@@ -8722,8 +9603,9 @@ def admin_jobs_page():
         active_jobs=active_jobs,
         catalogin_jobs=catalogin_jobs,
         jooble_jobs=jooble_jobs,
+        adzuna_jobs=adzuna_jobs,
         active_page="jobs"
-    )        
+    )       
     
     
 # =========================

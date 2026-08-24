@@ -256,6 +256,11 @@
             background: #eff6ff;
             color: #1d4ed8;
         }
+		
+		.source-badge.adzuna {
+			background: #fff1e6;
+			color: #e56b00;
+		}
 
         .source.catalogin {
             background: #ecfdf5;
@@ -378,6 +383,37 @@
 			font-size: 13px;
 			line-height: 1.5;
 		}
+		
+		.adzuna-import-area {
+			margin-top: 24px;
+			padding-top: 22px;
+			border-top: 1px solid #e5e7eb;
+		}
+
+		.adzuna-import-area h3 {
+			margin:
+				0
+				0
+				6px;
+			font-size: 18px;
+		}
+
+		.adzuna-import-btn {
+			background: #f97316 !important;
+			color: white;
+			border: none !important;
+			font-weight: 700;
+			cursor: pointer;
+		}
+
+		.adzuna-import-btn:hover {
+			opacity: 0.9;
+		}
+
+		.adzuna-import-btn:disabled {
+			opacity: 0.6;
+			cursor: wait;
+		}
 
         @media (max-width: 900px) {
             body.admin-has-sidebar .jobs-admin {
@@ -464,6 +500,15 @@
 				<span>Importadas da Jooble</span>
 				<strong>{{ jooble_jobs }}</strong>
 			</div>
+			
+			<div
+				class="stat job-filter-card"
+				data-filter="adzuna"
+				onclick="filterJobs('adzuna', this)"
+			>
+				<span>Importadas da Adzuna</span>
+				<strong>{{ adzuna_jobs }}</strong>
+			</div>
 
 		</section>
 
@@ -511,6 +556,51 @@
 				id="joobleImportResult"
 				class="import-result"
 			></div>
+			
+			<div class="adzuna-import-area">
+
+				<h3>
+					Importar vagas da Adzuna
+				</h3>
+
+				<p class="import-description">
+					Pesquise vagas disponíveis na Adzuna
+					e importe diretamente para o CataLogin.
+				</p>
+
+				<div class="import-grid">
+
+					<input
+						type="text"
+						id="adzunaKeywords"
+						value="auxiliar administrativo"
+						placeholder="Ex.: auxiliar administrativo"
+					>
+
+					<input
+						type="text"
+						id="adzunaLocation"
+						value="Brasilia"
+						placeholder="Ex.: Brasília"
+					>
+
+					<button
+						type="button"
+						id="importAdzunaBtn"
+						class="adzuna-import-btn"
+						onclick="importAdzunaJobs()"
+					>
+						🟠 Buscar na Adzuna
+					</button>
+
+				</div>
+
+				<div
+					id="adzunaImportResult"
+					class="import-result"
+				></div>
+
+			</div>
 
 
 			<!-- IMPORTAÇÃO AUTOMÁTICA -->
@@ -613,17 +703,29 @@
 
                                     {% if vacancy.source == "JOOBLE" %}
 
-                                        <span class="source jooble">
-                                            Jooble
-                                        </span>
+										<span class="source-badge jooble">
+											Jooble
+										</span>
 
-                                    {% else %}
+									{% elif vacancy.source == "ADZUNA" %}
 
-                                        <span class="source catalogin">
-                                            CataLogin
-                                        </span>
+										<span class="source-badge adzuna">
+											Adzuna
+										</span>
 
-                                    {% endif %}
+									{% elif vacancy.source == "CATLOGIN" %}
+
+										<span class="source-badge catalogin">
+											CataLogin
+										</span>
+
+									{% else %}
+
+										<span class="source-badge">
+											{{ vacancy.source }}
+										</span>
+
+									{% endif %}
 
                                 </td>
 
@@ -824,6 +926,11 @@
 					show =
 						source === "jooble";
 				}
+				
+				if (filter === "adzuna") {
+					show =
+						source === "adzuna";
+				}
 
 				row.style.display =
 					show
@@ -851,6 +958,11 @@
 			if (filter === "jooble") {
 				label =
 					"vagas importadas da Jooble";
+			}
+			
+			if (filter === "adzuna") {
+				label =
+					"vagas importadas da Adzuna";
 			}
 
 			if (filterInfo) {
@@ -1105,6 +1217,137 @@
         }
 
 
+		async function importAdzunaJobs() {
+
+			const keywords =
+				document.getElementById(
+					"adzunaKeywords"
+				).value.trim();
+
+			const location =
+				document.getElementById(
+					"adzunaLocation"
+				).value.trim();
+
+			const resultBox =
+				document.getElementById(
+					"adzunaImportResult"
+				);
+
+			const button =
+				document.getElementById(
+					"importAdzunaBtn"
+				);
+
+			if (!keywords) {
+				alert(
+					"Informe uma palavra-chave."
+				);
+				return;
+			}
+
+			if (!location) {
+				alert(
+					"Informe uma localização."
+				);
+				return;
+			}
+
+			button.disabled = true;
+
+			button.textContent =
+				"⏳ Importando...";
+
+			resultBox.textContent =
+				"Consultando vagas da Adzuna...";
+
+			try {
+
+				const response = await fetch(
+					"/admin/empregos/importar-adzuna",
+					{
+						method: "POST",
+
+						headers: {
+							"Content-Type":
+								"application/json"
+						},
+
+						body: JSON.stringify({
+							keywords: keywords,
+							location: location
+						})
+					}
+				);
+
+				let data = {};
+
+				try {
+					data =
+						await response.json();
+				} catch (error) {
+					data = {};
+				}
+
+				if (!response.ok) {
+
+					throw new Error(
+						data.message ||
+						"Erro ao importar vagas da Adzuna."
+					);
+				}
+
+				resultBox.innerHTML = `
+					<strong>
+						✅ Importação concluída
+					</strong>
+					<br>
+					Encontradas na busca:
+					${data.total_disponivel}
+					<br>
+					Recebidas:
+					${data.vagas_recebidas}
+					<br>
+					Novas:
+					${data.novas}
+					<br>
+					Atualizadas:
+					${data.atualizadas}
+					<br>
+					Ignoradas:
+					${data.ignoradas}
+				`;
+
+				alert(
+					"Importação da Adzuna concluída!\n\n" +
+					`Recebidas: ${data.vagas_recebidas}\n` +
+					`Novas: ${data.novas}\n` +
+					`Atualizadas: ${data.atualizadas}\n` +
+					`Ignoradas: ${data.ignoradas}`
+				);
+
+				window.location.reload();
+
+			} catch (error) {
+
+				console.error(error);
+
+				resultBox.textContent =
+					error.message;
+
+				alert(
+					error.message
+				);
+
+			} finally {
+
+				button.disabled = false;
+
+				button.textContent =
+					"🟠 Buscar na Adzuna";
+			}
+		}
+
         (function () {
 
             const adminLayoutUser =
@@ -1177,14 +1420,49 @@
 					return;
 				}
 
-				alert(
-					"Importação concluída!\n\n" +
-					`Pesquisas: ${data.pesquisas}\n` +
+				const jooble =
+					data.jooble || {};
+
+				const adzuna =
+					data.adzuna || {};
+
+				let message =
+					"✅ IMPORTAÇÃO AUTOMÁTICA CONCLUÍDA\n\n";
+
+				message +=
+					"🔵 JOOBLE\n" +
+					`Pesquisas: ${jooble.searches || 0}\n` +
+					`Recebidas: ${jooble.received || 0}\n` +
+					`Novas: ${jooble.created || 0}\n` +
+					`Atualizadas: ${jooble.updated || 0}\n`;
+
+				if (jooble.error) {
+					message +=
+						`Erro: ${jooble.error}\n`;
+				}
+
+				message +=
+					"\n🟠 ADZUNA\n" +
+					`Pesquisas: ${adzuna.searches || 0}\n` +
+					`Recebidas: ${adzuna.received || 0}\n` +
+					`Novas: ${adzuna.created || 0}\n` +
+					`Atualizadas: ${adzuna.updated || 0}\n`;
+
+				if (adzuna.error) {
+					message +=
+						`Erro: ${adzuna.error}\n`;
+				}
+
+				message +=
+					"\n📊 TOTAL\n" +
 					`Recebidas: ${data.recebidas}\n` +
 					`Novas: ${data.novas}\n` +
 					`Atualizadas: ${data.atualizadas}\n` +
-					`Ignoradas: ${data.ignoradas}`
-				);
+					`Ignoradas: ${data.ignoradas}\n\n` +
+					"🧹 LIMPEZA\n" +
+					`Vagas antigas desativadas: ${data.desativadas || 0}`;
+
+				alert(message);
 
 				window.location.reload();
 
