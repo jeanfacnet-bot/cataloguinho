@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {{ vacancy.title }}
+        {% if vacancy.company %}
+            - {{ vacancy.company }}
+        {% endif %}
+        | CataLogin
+    </title>
+
+    <meta
+        name="description"
+        content="{{ (vacancy.description or vacancy.title)[:155] }}"
+    >
+
+    <link
+        rel="canonical"
+        href="https://www.cataloginpk.com.br/empregos/{{ vacancy.id }}"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ static_asset('style.css') }}"
+    >
+
+    <style>
+
+        body {
+            margin: 0;
+            background: #f4f7fb;
+        }
+
+        .job-detail-page {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 36px 20px 60px;
+        }
+
+        .job-detail-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 22px;
+            padding: 30px;
+            box-shadow:
+                0 12px 30px
+                rgba(15, 23, 42, 0.06);
+        }
+
+        .job-detail-badge {
+            display: inline-block;
+            margin-bottom: 14px;
+            padding: 7px 11px;
+            border-radius: 999px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .job-detail-card h1 {
+            margin: 0 0 10px;
+            color: #111827;
+            font-size: 34px;
+            line-height: 1.2;
+        }
+
+        .job-detail-company {
+            font-size: 18px;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 20px;
+        }
+
+        .job-detail-meta {
+            padding: 18px;
+            border-radius: 14px;
+            background: #f8fafc;
+            color: #475569;
+            line-height: 1.9;
+            margin-bottom: 26px;
+        }
+
+        .job-detail-description {
+            color: #334155;
+            line-height: 1.8;
+            white-space: pre-line;
+            margin-bottom: 28px;
+        }
+
+        .job-detail-description h2 {
+            color: #111827;
+            margin-top: 0;
+        }
+
+        .job-detail-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .job-detail-btn {
+            display: inline-block;
+            padding: 13px 18px;
+            border-radius: 11px;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .job-detail-btn.primary {
+            background: #1d4ed8;
+            color: white;
+        }
+
+        .job-detail-btn.whatsapp {
+            background: #16a34a;
+            color: white;
+        }
+
+        .back-jobs {
+            display: inline-block;
+            margin-bottom: 18px;
+            color: #1d4ed8;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        @media (max-width: 700px) {
+
+            .job-detail-page {
+                padding:
+                    22px 14px 45px;
+            }
+
+            .job-detail-card {
+                padding: 22px;
+            }
+
+            .job-detail-card h1 {
+                font-size: 28px;
+            }
+
+            .job-detail-actions {
+                flex-direction: column;
+            }
+
+            .job-detail-btn {
+                text-align: center;
+            }
+
+        }
+
+    </style>
+
+    {% if vacancy.published_at %}
+
+    <script type="application/ld+json">
+	{
+		"@context": "https://schema.org",
+		"@type": "JobPosting",
+
+		"title": {{ vacancy.title | tojson }},
+
+		"description": {{ (vacancy.description or vacancy.title) | tojson }},
+
+		{% if vacancy.published_at %}
+		"datePosted": "{{ vacancy.published_at.strftime('%Y-%m-%d') }}",
+		{% endif %}
+
+		{% if vacancy.expires_at %}
+		"validThrough": "{{ vacancy.expires_at.strftime('%Y-%m-%dT%H:%M:%S') }}",
+		{% endif %}
+
+		{% if vacancy.job_type == "ESTAGIO" %}
+		"employmentType": "INTERN",
+		{% elif vacancy.job_type == "TEMPORARIO" %}
+		"employmentType": "TEMPORARY",
+		{% elif vacancy.job_type == "FREELANCER" %}
+		"employmentType": "CONTRACTOR",
+		{% endif %}
+
+		"hiringOrganization": {
+			"@type": "Organization",
+			"name": {{ (vacancy.company or "Empresa não informada") | tojson }}
+		},
+
+		"identifier": {
+			"@type": "PropertyValue",
+			"name": {{ (vacancy.company or "CataLogin") | tojson }},
+			"value": "{{ vacancy.source }}-{{ vacancy.id }}"
+		},
+
+		{% if vacancy.work_model == "REMOTO" %}
+		"jobLocationType": "TELECOMMUTE",
+		{% endif %}
+
+		{% if vacancy.city or vacancy.state %}
+		"jobLocation": {
+			"@type": "Place",
+			"address": {
+				"@type": "PostalAddress",
+				{% if vacancy.city %}
+				"addressLocality": {{ vacancy.city | tojson }},
+				{% endif %}
+				{% if vacancy.state %}
+				"addressRegion": {{ vacancy.state | tojson }},
+				{% endif %}
+				"addressCountry": "BR"
+			}
+		},
+		{% endif %}
+
+		"url": "https://www.cataloginpk.com.br/empregos/{{ vacancy.id }}"
+	}
+	</script>
+
+    {% endif %}
+
+</head>
+
+<body>
+
+    {% include "partials/topbar.html" %}
+
+    <main class="job-detail-page">
+
+        <a
+            href="/empregos"
+            class="back-jobs"
+        >
+            ← Voltar para empregos
+        </a>
+
+        <article class="job-detail-card">
+
+            {% if vacancy.source == "CATLOGIN" %}
+
+                <span class="job-detail-badge">
+                    Publicada no CataLogin
+                </span>
+
+            {% else %}
+
+                <span class="job-detail-badge">
+                    Vaga externa
+                </span>
+
+            {% endif %}
+
+            <h1>
+                {{ vacancy.title }}
+            </h1>
+
+            {% if vacancy.company %}
+
+                <div class="job-detail-company">
+                    {{ vacancy.company }}
+                </div>
+
+            {% endif %}
+
+            <div class="job-detail-meta">
+
+                {% if vacancy.city %}
+                    📍 {{ vacancy.city }}
+                {% endif %}
+
+                {% if vacancy.state %}
+                    - {{ vacancy.state }}
+                {% endif %}
+
+                {% if vacancy.job_type %}
+                    <br>
+                    💼 {{ vacancy.job_type }}
+                {% endif %}
+
+                {% if vacancy.work_model %}
+                    · {{ vacancy.work_model }}
+                {% endif %}
+
+                {% if vacancy.salary %}
+                    <br>
+                    💰 {{ vacancy.salary }}
+                {% endif %}
+
+                {% if vacancy.published_at %}
+                    <br>
+                    🕒 {{ format_job_age(vacancy.published_at) }}
+                {% endif %}
+
+            </div>
+
+            {% if vacancy.description %}
+
+                <div class="job-detail-description">
+
+                    <h2>
+                        Descrição da vaga
+                    </h2>
+
+                    {{ vacancy.description }}
+
+                </div>
+
+            {% endif %}
+
+            <div class="job-detail-actions">
+
+                {% if vacancy.external_url %}
+
+                    <a
+                        href="{{ vacancy.external_url }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="job-detail-btn primary"
+                    >
+                        Candidatar-se / Ver vaga na fonte
+                    </a>
+
+                {% endif %}
+
+                {% if vacancy.contact_whatsapp %}
+
+                    <a
+                        href="https://wa.me/55{{ vacancy.contact_whatsapp | replace('(', '') | replace(')', '') | replace(' ', '') | replace('-', '') }}"
+                        target="_blank"
+                        class="job-detail-btn whatsapp"
+                    >
+                        Entrar em contato
+                    </a>
+
+                {% endif %}
+
+            </div>
+
+        </article>
+
+    </main>
+
+    <script
+        src="{{ static_asset('common_layout.js') }}"
+    ></script>
+
+</body>
+</html>

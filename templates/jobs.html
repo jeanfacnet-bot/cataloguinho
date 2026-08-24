@@ -489,18 +489,12 @@
 
                     <div class="job-actions">
 
-                        {% if vacancy.external_url %}
-
-                            <a
-                                href="{{ vacancy.external_url }}"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="job-btn primary"
-                            >
-                                Ver vaga na fonte
-                            </a>
-
-                        {% endif %}
+                        <a
+							href="/empregos/{{ vacancy.id }}"
+							class="job-btn primary"
+						>
+							Ver detalhes da vaga
+						</a>
 
                         {% if vacancy.contact_whatsapp %}
 

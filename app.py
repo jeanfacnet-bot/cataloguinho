@@ -8259,6 +8259,25 @@ def jobs_page():
         selected_job_type=job_type,
         selected_work_model=work_model
     ) 
+    
+@app.route(
+    "/empregos/<int:job_id>"
+)
+def public_job_detail(job_id):
+
+    vacancy = (
+        JobVacancy.query
+        .filter(
+            JobVacancy.id == job_id,
+            JobVacancy.is_active.is_(True)
+        )
+        .first_or_404()
+    )
+
+    return render_template(
+        "job_detail.html",
+        vacancy=vacancy
+    )    
 
 @app.route("/publicar-vaga")
 def publish_job_page():

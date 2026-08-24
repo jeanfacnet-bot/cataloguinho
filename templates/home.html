@@ -250,6 +250,92 @@
       line-height: 1.7;
       font-size: 15px;
     }
+	
+	.jobs-highlight {
+		margin-bottom: 36px;
+		background: linear-gradient(
+			135deg,
+			#0f172a,
+			#1d4ed8
+		);
+		border-radius: 24px;
+		padding: 32px;
+		color: white;
+		box-shadow:
+			0 18px 40px
+			rgba(15, 23, 42, 0.18);
+	}
+
+	.jobs-highlight-content {
+		display: flex;
+		align-items: center;
+		gap: 24px;
+	}
+
+	.jobs-highlight-icon {
+		font-size: 64px;
+		flex-shrink: 0;
+	}
+
+	.jobs-highlight-text {
+		flex: 1;
+	}
+
+	.jobs-new-badge {
+		display: inline-block;
+		background: #f59e0b;
+		color: white;
+		padding: 6px 11px;
+		border-radius: 999px;
+		font-size: 12px;
+		font-weight: 800;
+		margin-bottom: 10px;
+	}
+
+	.jobs-highlight h2 {
+		margin: 0 0 10px;
+		font-size: 30px;
+	}
+
+	.jobs-highlight p {
+		margin: 0;
+		max-width: 760px;
+		line-height: 1.7;
+		opacity: 0.94;
+	}
+
+	.jobs-highlight-actions {
+		display: flex;
+		gap: 12px;
+		flex-wrap: wrap;
+		margin-top: 20px;
+	}
+
+	.jobs-highlight-actions a {
+		display: inline-block;
+		padding: 13px 18px;
+		border-radius: 12px;
+		font-weight: 700;
+		text-decoration: none;
+		transition:
+			transform 0.18s ease,
+			opacity 0.18s ease;
+	}
+
+	.jobs-highlight-actions a:hover {
+		transform: translateY(-1px);
+		opacity: 0.95;
+	}
+
+	.jobs-search-btn {
+		background: #f59e0b;
+		color: white;
+	}
+
+	.jobs-publish-btn {
+		background: white;
+		color: #1d4ed8;
+	}
 
     @media (max-width: 768px) {
       .home-container {
@@ -281,6 +367,32 @@
       .hero-actions button {
         width: 100%;
       }
+	  
+	  .jobs-highlight {
+			padding: 26px 20px;
+		}
+
+		.jobs-highlight-content {
+			flex-direction: column;
+			text-align: center;
+		}
+
+		.jobs-highlight-icon {
+			font-size: 52px;
+		}
+
+		.jobs-highlight h2 {
+			font-size: 26px;
+		}
+
+		.jobs-highlight-actions {
+			flex-direction: column;
+		}
+
+		.jobs-highlight-actions a {
+			width: 100%;
+			box-sizing: border-box;
+		}
     }
   </style>
   
@@ -384,6 +496,55 @@
 		
       </div>
     </section>
+	
+	<!-- DESTAQUE EMPREGOS -->
+	<section class="jobs-highlight">
+
+		<div class="jobs-highlight-content">
+
+			<div class="jobs-highlight-icon">
+				💼
+			</div>
+
+			<div class="jobs-highlight-text">
+
+				<span class="jobs-new-badge">
+					NOVO NO CATALOGIN
+				</span>
+
+				<h2>
+					Procurando emprego?
+				</h2>
+
+				<p>
+					Encontre oportunidades de emprego em Brasília e região.
+					O CataLogin reúne vagas de diferentes fontes em um só lugar
+					para facilitar sua busca por uma nova oportunidade.
+				</p>
+
+				<div class="jobs-highlight-actions">
+
+					<a
+						href="/empregos"
+						class="jobs-search-btn"
+					>
+						🔎 Ver vagas de emprego
+					</a>
+
+					<a
+						href="/empregos/cadastrar"
+						class="jobs-publish-btn"
+					>
+						📢 Publicar vaga grátis
+					</a>
+
+				</div>
+
+			</div>
+
+		</div>
+
+	</section>
 
     <!-- BLOCO PARA QUEM QUER DIVULGAR -->
     <section class="section">
