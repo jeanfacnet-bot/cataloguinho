@@ -16,7 +16,7 @@ from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import case, or_
+from sqlalchemy import case, or_, func
 from datetime import datetime, timedelta, UTC
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -40,6 +40,7 @@ import re
 import unicodedata
 import base64
 import qrcode
+
 
 
 
@@ -621,6 +622,151 @@ class TripRegistration(db.Model):
         nullable=False,
         default=datetime.utcnow
     )    
+    
+# =========================
+# EMPREGOS / ESTÁGIOS
+# =========================
+
+class JobVacancy(db.Model):
+    __tablename__ = "job_vacancies"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    # Identificação da origem
+    source = db.Column(
+        db.String(50),
+        nullable=False,
+        default="CATLOGIN",
+        index=True
+    )
+
+    external_id = db.Column(
+        db.String(255),
+        nullable=True,
+        index=True
+    )
+
+    # Dados principais
+    title = db.Column(
+        db.String(255),
+        nullable=False,
+        index=True
+    )
+
+    company = db.Column(
+        db.String(255),
+        nullable=True,
+        index=True
+    )
+
+    description = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    # Localização
+    country = db.Column(
+        db.String(100),
+        nullable=True,
+        default="Brasil"
+    )
+
+    state = db.Column(
+        db.String(100),
+        nullable=True,
+        index=True
+    )
+
+    city = db.Column(
+        db.String(150),
+        nullable=True,
+        index=True
+    )
+
+    location_text = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
+    # Informações da vaga
+    job_type = db.Column(
+        db.String(50),
+        nullable=True,
+        index=True
+    )
+
+    work_model = db.Column(
+        db.String(30),
+        nullable=True,
+        index=True
+    )
+
+    salary = db.Column(
+        db.String(150),
+        nullable=True
+    )
+
+    # Link externo da vaga
+    external_url = db.Column(
+        db.String(1000),
+        nullable=True
+    )
+
+    # Contato para vagas próprias do CataLogin
+    contact_email = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
+    contact_whatsapp = db.Column(
+        db.String(30),
+        nullable=True
+    )
+
+    # Controle
+    is_active = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=True,
+        index=True
+    )
+
+    is_featured = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        index=True
+    )
+
+    # Datas
+    published_at = db.Column(
+        db.DateTime,
+        nullable=True,
+        index=True
+    )
+
+    expires_at = db.Column(
+        db.DateTime,
+        nullable=True,
+        index=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        index=True
+    )
+
+    updated_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
+    )    
 
 class SiteVisitor(db.Model):
     __tablename__ = "site_visitors"
@@ -678,6 +824,319 @@ class SearchMetric(db.Model):
         default=datetime.utcnow,
         index=True
     )
+    
+def classify_job_type(title, jooble_type):
+    text = (
+        f"{title or ''} {jooble_type or ''}"
+    ).upper()
+
+    if (
+        "ESTÁGIO" in text
+        or "ESTAGIO" in text
+        or "ESTAGIÁRIO" in text
+        or "ESTAGIARIO" in text
+    ):
+        return "ESTAGIO"
+
+    if (
+        "APRENDIZ" in text
+        or "JOVEM APRENDIZ" in text
+    ):
+        return "JOVEM_APRENDIZ"
+
+    if "TEMPORÁRIO" in text or "TEMPORARIO" in text:
+        return "TEMPORARIO"
+
+    if "FREELANCER" in text or "FREELA" in text:
+        return "FREELANCER"
+
+    return "EMPREGO"
+
+
+def clean_job_description(value):
+    text = str(value or "")
+
+    text = re.sub(
+        r"<[^>]+>",
+        "",
+        text
+    )
+
+    text = (
+        text
+        .replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+    )
+
+    return " ".join(
+        text.split()
+    ) 
+
+AUTO_JOB_SEARCHES = [
+    {
+        "keywords": "emprego",
+        "location": "Brasilia"
+    },
+    {
+        "keywords": "estagio",
+        "location": "Brasilia"
+    },
+    {
+        "keywords": "jovem aprendiz",
+        "location": "Brasilia"
+    },
+    {
+        "keywords": "administrativo",
+        "location": "Brasilia"
+    },
+    {
+        "keywords": "atendimento vendas logistica tecnologia",
+        "location": "Brasilia"
+    }
+]    
+
+def import_jooble_search(
+    keywords,
+    location
+):
+    payload = {
+        "keywords": keywords,
+        "location": location,
+        "page": "1"
+    }
+
+    result = jooble_request(
+        payload
+    )
+
+    jobs = (
+        result.get("jobs")
+        or []
+    )
+
+    created = 0
+    updated = 0
+    ignored = 0
+
+    for item in jobs:
+
+        external_id = str(
+            item.get("id")
+            or ""
+        ).strip()
+
+        if not external_id:
+            ignored += 1
+            continue
+
+        title = (
+            item.get("title")
+            or ""
+        ).strip()
+
+        if not title:
+            ignored += 1
+            continue
+
+        company = (
+            item.get("company")
+            or ""
+        ).strip()
+
+        location_text = (
+            item.get("location")
+            or ""
+        ).strip()
+
+        city = None
+        state = None
+
+        if location_text:
+            parts = [
+                part.strip()
+                for part
+                in location_text.split(",")
+                if part.strip()
+            ]
+
+            if parts:
+                city = parts[0]
+
+            if len(parts) > 1:
+                state = parts[-1]
+
+        description = (
+            clean_job_description(
+                item.get("snippet")
+            )
+        )
+
+        salary = (
+            item.get("salary")
+            or ""
+        ).strip()
+
+        external_url = (
+            item.get("link")
+            or ""
+        ).strip()
+
+        jooble_type = (
+            item.get("type")
+            or ""
+        ).strip()
+
+        job_type = classify_job_type(
+            title,
+            jooble_type
+        )
+
+        published_at = None
+
+        updated_raw = (
+            item.get("updated")
+            or ""
+        ).strip()
+
+        if updated_raw:
+            try:
+                published_at = (
+                    datetime.fromisoformat(
+                        updated_raw.replace(
+                            "Z",
+                            "+00:00"
+                        )
+                    )
+                )
+
+                if (
+                    published_at.tzinfo
+                    is not None
+                ):
+                    published_at = (
+                        published_at.replace(
+                            tzinfo=None
+                        )
+                    )
+
+            except Exception:
+                published_at = utc_now()
+
+        existing = (
+            JobVacancy.query
+            .filter_by(
+                source="JOOBLE",
+                external_id=external_id
+            )
+            .first()
+        )
+
+        if existing:
+
+            existing.title = title
+            existing.company = (
+                company or None
+            )
+            existing.description = (
+                description or None
+            )
+            existing.country = "Brasil"
+            existing.state = state
+            existing.city = city
+            existing.location_text = (
+                location_text or None
+            )
+            existing.job_type = job_type
+            existing.salary = (
+                salary or None
+            )
+            existing.external_url = (
+                external_url or None
+            )
+            existing.published_at = (
+                published_at
+            )
+            existing.is_active = True
+
+            updated += 1
+
+            continue
+
+        vacancy = JobVacancy(
+            source="JOOBLE",
+            external_id=external_id,
+            title=title,
+            company=company or None,
+            description=description or None,
+            country="Brasil",
+            state=state,
+            city=city,
+            location_text=(
+                location_text or None
+            ),
+            job_type=job_type,
+            work_model=None,
+            salary=salary or None,
+            external_url=(
+                external_url or None
+            ),
+            is_active=True,
+            is_featured=False,
+            published_at=published_at
+        )
+
+        db.session.add(vacancy)
+
+        created += 1
+
+    return {
+        "received": len(jobs),
+        "created": created,
+        "updated": updated,
+        "ignored": ignored
+    }
+    
+def run_automatic_job_import():
+    summary = {
+        "searches": 0,
+        "received": 0,
+        "created": 0,
+        "updated": 0,
+        "ignored": 0
+    }
+
+    for search in AUTO_JOB_SEARCHES:
+
+        result = import_jooble_search(
+            keywords=search[
+                "keywords"
+            ],
+            location=search[
+                "location"
+            ]
+        )
+
+        summary["searches"] += 1
+
+        summary["received"] += (
+            result["received"]
+        )
+
+        summary["created"] += (
+            result["created"]
+        )
+
+        summary["updated"] += (
+            result["updated"]
+        )
+
+        summary["ignored"] += (
+            result["ignored"]
+        )
+
+    db.session.commit()
+
+    return summary    
 
 # =========================
 # HELPERS
@@ -755,7 +1214,84 @@ def hash_reset_token(raw_token):
     return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
     
 def utc_now():
-    return datetime.now(UTC).replace(tzinfo=None)    
+    return datetime.now(UTC).replace(tzinfo=None)  
+
+def format_job_age(published_at):
+    if not published_at:
+        return ""
+
+    now = utc_now()
+
+    difference = now - published_at
+
+    total_seconds = int(
+        difference.total_seconds()
+    )
+
+    if total_seconds < 0:
+        total_seconds = 0
+
+    minutes = total_seconds // 60
+    hours = total_seconds // 3600
+    days = total_seconds // 86400
+
+    if minutes < 1:
+        return "Publicado agora"
+
+    if minutes < 60:
+        if minutes == 1:
+            return "Publicado há 1 minuto"
+
+        return (
+            f"Publicado há {minutes} minutos"
+        )
+
+    if hours < 24:
+        if hours == 1:
+            return "Publicado há 1 hora"
+
+        return (
+            f"Publicado há {hours} horas"
+        )
+
+    if days == 1:
+        return "Publicado há 1 dia"
+
+    return (
+        f"Publicado há {days} dias"
+    )  
+
+app.jinja_env.globals[
+    "format_job_age"
+] = format_job_age  
+
+def normalize_job_search_text(value):
+    value = str(value or "").strip().lower()
+
+    value = unicodedata.normalize(
+        "NFKD",
+        value
+    )
+
+    value = "".join(
+        char
+        for char in value
+        if not unicodedata.combining(char)
+    )
+
+    return " ".join(
+        value.split()
+    )
+
+
+def normalized_job_column(column):
+    return func.lower(
+        func.translate(
+            column,
+            "áàâãäéèêëíìîïóòôõöúùûüçÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇ",
+            "aaaaaeeeeiiiiooooouuuucAAAAAEEEEIIIIOOOOOUUUUC"
+        )
+    )  
     
 def generate_slug(text):
     text = str(text or "").strip().lower()
@@ -6584,37 +7120,85 @@ def unblock_ad(ad_id):
     })    
     
     
-@app.route("/admin/ads/<int:ad_id>/delete", methods=["DELETE"])
+@app.route(
+    "/admin/ads/<int:ad_id>/delete",
+    methods=["DELETE"]
+)
+@admin_required_page
 def admin_delete_ad(ad_id):
-    data = request.get_json() or {}
 
-    admin_user_id = data.get("admin_user_id")
+    try:
+        ad = db.session.get(
+            Ad,
+            ad_id
+        )
 
-    if not admin_user_id:
-        return jsonify({"message": "Administrador não informado"}), 400
+        if not ad:
+            return jsonify({
+                "message": "Anúncio não encontrado"
+            }), 404
 
-    admin_user = User.query.get(admin_user_id)
-    if not admin_user or not admin_user.is_admin:
-        return jsonify({"message": "Acesso negado"}), 403
+        # Remove imagem física
+        if ad.main_image:
+            image_path = resolve_media_file_path(
+                ad.main_image
+            )
 
-    ad = Ad.query.get(ad_id)
-    if not ad:
-        return jsonify({"message": "Anúncio não encontrado"}), 404
+            if (
+                image_path
+                and os.path.exists(image_path)
+            ):
+                try:
+                    os.remove(image_path)
+                except Exception as error:
+                    print(
+                        "Erro ao excluir imagem:",
+                        error,
+                        flush=True
+                    )
 
-    if ad.main_image:
-        old_image_path = ad.main_image.lstrip("/")
-        if os.path.exists(old_image_path):
-            os.remove(old_image_path)
+        # Remove vídeo físico
+        if ad.main_video:
+            video_path = resolve_media_file_path(
+                ad.main_video
+            )
 
-    if ad.main_video:
-        old_video_path = ad.main_video.lstrip("/")
-        if os.path.exists(old_video_path):
-            os.remove(old_video_path)
+            if (
+                video_path
+                and os.path.exists(video_path)
+            ):
+                try:
+                    os.remove(video_path)
+                except Exception as error:
+                    print(
+                        "Erro ao excluir vídeo:",
+                        error,
+                        flush=True
+                    )
 
-    db.session.delete(ad)
-    db.session.commit()
+        db.session.delete(ad)
+        db.session.commit()
 
-    return jsonify({"message": "Anúncio excluído com sucesso"})    
+        return jsonify({
+            "message":
+                "Anúncio excluído com sucesso"
+        }), 200
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO AO EXCLUIR ANÚNCIO:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Erro ao excluir anúncio",
+            "error": str(error)
+        }), 500
     
 @app.route("/users/<int:user_id>", methods=["GET"])
 def get_user(user_id):
@@ -7113,6 +7697,1033 @@ def serve_uploaded_video(filename):
         filename,
         conditional=True
     )
+    
+@app.route("/empregos")
+def jobs_page():
+    keyword = (
+        request.args.get("q")
+        or ""
+    ).strip()
+
+    state = (
+        request.args.get("state")
+        or ""
+    ).strip()
+
+    city = (
+        request.args.get("city")
+        or ""
+    ).strip()
+
+    job_type = (
+        request.args.get("job_type")
+        or ""
+    ).strip().upper()
+
+    work_model = (
+        request.args.get("work_model")
+        or ""
+    ).strip().upper()
+
+    query = (
+        JobVacancy.query
+        .filter(
+            JobVacancy.is_active.is_(True)
+        )
+    )
+
+    if keyword:
+        normalized_keyword = (
+            normalize_job_search_text(
+                keyword
+            )
+        )
+
+        search_term = (
+            f"%{normalized_keyword}%"
+        )
+
+        query = query.filter(
+            or_(
+                normalized_job_column(
+                    JobVacancy.title
+                ).like(search_term),
+
+                normalized_job_column(
+                    JobVacancy.company
+                ).like(search_term),
+
+                normalized_job_column(
+                    JobVacancy.description
+                ).like(search_term)
+            )
+        )
+
+    if state:
+        brazil_states = {
+            "AC": "Acre",
+            "AL": "Alagoas",
+            "AP": "Amapá",
+            "AM": "Amazonas",
+            "BA": "Bahia",
+            "CE": "Ceará",
+            "DF": "Distrito Federal",
+            "ES": "Espírito Santo",
+            "GO": "Goiás",
+            "MA": "Maranhão",
+            "MT": "Mato Grosso",
+            "MS": "Mato Grosso do Sul",
+            "MG": "Minas Gerais",
+            "PA": "Pará",
+            "PB": "Paraíba",
+            "PR": "Paraná",
+            "PE": "Pernambuco",
+            "PI": "Piauí",
+            "RJ": "Rio de Janeiro",
+            "RN": "Rio Grande do Norte",
+            "RS": "Rio Grande do Sul",
+            "RO": "Rondônia",
+            "RR": "Roraima",
+            "SC": "Santa Catarina",
+            "SP": "São Paulo",
+            "SE": "Sergipe",
+            "TO": "Tocantins"
+        }
+
+        state_upper = (
+            state.strip().upper()
+        )
+
+        state_name = brazil_states.get(
+            state_upper,
+            state
+        )
+
+        normalized_state = (
+            normalize_job_search_text(
+                state_name
+            )
+        )
+
+        query = query.filter(
+            or_(
+                normalized_job_column(
+                    JobVacancy.state
+                ) == normalized_state,
+
+                normalized_job_column(
+                    JobVacancy.state
+                ) == normalize_job_search_text(
+                    state_upper
+                )
+            )
+        )
+
+    if city:
+        normalized_city = (
+            normalize_job_search_text(
+                city
+            )
+        )
+
+        query = query.filter(
+            normalized_job_column(
+                JobVacancy.city
+            ) == normalized_city
+        )
+
+    if job_type:
+        query = query.filter(
+            JobVacancy.job_type == job_type
+        )
+
+    if work_model:
+        query = query.filter(
+            JobVacancy.work_model == work_model
+        )
+
+    vacancies = (
+        query
+        .order_by(
+            JobVacancy.is_featured.desc(),
+            JobVacancy.published_at.desc(),
+            JobVacancy.created_at.desc()
+        )
+        .limit(100)
+        .all()
+    )
+
+    return render_template(
+        "jobs.html",
+        vacancies=vacancies,
+        keyword=keyword,
+        selected_state=state,
+        selected_city=city,
+        selected_job_type=job_type,
+        selected_work_model=work_model
+    ) 
+
+@app.route("/publicar-vaga")
+def publish_job_page():
+    return render_template(
+        "publish_job.html"
+    )
+
+@app.route(
+    "/publicar-vaga",
+    methods=["POST"]
+)
+def publish_job():
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    title = (
+        data.get("title")
+        or ""
+    ).strip()
+
+    company = (
+        data.get("company")
+        or ""
+    ).strip()
+
+    description = (
+        data.get("description")
+        or ""
+    ).strip()
+
+    state = (
+        data.get("state")
+        or ""
+    ).strip()
+
+    city = (
+        data.get("city")
+        or ""
+    ).strip()
+
+    job_type = (
+        data.get("job_type")
+        or ""
+    ).strip().upper()
+
+    work_model = (
+        data.get("work_model")
+        or ""
+    ).strip().upper()
+
+    salary = (
+        data.get("salary")
+        or ""
+    ).strip()
+
+    contact_email = (
+        data.get("contact_email")
+        or ""
+    ).strip()
+
+    contact_whatsapp = (
+        data.get("contact_whatsapp")
+        or ""
+    ).strip()
+
+    if not title:
+        return jsonify({
+            "message": "Informe o título da vaga."
+        }), 400
+
+    if not company:
+        return jsonify({
+            "message": "Informe o nome da empresa."
+        }), 400
+
+    if not description:
+        return jsonify({
+            "message": "Informe a descrição da vaga."
+        }), 400
+
+    if not state:
+        return jsonify({
+            "message": "Informe o estado."
+        }), 400
+
+    if not city:
+        return jsonify({
+            "message": "Informe a cidade."
+        }), 400
+
+    allowed_job_types = {
+        "EMPREGO",
+        "ESTAGIO",
+        "JOVEM_APRENDIZ",
+        "TEMPORARIO",
+        "FREELANCER"
+    }
+
+    if job_type not in allowed_job_types:
+        return jsonify({
+            "message": "Tipo de vaga inválido."
+        }), 400
+
+    allowed_work_models = {
+        "PRESENCIAL",
+        "HIBRIDO",
+        "REMOTO"
+    }
+
+    if work_model not in allowed_work_models:
+        return jsonify({
+            "message": "Modelo de trabalho inválido."
+        }), 400
+
+    if (
+        not contact_email
+        and not contact_whatsapp
+    ):
+        return jsonify({
+            "message": (
+                "Informe pelo menos um contato: "
+                "e-mail ou WhatsApp."
+            )
+        }), 400
+
+    vacancy = JobVacancy(
+        source="CATLOGIN",
+        title=title,
+        company=company,
+        description=description,
+        country="Brasil",
+        state=state,
+        city=city,
+        location_text=f"{city} - {state}",
+        job_type=job_type,
+        work_model=work_model,
+        salary=salary or None,
+        contact_email=(
+            contact_email or None
+        ),
+        contact_whatsapp=(
+            contact_whatsapp or None
+        ),
+        is_active=True,
+        is_featured=False,
+        published_at=utc_now()
+    )
+
+    db.session.add(vacancy)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Vaga publicada com sucesso.",
+        "job_id": vacancy.id
+    }), 201
+
+
+def jooble_request(payload):
+    api_key = (
+        os.getenv("JOOBLE_API_KEY")
+        or ""
+    ).strip()
+
+    if not api_key:
+        raise RuntimeError(
+            "JOOBLE_API_KEY não configurada."
+        )
+
+    # A chave da Jooble tem formato UUID.
+    # Isso evita fazer chamadas com chave incorreta
+    # ou valor errado vindo do .env.
+    if not re.fullmatch(
+        r"[0-9a-fA-F]{8}-"
+        r"[0-9a-fA-F]{4}-"
+        r"[0-9a-fA-F]{4}-"
+        r"[0-9a-fA-F]{4}-"
+        r"[0-9a-fA-F]{12}",
+        api_key
+    ):
+        raise RuntimeError(
+            "JOOBLE_API_KEY possui formato inválido."
+        )
+
+    url = (
+        f"https://br.jooble.org/api/{api_key}"
+    )
+
+    # Fazemos uma cópia para não alterar
+    # o payload original recebido pela rota.
+    jooble_payload = dict(
+        payload
+    )
+
+    # Normaliza localização para ASCII.
+    # No teste realizado diretamente no CMD,
+    # 'Brasilia' funcionou corretamente.
+    location = str(
+        jooble_payload.get(
+            "location",
+            ""
+        )
+    ).strip()
+
+    if location:
+        location = unicodedata.normalize(
+            "NFKD",
+            location
+        )
+
+        location = "".join(
+            char
+            for char in location
+            if not unicodedata.combining(
+                char
+            )
+        )
+
+        jooble_payload[
+            "location"
+        ] = location
+
+    request_body = json.dumps(
+        jooble_payload,
+        ensure_ascii=True,
+        separators=(",", ":")
+    )
+
+    # No Windows usamos explicitamente
+    # o curl.exe nativo que já testamos
+    # manualmente e sabemos que funciona.
+    curl_command = (
+        "curl.exe"
+        if os.name == "nt"
+        else "curl"
+    )
+
+    command = [
+        curl_command,
+
+        "-sS",
+
+        "--http1.1",
+
+        "-X",
+        "POST",
+
+        url,
+
+        "-H",
+        "Content-Type: application/json",
+
+        "-H",
+        "Accept: application/json",
+
+        "-d",
+        request_body,
+
+        "-w",
+        "\n__HTTP_STATUS__:%{http_code}"
+    ]
+
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=40,
+            check=False
+        )
+
+    except FileNotFoundError as error:
+        raise RuntimeError(
+            "O executável curl não foi encontrado."
+        ) from error
+
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError(
+            "A consulta à Jooble excedeu "
+            "o tempo limite."
+        ) from error
+
+    if result.returncode != 0:
+        raise RuntimeError(
+            "Erro ao executar curl: "
+            + (
+                result.stderr.strip()
+                or "erro desconhecido"
+            )
+        )
+
+    raw_output = (
+        result.stdout
+        or ""
+    ).strip()
+
+    marker = (
+        "\n__HTTP_STATUS__:"
+    )
+
+    if marker not in raw_output:
+        raise RuntimeError(
+            "Não foi possível identificar "
+            "o status HTTP da Jooble."
+        )
+
+    response_text, status_text = (
+        raw_output.rsplit(
+            marker,
+            1
+        )
+    )
+
+    response_text = (
+        response_text.strip()
+    )
+
+    status_text = (
+        status_text.strip()
+    )
+
+    try:
+        status_code = int(
+            status_text
+        )
+
+    except ValueError:
+        status_code = 0
+
+    print(
+        "JOOBLE HTTP STATUS:",
+        status_code,
+        flush=True
+    )
+
+    print(
+        "JOOBLE KEY OK:",
+        len(api_key) == 36,
+        flush=True
+    )
+
+    print(
+        "JOOBLE LOCATION:",
+        jooble_payload.get(
+            "location"
+        ),
+        flush=True
+    )
+
+    if status_code != 200:
+        print(
+            "JOOBLE RESPOSTA:",
+            response_text[:300],
+            flush=True
+        )
+
+        raise RuntimeError(
+            f"A Jooble retornou HTTP "
+            f"{status_code}."
+        )
+
+    if not response_text:
+        raise RuntimeError(
+            "A Jooble retornou resposta vazia."
+        )
+
+    if (
+        response_text.lstrip()
+        .lower()
+        .startswith("<!doctype")
+        or
+        response_text.lstrip()
+        .lower()
+        .startswith("<html")
+    ):
+        raise RuntimeError(
+            "A Jooble retornou HTML "
+            "em vez de JSON."
+        )
+
+    try:
+        data = json.loads(
+            response_text
+        )
+
+    except json.JSONDecodeError as error:
+        print(
+            "RESPOSTA JOOBLE INVÁLIDA:",
+            response_text[:500],
+            flush=True
+        )
+
+        raise RuntimeError(
+            "Resposta inválida da Jooble."
+        ) from error
+
+    if not isinstance(
+        data,
+        dict
+    ):
+        raise RuntimeError(
+            "Formato inesperado da "
+            "resposta da Jooble."
+        )
+
+    return data
+        
+@app.route(
+    "/admin/empregos/importar-jooble",
+    methods=["POST"]
+)
+
+@app.route(
+    "/admin/empregos/importar-automatico",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_run_automatic_job_import():
+
+    try:
+        summary = (
+            run_automatic_job_import()
+        )
+
+        return jsonify({
+            "message":
+                "Importação automática concluída.",
+            "pesquisas":
+                summary["searches"],
+            "recebidas":
+                summary["received"],
+            "novas":
+                summary["created"],
+            "atualizadas":
+                summary["updated"],
+            "ignoradas":
+                summary["ignored"]
+        })
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO IMPORTAÇÃO AUTOMÁTICA:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message": str(error)
+        }), 500
+
+@admin_required_page
+def admin_import_jooble_jobs():
+    data = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
+
+    keywords = (
+        data.get("keywords")
+        or "emprego"
+    ).strip()
+
+    location = (
+        data.get("location")
+        or "Brasília"
+    ).strip()
+
+    payload = {
+        "keywords": keywords,
+        "location": location,
+        "page": "1"
+    }
+
+    try:
+        result = jooble_request(
+            payload
+        )
+
+        jobs = (
+            result.get("jobs")
+            or []
+        )
+
+        created = 0
+        updated = 0
+        ignored = 0
+
+        for item in jobs:
+            external_id = str(
+                item.get("id")
+                or ""
+            ).strip()
+
+            if not external_id:
+                ignored += 1
+                continue
+
+            title = (
+                item.get("title")
+                or ""
+            ).strip()
+
+            if not title:
+                ignored += 1
+                continue
+
+            company = (
+                item.get("company")
+                or ""
+            ).strip()
+
+            location_text = (
+                item.get("location")
+                or ""
+            ).strip()
+
+            city = None
+            state = None
+
+            if location_text:
+                parts = [
+                    part.strip()
+                    for part in location_text.split(",")
+                    if part.strip()
+                ]
+
+                if parts:
+                    city = parts[0]
+
+                if len(parts) > 1:
+                    state = parts[-1]
+
+            description = (
+                clean_job_description(
+                    item.get("snippet")
+                )
+            )
+
+            salary = (
+                item.get("salary")
+                or ""
+            ).strip()
+
+            external_url = (
+                item.get("link")
+                or ""
+            ).strip()
+
+            jooble_type = (
+                item.get("type")
+                or ""
+            ).strip()
+
+            job_type = classify_job_type(
+                title,
+                jooble_type
+            )
+
+            published_at = None
+
+            updated_raw = (
+                item.get("updated")
+                or ""
+            ).strip()
+
+            if updated_raw:
+                try:
+                    published_at = (
+                        datetime.fromisoformat(
+                            updated_raw.replace(
+                                "Z",
+                                "+00:00"
+                            )
+                        )
+                    )
+
+                    if published_at.tzinfo is not None:
+                        published_at = (
+                            published_at.replace(
+                                tzinfo=None
+                            )
+                        )
+
+                except Exception:
+                    published_at = utc_now()
+
+            existing = (
+                JobVacancy.query
+                .filter_by(
+                    source="JOOBLE",
+                    external_id=external_id
+                )
+                .first()
+            )
+
+            if existing:
+                existing.title = title
+                existing.company = company or None
+                existing.description = description or None
+                existing.country = "Brasil"
+                existing.state = state
+                existing.city = city
+                existing.location_text = (
+                    location_text or None
+                )
+                existing.job_type = job_type
+                existing.salary = salary or None
+                existing.external_url = (
+                    external_url or None
+                )
+                existing.published_at = published_at
+                existing.is_active = True
+
+                updated += 1
+                continue
+
+            vacancy = JobVacancy(
+                source="JOOBLE",
+                external_id=external_id,
+                title=title,
+                company=company or None,
+                description=description or None,
+                country="Brasil",
+                state=state,
+                city=city,
+                location_text=(
+                    location_text or None
+                ),
+                job_type=job_type,
+                work_model=None,
+                salary=salary or None,
+                external_url=(
+                    external_url or None
+                ),
+                is_active=True,
+                is_featured=False,
+                published_at=published_at
+            )
+
+            db.session.add(vacancy)
+            created += 1
+
+        db.session.commit()
+
+        return jsonify({
+            "message":
+                "Importação concluída com sucesso.",
+            "keywords": keywords,
+            "location": location,
+            "vagas_recebidas": len(jobs),
+            "novas": created,
+            "atualizadas": updated,
+            "ignoradas": ignored
+        })
+
+    except Exception as error:
+        db.session.rollback()
+
+        print(
+            "ERRO IMPORTAÇÃO JOOBLE:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message": str(error)
+        }), 500        
+
+
+@app.route(
+    "/admin/empregos/<int:job_id>/toggle-status",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_job_toggle_status(job_id):
+    vacancy = db.session.get(
+        JobVacancy,
+        job_id
+    )
+
+    if not vacancy:
+        return jsonify({
+            "message": "Vaga não encontrada."
+        }), 404
+
+    try:
+        vacancy.is_active = not bool(
+            vacancy.is_active
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            "message": (
+                "Vaga ativada com sucesso."
+                if vacancy.is_active
+                else "Vaga desativada com sucesso."
+            ),
+            "is_active": vacancy.is_active
+        })
+
+    except Exception as error:
+        db.session.rollback()
+
+        print(
+            "ERRO ALTERAR STATUS VAGA:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Não foi possível alterar o status da vaga."
+        }), 500
+        
+@app.route(
+    "/admin/empregos/<int:job_id>/toggle-featured",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_job_toggle_featured(job_id):
+    vacancy = db.session.get(
+        JobVacancy,
+        job_id
+    )
+
+    if not vacancy:
+        return jsonify({
+            "message": "Vaga não encontrada."
+        }), 404
+
+    try:
+        vacancy.is_featured = not bool(
+            vacancy.is_featured
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            "message": (
+                "Vaga destacada com sucesso."
+                if vacancy.is_featured
+                else "Destaque removido com sucesso."
+            ),
+            "is_featured":
+                vacancy.is_featured
+        })
+
+    except Exception as error:
+        db.session.rollback()
+
+        print(
+            "ERRO ALTERAR DESTAQUE VAGA:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Não foi possível alterar o destaque."
+        }), 500 
+
+@app.route(
+    "/admin/empregos/<int:job_id>/excluir",
+    methods=["DELETE"]
+)
+@admin_required_page
+def admin_job_delete(job_id):
+    vacancy = db.session.get(
+        JobVacancy,
+        job_id
+    )
+
+    if not vacancy:
+        return jsonify({
+            "message": "Vaga não encontrada."
+        }), 404
+
+    try:
+        title = vacancy.title
+
+        db.session.delete(
+            vacancy
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            "message":
+                f'Vaga "{title}" excluída com sucesso.'
+        })
+
+    except Exception as error:
+        db.session.rollback()
+
+        print(
+            "ERRO EXCLUIR VAGA:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Não foi possível excluir a vaga."
+        }), 500        
+  
+@app.route("/admin/empregos")
+@admin_required_page
+def admin_jobs_page():
+    vacancies = (
+        JobVacancy.query
+        .order_by(
+            JobVacancy.created_at.desc()
+        )
+        .all()
+    )
+
+    total_jobs = (
+        JobVacancy.query
+        .count()
+    )
+
+    active_jobs = (
+        JobVacancy.query
+        .filter(
+            JobVacancy.is_active.is_(True)
+        )
+        .count()
+    )
+
+    catalogin_jobs = (
+        JobVacancy.query
+        .filter(
+            JobVacancy.source == "CATLOGIN"
+        )
+        .count()
+    )
+
+    jooble_jobs = (
+        JobVacancy.query
+        .filter(
+            JobVacancy.source == "JOOBLE"
+        )
+        .count()
+    )
+
+    return render_template(
+        "admin_jobs.html",
+        vacancies=vacancies,
+        total_jobs=total_jobs,
+        active_jobs=active_jobs,
+        catalogin_jobs=catalogin_jobs,
+        jooble_jobs=jooble_jobs,
+        active_page="jobs"
+    )        
     
     
 # =========================

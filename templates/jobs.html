@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Empregos e Estágios | CataLogin
+    </title>
+
+    <meta
+        name="description"
+        content="Encontre empregos, estágios, vagas para jovem aprendiz e oportunidades de trabalho no CataLogin."
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ static_asset('style.css') }}"
+    >
+
+    <style>
+        body {
+            margin: 0;
+            background: #f4f7fb;
+        }
+
+        .jobs-page {
+            max-width: 1150px;
+            margin: 0 auto;
+            padding: 30px 20px 60px;
+        }
+
+        .jobs-hero {
+            padding: 34px;
+            margin-bottom: 24px;
+            border-radius: 24px;
+            background:
+                linear-gradient(
+                    135deg,
+                    #1d4ed8,
+                    #111827
+                );
+            color: white;
+        }
+
+        .jobs-hero h1 {
+            margin: 0 0 10px;
+            font-size: 36px;
+        }
+
+        .jobs-hero p {
+            margin: 0;
+            color: #dbeafe;
+            line-height: 1.6;
+        }
+
+        .filters {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 22px;
+        }
+
+        .filters form {
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(180px, 1fr)
+                );
+            gap: 12px;
+        }
+
+        .filters input,
+        .filters select,
+        .filters button {
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #cbd5e1;
+            font: inherit;
+        }
+
+        .filters button {
+            background: #1d4ed8;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .jobs-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .job-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            padding: 20px;
+        }
+
+        .job-card.featured {
+            border-color: #f59e0b;
+            box-shadow:
+                0 8px 28px
+                rgba(245, 158, 11, 0.12);
+        }
+
+        .job-badge {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .job-badge.featured {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .job-card h2 {
+            margin: 0 0 8px;
+            font-size: 22px;
+        }
+
+        .job-company {
+            color: #334155;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .job-meta {
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .job-description {
+            color: #475569;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .job-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .job-btn {
+            display: inline-block;
+            padding: 11px 15px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .job-btn.primary {
+            background: #1d4ed8;
+            color: white;
+        }
+
+        .job-btn.whatsapp {
+            background: #16a34a;
+            color: white;
+        }
+
+        .empty-box {
+            padding: 30px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            text-align: center;
+            color: #64748b;
+        }
+
+        @media (max-width: 700px) {
+            .jobs-page {
+                padding:
+                    20px 14px 50px;
+            }
+
+            .jobs-hero {
+                padding: 26px 20px;
+            }
+
+            .jobs-hero h1 {
+                font-size: 30px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    {% include "partials/topbar.html" %}
+    {% include "partials/admin_sidebar.html" %}
+
+    <main class="jobs-page">
+
+        <section class="jobs-hero">
+
+            <h1>
+                Empregos e Estágios
+            </h1>
+
+            <p>
+                Encontre vagas de emprego,
+                estágio, jovem aprendiz,
+                trabalho remoto e outras
+                oportunidades.
+            </p>
+			
+			<div
+				style="
+					margin-top: 20px;
+				"
+			>
+				<button
+					type="button"
+					onclick="goToPublishJob()"
+					style="
+						padding: 13px 18px;
+						border: none;
+						border-radius: 11px;
+						background: #16a34a;
+						color: white;
+						font-weight: 700;
+						cursor: pointer;
+					"
+				>
+					📢 Publicar vaga gratuitamente
+				</button>
+			</div>
+
+        </section>
+
+        <section class="filters">
+
+            <form method="GET">
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ keyword }}"
+                    placeholder="Cargo, empresa ou palavra-chave"
+                >
+
+                <select name="state">
+
+					<option value="">
+						Todos os estados
+					</option>
+
+					<option value="AC" {% if selected_state == "AC" %}selected{% endif %}>Acre</option>
+					<option value="AL" {% if selected_state == "AL" %}selected{% endif %}>Alagoas</option>
+					<option value="AP" {% if selected_state == "AP" %}selected{% endif %}>Amapá</option>
+					<option value="AM" {% if selected_state == "AM" %}selected{% endif %}>Amazonas</option>
+					<option value="BA" {% if selected_state == "BA" %}selected{% endif %}>Bahia</option>
+					<option value="CE" {% if selected_state == "CE" %}selected{% endif %}>Ceará</option>
+					<option value="DF" {% if selected_state == "DF" %}selected{% endif %}>Distrito Federal</option>
+					<option value="ES" {% if selected_state == "ES" %}selected{% endif %}>Espírito Santo</option>
+					<option value="GO" {% if selected_state == "GO" %}selected{% endif %}>Goiás</option>
+					<option value="MA" {% if selected_state == "MA" %}selected{% endif %}>Maranhão</option>
+					<option value="MT" {% if selected_state == "MT" %}selected{% endif %}>Mato Grosso</option>
+					<option value="MS" {% if selected_state == "MS" %}selected{% endif %}>Mato Grosso do Sul</option>
+					<option value="MG" {% if selected_state == "MG" %}selected{% endif %}>Minas Gerais</option>
+					<option value="PA" {% if selected_state == "PA" %}selected{% endif %}>Pará</option>
+					<option value="PB" {% if selected_state == "PB" %}selected{% endif %}>Paraíba</option>
+					<option value="PR" {% if selected_state == "PR" %}selected{% endif %}>Paraná</option>
+					<option value="PE" {% if selected_state == "PE" %}selected{% endif %}>Pernambuco</option>
+					<option value="PI" {% if selected_state == "PI" %}selected{% endif %}>Piauí</option>
+					<option value="RJ" {% if selected_state == "RJ" %}selected{% endif %}>Rio de Janeiro</option>
+					<option value="RN" {% if selected_state == "RN" %}selected{% endif %}>Rio Grande do Norte</option>
+					<option value="RS" {% if selected_state == "RS" %}selected{% endif %}>Rio Grande do Sul</option>
+					<option value="RO" {% if selected_state == "RO" %}selected{% endif %}>Rondônia</option>
+					<option value="RR" {% if selected_state == "RR" %}selected{% endif %}>Roraima</option>
+					<option value="SC" {% if selected_state == "SC" %}selected{% endif %}>Santa Catarina</option>
+					<option value="SP" {% if selected_state == "SP" %}selected{% endif %}>São Paulo</option>
+					<option value="SE" {% if selected_state == "SE" %}selected{% endif %}>Sergipe</option>
+					<option value="TO" {% if selected_state == "TO" %}selected{% endif %}>Tocantins</option>
+
+				</select>
+
+                <input
+                    type="text"
+                    name="city"
+                    value="{{ selected_city }}"
+                    placeholder="Cidade"
+                >
+
+                <select name="job_type">
+
+                    <option value="">
+                        Todos os tipos
+                    </option>
+
+                    <option
+                        value="EMPREGO"
+                        {% if selected_job_type == "EMPREGO" %}
+                            selected
+                        {% endif %}
+                    >
+                        Emprego
+                    </option>
+
+                    <option
+                        value="ESTAGIO"
+                        {% if selected_job_type == "ESTAGIO" %}
+                            selected
+                        {% endif %}
+                    >
+                        Estágio
+                    </option>
+
+                    <option
+                        value="JOVEM_APRENDIZ"
+                        {% if selected_job_type == "JOVEM_APRENDIZ" %}
+                            selected
+                        {% endif %}
+                    >
+                        Jovem Aprendiz
+                    </option>
+
+                    <option
+                        value="TEMPORARIO"
+                        {% if selected_job_type == "TEMPORARIO" %}
+                            selected
+                        {% endif %}
+                    >
+                        Temporário
+                    </option>
+
+                    <option
+                        value="FREELANCER"
+                        {% if selected_job_type == "FREELANCER" %}
+                            selected
+                        {% endif %}
+                    >
+                        Freelancer
+                    </option>
+
+                </select>
+
+                <select name="work_model">
+
+                    <option value="">
+                        Todos os modelos
+                    </option>
+
+                    <option
+                        value="PRESENCIAL"
+                        {% if selected_work_model == "PRESENCIAL" %}
+                            selected
+                        {% endif %}
+                    >
+                        Presencial
+                    </option>
+
+                    <option
+                        value="HIBRIDO"
+                        {% if selected_work_model == "HIBRIDO" %}
+                            selected
+                        {% endif %}
+                    >
+                        Híbrido
+                    </option>
+
+                    <option
+                        value="REMOTO"
+                        {% if selected_work_model == "REMOTO" %}
+                            selected
+                        {% endif %}
+                    >
+                        Remoto
+                    </option>
+
+                </select>
+
+                <button type="submit">
+                    Buscar vagas
+                </button>
+
+            </form>
+
+        </section>
+
+        <section class="jobs-grid">
+
+            {% for vacancy in vacancies %}
+
+                <article
+                    class="
+                        job-card
+                        {% if vacancy.is_featured %}
+                            featured
+                        {% endif %}
+                    "
+                >
+
+                    {% if vacancy.is_featured %}
+
+                        <div
+                            class="
+                                job-badge
+                                featured
+                            "
+                        >
+                            ⭐ Vaga em destaque
+                        </div>
+
+                    {% elif vacancy.source != "CATLOGIN" %}
+
+                        <div class="job-badge">
+                            Vaga externa
+                        </div>
+
+                    {% else %}
+
+                        <div class="job-badge">
+                            Publicada no CataLogin
+                        </div>
+
+                    {% endif %}
+
+                    <h2>
+                        {{ vacancy.title }}
+                    </h2>
+
+                    {% if vacancy.company %}
+                        <div class="job-company">
+                            {{ vacancy.company }}
+                        </div>
+                    {% endif %}
+
+                    <div class="job-meta">
+
+                        {% if vacancy.city %}
+                            📍 {{ vacancy.city }}
+                        {% endif %}
+
+                        {% if vacancy.state %}
+                            - {{ vacancy.state }}
+                        {% endif %}
+
+                        {% if vacancy.job_type %}
+                            <br>
+                            💼 {{ vacancy.job_type }}
+                        {% endif %}
+
+                        {% if vacancy.work_model %}
+                            · {{ vacancy.work_model }}
+                        {% endif %}
+
+                        {% if vacancy.salary %}
+                            <br>
+                            💰 {{ vacancy.salary }}
+                        {% endif %}
+						
+						{% if vacancy.published_at %}
+							<br>
+							🕒 {{ format_job_age(vacancy.published_at) }}
+						{% endif %}
+
+                    </div>
+
+                    {% if vacancy.description %}
+
+                        <div class="job-description">
+                            {{ vacancy.description[:350] }}
+
+                            {% if vacancy.description|length > 350 %}
+                                ...
+                            {% endif %}
+                        </div>
+
+                    {% endif %}
+
+                    <div class="job-actions">
+
+                        {% if vacancy.external_url %}
+
+                            <a
+                                href="{{ vacancy.external_url }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="job-btn primary"
+                            >
+                                Ver vaga na fonte
+                            </a>
+
+                        {% endif %}
+
+                        {% if vacancy.contact_whatsapp %}
+
+                            <a
+                                href="https://wa.me/55{{ vacancy.contact_whatsapp | replace('(', '') | replace(')', '') | replace(' ', '') | replace('-', '') }}"
+                                target="_blank"
+                                class="
+                                    job-btn
+                                    whatsapp
+                                "
+                            >
+                                Entrar em contato
+                            </a>
+
+                        {% endif %}
+
+                    </div>
+
+                </article>
+
+            {% else %}
+
+                <div class="empty-box">
+                    Nenhuma vaga encontrada
+                    com esses filtros.
+                </div>
+
+            {% endfor %}
+
+        </section>
+
+    </main>
+
+    <script>
+        (function () {
+            const adminLayoutUser =
+                JSON.parse(
+                    localStorage.getItem(
+                        "catalogo_user"
+                    ) || "null"
+                );
+
+            const adminSidebar =
+                document.getElementById(
+                    "adminSidebar"
+                );
+
+            const isAdmin =
+                adminLayoutUser &&
+                (
+                    adminLayoutUser.is_admin === true ||
+                    adminLayoutUser.role === "admin"
+                );
+
+            if (
+                isAdmin &&
+                adminSidebar
+            ) {
+                document.body.classList.add(
+                    "admin-has-sidebar"
+                );
+
+                adminSidebar.style.display =
+                    "flex";
+            }
+        })();
+		
+		function goToPublishJob() {
+			const rawUser =
+				localStorage.getItem(
+					"catalogo_user"
+				);
+
+			const user =
+				rawUser
+					? JSON.parse(rawUser)
+					: null;
+
+			if (user) {
+				window.location.href =
+					"/publicar-vaga";
+			} else {
+				window.location.href =
+					"/auth-page";
+			}
+		}
+    </script>
+
+    <script
+        src="{{ static_asset('common_layout.js') }}"
+    ></script>
+
+</body>
+</html>

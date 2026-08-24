@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Publicar vaga | CataLogin
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ static_asset('style.css') }}"
+    >
+
+    <style>
+        body {
+            margin: 0;
+            background: #f4f7fb;
+        }
+
+        .page {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px 20px 60px;
+        }
+
+        .hero {
+            padding: 30px;
+            border-radius: 22px;
+            margin-bottom: 22px;
+            background:
+                linear-gradient(
+                    135deg,
+                    #16a34a,
+                    #14532d
+                );
+            color: white;
+        }
+
+        .hero h1 {
+            margin: 0 0 10px;
+        }
+
+        .hero p {
+            margin: 0;
+            line-height: 1.6;
+            color: #dcfce7;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            padding: 24px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .save-btn {
+            width: 100%;
+            margin-top: 18px;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: #16a34a;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 18px;
+            color: #1d4ed8;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        @media (max-width: 700px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-group.full {
+                grid-column: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    {% include "partials/topbar.html" %}
+    {% include "partials/admin_sidebar.html" %}
+
+    <main class="page">
+
+        <a
+            href="/empregos"
+            class="back-link"
+        >
+            ← Voltar para empregos
+        </a>
+
+        <section class="hero">
+
+            <h1>
+                Publique uma vaga gratuitamente
+            </h1>
+
+            <p>
+                Divulgue uma oportunidade de emprego,
+                estágio ou trabalho no CataLogin.
+            </p>
+
+        </section>
+
+        <section class="card">
+
+            <form id="jobForm">
+
+                <div class="form-grid">
+
+                    <div class="form-group full">
+                        <label>
+                            Título da vaga
+                        </label>
+
+                        <input
+                            type="text"
+                            name="title"
+                            placeholder="Ex.: Auxiliar Administrativo"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group full">
+                        <label>
+                            Empresa
+                        </label>
+
+                        <input
+                            type="text"
+                            name="company"
+                            placeholder="Nome da empresa"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group full">
+                        <label>
+                            Descrição da vaga
+                        </label>
+
+                        <textarea
+                            name="description"
+                            placeholder="Descreva atividades, requisitos e informações importantes."
+                            required
+                        ></textarea>
+                    </div>
+
+                    <div class="form-group">
+						<label>Estado</label>
+
+						<select
+							name="state"
+							id="stateSelect"
+							required
+						>
+							<option value="">
+								Selecione o estado
+							</option>
+
+							<option value="AC">Acre</option>
+							<option value="AL">Alagoas</option>
+							<option value="AP">Amapá</option>
+							<option value="AM">Amazonas</option>
+							<option value="BA">Bahia</option>
+							<option value="CE">Ceará</option>
+							<option value="DF">Distrito Federal</option>
+							<option value="ES">Espírito Santo</option>
+							<option value="GO">Goiás</option>
+							<option value="MA">Maranhão</option>
+							<option value="MT">Mato Grosso</option>
+							<option value="MS">Mato Grosso do Sul</option>
+							<option value="MG">Minas Gerais</option>
+							<option value="PA">Pará</option>
+							<option value="PB">Paraíba</option>
+							<option value="PR">Paraná</option>
+							<option value="PE">Pernambuco</option>
+							<option value="PI">Piauí</option>
+							<option value="RJ">Rio de Janeiro</option>
+							<option value="RN">Rio Grande do Norte</option>
+							<option value="RS">Rio Grande do Sul</option>
+							<option value="RO">Rondônia</option>
+							<option value="RR">Roraima</option>
+							<option value="SC">Santa Catarina</option>
+							<option value="SP">São Paulo</option>
+							<option value="SE">Sergipe</option>
+							<option value="TO">Tocantins</option>
+						</select>
+					</div>
+
+                    <div class="form-group">
+                        <label>Cidade</label>
+
+                        <input
+                            type="text"
+                            name="city"
+                            placeholder="Ex.: Brasília"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tipo da vaga</label>
+
+                        <select
+                            name="job_type"
+                            required
+                        >
+                            <option value="">
+                                Selecione
+                            </option>
+
+                            <option value="EMPREGO">
+                                Emprego
+                            </option>
+
+                            <option value="ESTAGIO">
+                                Estágio
+                            </option>
+
+                            <option value="JOVEM_APRENDIZ">
+                                Jovem Aprendiz
+                            </option>
+
+                            <option value="TEMPORARIO">
+                                Temporário
+                            </option>
+
+                            <option value="FREELANCER">
+                                Freelancer
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Modelo de trabalho
+                        </label>
+
+                        <select
+                            name="work_model"
+                            required
+                        >
+                            <option value="">
+                                Selecione
+                            </option>
+
+                            <option value="PRESENCIAL">
+                                Presencial
+                            </option>
+
+                            <option value="HIBRIDO">
+                                Híbrido
+                            </option>
+
+                            <option value="REMOTO">
+                                Remoto
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full">
+						<label>
+							Salário
+						</label>
+
+						<input
+							type="text"
+							name="salary"
+							id="salaryInput"
+							inputmode="numeric"
+							placeholder="R$ 0,00"
+							autocomplete="off"
+						>
+					</div>
+
+                    <div class="form-group">
+                        <label>
+                            E-mail para contato
+                        </label>
+
+                        <input
+                            type="email"
+                            name="contact_email"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            WhatsApp para contato
+                        </label>
+
+                        <input
+                            type="tel"
+                            name="contact_whatsapp"
+                            placeholder="(61) 99999-9999"
+                        >
+                    </div>
+
+                </div>
+
+                <button
+                    type="submit"
+                    class="save-btn"
+                >
+                    Publicar vaga gratuitamente
+                </button>
+
+            </form>
+
+        </section>
+
+    </main>
+
+    <script>
+        const jobForm =
+            document.getElementById(
+                "jobForm"
+            );
+			
+		const salaryInput =
+			document.getElementById(
+				"salaryInput"
+			);
+
+		salaryInput.addEventListener(
+			"focus",
+			() => {
+
+				let value =
+					salaryInput.value
+						.replace("R$", "")
+						.trim();
+
+				if (value) {
+					salaryInput.value = value;
+				}
+			}
+		);
+
+		salaryInput.addEventListener(
+			"blur",
+			() => {
+
+				let value =
+					salaryInput.value
+						.replace("R$", "")
+						.trim();
+
+				if (!value) {
+					salaryInput.value = "";
+					return;
+				}
+
+				// Remove pontos de milhar
+				value = value.replace(/\./g, "");
+
+				// Troca vírgula decimal por ponto
+				value = value.replace(",", ".");
+
+				// Remove caracteres que não sejam
+				// números ou ponto decimal
+				value = value.replace(
+					/[^0-9.]/g,
+					""
+				);
+
+				const number =
+					parseFloat(value);
+
+				if (isNaN(number)) {
+					salaryInput.value = "";
+					return;
+				}
+
+				salaryInput.value =
+					number.toLocaleString(
+						"pt-BR",
+						{
+							style: "currency",
+							currency: "BRL",
+							minimumFractionDigits: 2,
+							maximumFractionDigits: 2
+						}
+					);
+			}
+		);
+        jobForm.addEventListener(
+            "submit",
+            async (event) => {
+                event.preventDefault();
+
+                const formData =
+                    new FormData(
+                        jobForm
+                    );
+
+                const payload =
+                    Object.fromEntries(
+                        formData.entries()
+                    );
+
+                try {
+                    const response =
+                        await fetch(
+                            "/publicar-vaga",
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type":
+                                        "application/json"
+                                },
+                                body:
+                                    JSON.stringify(
+                                        payload
+                                    )
+                            }
+                        );
+
+                    const data =
+                        await response.json();
+
+                    if (!response.ok) {
+                        alert(
+                            data.message ||
+                            "Não foi possível publicar a vaga."
+                        );
+
+                        return;
+                    }
+
+                    alert(
+                        "Vaga publicada com sucesso!"
+                    );
+
+                    window.location.href =
+                        "/empregos";
+
+                } catch (error) {
+                    console.error(error);
+
+                    alert(
+                        "Erro de comunicação ao publicar a vaga."
+                    );
+                }
+            }
+        );
+    </script>
+
+    <script
+        src="{{ static_asset('common_layout.js') }}"
+    ></script>
+
+</body>
+</html>

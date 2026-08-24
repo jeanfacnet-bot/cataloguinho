@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Empregos | Administração CataLogin
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ static_asset('style.css') }}"
+    >
+
+    <style>
+        body {
+            margin: 0;
+            background: #f4f7fb;
+        }
+
+        .jobs-admin {
+            max-width: 1250px;
+            margin: 0 auto;
+            padding: 30px 20px 60px;
+        }
+
+        body.admin-has-sidebar .jobs-admin {
+            max-width: none;
+            margin-left: 270px;
+            margin-right: 24px;
+        }
+
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            margin: 0 0 8px;
+            color: #111827;
+        }
+
+        .page-header p {
+            margin: 0;
+            color: #64748b;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(180px, 1fr)
+                );
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .stat {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 18px;
+        }
+
+        .stat span {
+            display: block;
+            color: #64748b;
+            font-size: 13px;
+            margin-bottom: 7px;
+        }
+
+        .stat strong {
+            font-size: 27px;
+            color: #111827;
+        }
+		
+		.job-filter-card {
+			cursor: pointer;
+			transition:
+				transform 0.15s ease,
+				box-shadow 0.15s ease,
+				border-color 0.15s ease;
+			user-select: none;
+		}
+
+		.job-filter-card:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+			border-color: #93c5fd;
+		}
+
+		.job-filter-card.active-filter {
+			border: 2px solid #2563eb;
+			background: #eff6ff;
+			box-shadow: 0 8px 20px rgba(37, 99, 235, 0.10);
+		}
+
+		.job-filter-card.active-filter span {
+			color: #1d4ed8;
+		}
+
+		.job-filter-card.active-filter strong {
+			color: #1d4ed8;
+		}
+
+		.jobs-filter-info {
+			margin-top: 5px;
+			color: #64748b;
+			font-size: 13px;
+		}
+
+        .import-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .import-card h2 {
+            margin: 0 0 7px;
+        }
+
+        .import-description {
+            color: #64748b;
+            margin: 0 0 20px;
+            line-height: 1.5;
+        }
+
+        .import-grid {
+            display: grid;
+            grid-template-columns:
+                minmax(200px, 1fr)
+                minmax(200px, 1fr)
+                auto;
+            gap: 12px;
+        }
+
+        .import-grid input,
+        .import-grid button {
+            min-height: 46px;
+            padding: 11px 13px;
+            border-radius: 10px;
+            font: inherit;
+        }
+
+        .import-grid input {
+            border: 1px solid #cbd5e1;
+        }
+
+        .import-grid button {
+            border: none;
+            background: #2563eb;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        .import-grid button:disabled {
+            opacity: 0.65;
+            cursor: wait;
+        }
+
+        .import-result {
+            display: none;
+            margin-top: 18px;
+            padding: 16px;
+            border-radius: 12px;
+            line-height: 1.7;
+        }
+
+        .import-result.success {
+            display: block;
+            background: #ecfdf5;
+            border: 1px solid #86efac;
+            color: #166534;
+        }
+
+        .import-result.error {
+            display: block;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+
+        .table-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            overflow: hidden;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .table-header h2 {
+            margin: 0;
+        }
+
+        .public-jobs-link {
+            display: inline-block;
+            padding: 10px 14px;
+            background: #16a34a;
+            color: white;
+            border-radius: 9px;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .table-scroll {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 1000px;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 13px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            background: #f8fafc;
+            color: #334155;
+        }
+
+        .source {
+            display: inline-block;
+            padding: 6px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .source.jooble {
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .source.catalogin {
+            background: #ecfdf5;
+            color: #166534;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 6px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .status.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status.inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .external-link {
+            color: #2563eb;
+            font-weight: 700;
+            text-decoration: none;
+        }
+		
+		.job-actions {
+			display: flex;
+			flex-direction: column;
+			gap: 7px;
+			min-width: 145px;
+		}
+
+		.action-btn {
+			border: none;
+			border-radius: 8px;
+			padding: 8px 10px;
+			font-size: 12px;
+			font-weight: 700;
+			cursor: pointer;
+			white-space: nowrap;
+		}
+
+		.status-btn {
+			background: #e0f2fe;
+			color: #075985;
+		}
+
+		.featured-btn {
+			background: #fef3c7;
+			color: #92400e;
+		}
+
+		.delete-btn {
+			background: #fee2e2;
+			color: #991b1b;
+		}
+
+		.action-btn:hover {
+			opacity: 0.85;
+		}
+
+		.action-btn:disabled {
+			opacity: 0.55;
+			cursor: wait;
+		}
+		
+		.automatic-import-area {
+			margin-top: 22px;
+			padding-top: 18px;
+			border-top: 1px solid #e5e7eb;
+			text-align: center;
+		}
+
+		.automatic-import-divider {
+			display: inline-block;
+			position: relative;
+			top: -30px;
+			padding: 0 12px;
+			background: white;
+			color: #94a3b8;
+			font-size: 12px;
+			font-weight: 700;
+			text-transform: uppercase;
+		}
+
+		.automatic-import-btn {
+			display: block;
+			width: 100%;
+			max-width: 420px;
+			min-height: 48px;
+			margin: -12px auto 0;
+			padding: 12px 20px;
+			border: none;
+			border-radius: 11px;
+			background: #16a34a;
+			color: white;
+			font-size: 15px;
+			font-weight: 700;
+			cursor: pointer;
+		}
+
+		.automatic-import-btn:hover {
+			opacity: 0.9;
+		}
+
+		.automatic-import-btn:disabled {
+			opacity: 0.6;
+			cursor: wait;
+		}
+
+		.automatic-import-help {
+			margin: 10px auto 0;
+			max-width: 600px;
+			color: #64748b;
+			font-size: 13px;
+			line-height: 1.5;
+		}
+
+        @media (max-width: 900px) {
+            body.admin-has-sidebar .jobs-admin {
+                max-width: 1250px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .jobs-admin {
+                padding:
+                    20px 14px 50px;
+            }
+
+            .import-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .table-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    {% include "partials/topbar.html" %}
+    {% include "partials/admin_sidebar.html" %}
+
+    <main class="jobs-admin">
+
+        <div class="page-header">
+
+            <h1>
+                Gerenciar empregos
+            </h1>
+
+            <p>
+                Importe vagas externas e acompanhe
+                as oportunidades publicadas no CataLogin.
+            </p>
+
+        </div>
+
+        <!-- MÉTRICAS -->
+
+        <section class="stats">
+
+			<div
+				class="stat job-filter-card active-filter"
+				data-filter="all"
+				onclick="filterJobs('all', this)"
+			>
+				<span>Total de vagas</span>
+				<strong>{{ total_jobs }}</strong>
+			</div>
+
+			<div
+				class="stat job-filter-card"
+				data-filter="active"
+				onclick="filterJobs('active', this)"
+			>
+				<span>Vagas ativas</span>
+				<strong>{{ active_jobs }}</strong>
+			</div>
+
+			<div
+				class="stat job-filter-card"
+				data-filter="catalogin"
+				onclick="filterJobs('catalogin', this)"
+			>
+				<span>Publicadas no CataLogin</span>
+				<strong>{{ catalogin_jobs }}</strong>
+			</div>
+
+			<div
+				class="stat job-filter-card"
+				data-filter="jooble"
+				onclick="filterJobs('jooble', this)"
+			>
+				<span>Importadas da Jooble</span>
+				<strong>{{ jooble_jobs }}</strong>
+			</div>
+
+		</section>
+
+        <!-- IMPORTADOR -->
+
+        <section class="import-card">
+
+            <h2>
+                Importar vagas da Jooble
+            </h2>
+
+            <p class="import-description">
+                Pesquise uma palavra-chave e uma localização.
+                As vagas novas serão cadastradas e as já
+                existentes serão atualizadas automaticamente.
+            </p>
+
+            <div class="import-grid">
+
+                <input
+                    type="text"
+                    id="joobleKeywords"
+                    value="auxiliar administrativo"
+                    placeholder="Ex.: auxiliar administrativo"
+                >
+
+                <input
+                    type="text"
+                    id="joobleLocation"
+                    value="Brasília"
+                    placeholder="Ex.: Brasília"
+                >
+
+                <button
+                    type="button"
+                    id="importJoobleBtn"
+                    onclick="importJoobleJobs()"
+                >
+                    🔄 Buscar e importar
+                </button>
+
+            </div>
+
+            <div
+				id="joobleImportResult"
+				class="import-result"
+			></div>
+
+
+			<!-- IMPORTAÇÃO AUTOMÁTICA -->
+
+			<div class="automatic-import-area">
+
+				<div class="automatic-import-divider">
+					ou
+				</div>
+
+				<button
+					type="button"
+					id="automaticImportBtn"
+					class="automatic-import-btn"
+					onclick="runAutomaticImport()"
+				>
+					⚡ Executar importação automática
+				</button>
+
+				<p class="automatic-import-help">
+					Executa todas as categorias configuradas automaticamente,
+					sem precisar informar palavras-chave.
+				</p>
+
+			</div>
+
+			</section>
+
+        <!-- VAGAS -->
+
+        <section class="table-card">
+
+            <div class="table-header">
+
+                <div>
+					<h2>
+						Vagas cadastradas
+					</h2>
+
+					<div
+						id="jobsFilterInfo"
+						class="jobs-filter-info"
+					>
+						Exibindo todas as vagas
+					</div>
+				</div>
+
+                <a
+                    href="/empregos"
+                    target="_blank"
+                    class="public-jobs-link"
+                >
+                    Abrir página pública
+                </a>
+
+            </div>
+
+            <div class="table-scroll">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+							<th>Vaga</th>
+							<th>Empresa</th>
+							<th>Origem</th>
+							<th>Local</th>
+							<th>Tipo</th>
+							<th>Salário</th>
+							<th>Status</th>
+							<th>Destaque</th>
+							<th>Link</th>
+							<th>Ações</th>
+						</tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for vacancy in vacancies %}
+
+                            <tr
+								class="job-row"
+								data-source="{{ vacancy.source | lower }}"
+								data-active="{{ 'true' if vacancy.is_active else 'false' }}"
+							>
+
+                                <td>
+                                    <strong>
+                                        {{ vacancy.title }}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    {{ vacancy.company or "-" }}
+                                </td>
+
+                                <td>
+
+                                    {% if vacancy.source == "JOOBLE" %}
+
+                                        <span class="source jooble">
+                                            Jooble
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="source catalogin">
+                                            CataLogin
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+                                    {{ vacancy.location_text or "-" }}
+                                </td>
+
+                                <td>
+                                    {{ vacancy.job_type or "-" }}
+                                </td>
+
+                                <td>
+                                    {{ vacancy.salary or "-" }}
+                                </td>
+
+                                <td>
+
+                                    {% if vacancy.is_active %}
+
+                                        <span class="status active">
+                                            Ativa
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="status inactive">
+                                            Inativa
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+								
+								<td>
+									{% if vacancy.is_featured %}
+
+										<span class="status active">
+											⭐ Destacada
+										</span>
+
+									{% else %}
+
+										<span>
+											-
+										</span>
+
+									{% endif %}
+								</td>
+								
+								<td>
+									<div class="job-actions">
+
+										<button
+											type="button"
+											class="action-btn status-btn"
+											onclick="toggleJobStatus(
+												{{ vacancy.id }}
+											)"
+										>
+											{% if vacancy.is_active %}
+												Desativar
+											{% else %}
+												Ativar
+											{% endif %}
+										</button>
+
+										<button
+											type="button"
+											class="action-btn featured-btn"
+											onclick="toggleJobFeatured(
+												{{ vacancy.id }}
+											)"
+										>
+											{% if vacancy.is_featured %}
+												Remover destaque
+											{% else %}
+												⭐ Destacar
+											{% endif %}
+										</button>
+
+										<button
+											type="button"
+											class="action-btn delete-btn"
+											onclick="deleteJob(
+												{{ vacancy.id }},
+												{{ vacancy.title | tojson }}
+											)"
+										>
+											Excluir
+										</button>
+
+									</div>
+								</td>
+
+                                <td>
+
+                                    {% if vacancy.external_url %}
+
+                                        <a
+                                            href="{{ vacancy.external_url }}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="external-link"
+                                        >
+                                            Ver fonte
+                                        </a>
+
+                                    {% else %}
+
+                                        -
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% else %}
+
+                            <tr>
+                                <td colspan="10">
+									Nenhuma vaga cadastrada.
+								</td>
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <script>
+	
+		function filterJobs(filter, clickedCard) {
+
+			const rows =
+				document.querySelectorAll(
+					".job-row"
+				);
+
+			const cards =
+				document.querySelectorAll(
+					".job-filter-card"
+				);
+
+			const filterInfo =
+				document.getElementById(
+					"jobsFilterInfo"
+				);
+
+			cards.forEach(card => {
+				card.classList.remove(
+					"active-filter"
+				);
+			});
+
+			if (clickedCard) {
+				clickedCard.classList.add(
+					"active-filter"
+				);
+			}
+
+			let visibleCount = 0;
+
+			rows.forEach(row => {
+
+				const source =
+					(
+						row.dataset.source ||
+						""
+					).toLowerCase();
+
+				const active =
+					row.dataset.active === "true";
+
+				let show = false;
+
+				if (filter === "all") {
+					show = true;
+				}
+
+				if (filter === "active") {
+					show = active;
+				}
+
+				if (filter === "catalogin") {
+					show =
+						source === "catlogin";
+				}
+
+				if (filter === "jooble") {
+					show =
+						source === "jooble";
+				}
+
+				row.style.display =
+					show
+						? ""
+						: "none";
+
+				if (show) {
+					visibleCount++;
+				}
+			});
+
+			let label =
+				"todas as vagas";
+
+			if (filter === "active") {
+				label =
+					"somente vagas ativas";
+			}
+
+			if (filter === "catalogin") {
+				label =
+					"vagas publicadas no CataLogin";
+			}
+
+			if (filter === "jooble") {
+				label =
+					"vagas importadas da Jooble";
+			}
+
+			if (filterInfo) {
+				filterInfo.textContent =
+					`Exibindo ${visibleCount} ${label}`;
+			}
+		}
+	
+		async function jobAdminRequest(
+			url,
+			options
+		) {
+			const response = await fetch(
+				url,
+				options
+			);
+
+			let data = {};
+
+			try {
+				data = await response.json();
+			} catch (error) {
+				data = {};
+			}
+
+			if (!response.ok) {
+				throw new Error(
+					data.message ||
+					"Não foi possível realizar a operação."
+				);
+			}
+
+			return data;
+		}
+
+
+		async function toggleJobStatus(jobId) {
+			try {
+				const data = await jobAdminRequest(
+					`/admin/empregos/${jobId}/toggle-status`,
+					{
+						method: "POST"
+					}
+				);
+
+				alert(
+					data.message
+				);
+
+				window.location.reload();
+
+			} catch (error) {
+				alert(
+					error.message
+				);
+			}
+		}
+
+
+		async function toggleJobFeatured(jobId) {
+			try {
+				const data = await jobAdminRequest(
+					`/admin/empregos/${jobId}/toggle-featured`,
+					{
+						method: "POST"
+					}
+				);
+
+				alert(
+					data.message
+				);
+
+				window.location.reload();
+
+			} catch (error) {
+				alert(
+					error.message
+				);
+			}
+		}
+
+
+		async function deleteJob(
+			jobId,
+			jobTitle
+		) {
+			const confirmed = confirm(
+				`Deseja realmente excluir a vaga "${jobTitle}"?`
+			);
+
+			if (!confirmed) {
+				return;
+			}
+
+			try {
+				const data = await jobAdminRequest(
+					`/admin/empregos/${jobId}/excluir`,
+					{
+						method: "DELETE"
+					}
+				);
+
+				alert(
+					data.message
+				);
+
+				window.location.reload();
+
+			} catch (error) {
+				alert(
+					error.message
+				);
+			}
+		}
+
+        async function importJoobleJobs() {
+
+            const keywords =
+                document.getElementById(
+                    "joobleKeywords"
+                ).value.trim();
+
+            const location =
+                document.getElementById(
+                    "joobleLocation"
+                ).value.trim();
+
+            const resultBox =
+                document.getElementById(
+                    "joobleImportResult"
+                );
+
+            const button =
+                document.getElementById(
+                    "importJoobleBtn"
+                );
+
+            if (!keywords) {
+                alert(
+                    "Informe uma palavra-chave."
+                );
+                return;
+            }
+
+            if (!location) {
+                alert(
+                    "Informe uma localização."
+                );
+                return;
+            }
+
+            button.disabled = true;
+
+            button.textContent =
+                "Importando...";
+
+            resultBox.className =
+                "import-result";
+
+            resultBox.style.display =
+                "block";
+
+            resultBox.textContent =
+                "Consultando a Jooble...";
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/admin/empregos/importar-jooble",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                keywords: keywords,
+                                location: location
+                            })
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok) {
+
+                    resultBox.className =
+                        "import-result error";
+
+                    resultBox.textContent =
+                        data.message ||
+                        "Não foi possível importar as vagas.";
+
+                    return;
+                }
+
+                resultBox.className =
+                    "import-result success";
+
+                resultBox.innerHTML = `
+                    <strong>
+                        Importação concluída.
+                    </strong>
+                    <br>
+                    Pesquisa:
+                    ${data.keywords}
+                    <br>
+                    Local:
+                    ${data.location}
+                    <br><br>
+                    Vagas recebidas:
+                    <strong>${data.vagas_recebidas}</strong>
+                    <br>
+                    Novas:
+                    <strong>${data.novas}</strong>
+                    <br>
+                    Atualizadas:
+                    <strong>${data.atualizadas}</strong>
+                    <br>
+                    Ignoradas:
+                    <strong>${data.ignoradas}</strong>
+                `;
+
+                setTimeout(
+                    () => {
+                        window.location.reload();
+                    },
+                    2200
+                );
+
+            } catch (error) {
+
+                console.error(error);
+
+                resultBox.className =
+                    "import-result error";
+
+                resultBox.textContent =
+                    "Erro de comunicação com o servidor.";
+
+            } finally {
+
+                button.disabled = false;
+
+                button.textContent =
+                    "🔄 Buscar e importar";
+            }
+        }
+
+
+        (function () {
+
+            const adminLayoutUser =
+                JSON.parse(
+                    localStorage.getItem(
+                        "catalogo_user"
+                    ) || "null"
+                );
+
+            const adminSidebar =
+                document.getElementById(
+                    "adminSidebar"
+                );
+
+            function isAdmin(user) {
+
+                if (!user) {
+                    return false;
+                }
+
+                return (
+                    user.is_admin === true ||
+                    user.role === "admin"
+                );
+            }
+
+            if (
+                isAdmin(adminLayoutUser) &&
+                adminSidebar
+            ) {
+
+                document.body.classList.add(
+                    "admin-has-sidebar"
+                );
+
+                adminSidebar.style.display =
+                    "flex";
+            }
+
+        })();
+		
+		async function runAutomaticImport() {
+
+			const confirmed = confirm(
+				"Executar agora todas as pesquisas automáticas?"
+			);
+
+			if (!confirmed) {
+				return;
+			}
+
+			try {
+
+				const response = await fetch(
+					"/admin/empregos/importar-automatico",
+					{
+						method: "POST"
+					}
+				);
+
+				const data =
+					await response.json();
+
+				if (!response.ok) {
+					alert(
+						data.message ||
+						"Erro na importação."
+					);
+
+					return;
+				}
+
+				alert(
+					"Importação concluída!\n\n" +
+					`Pesquisas: ${data.pesquisas}\n` +
+					`Recebidas: ${data.recebidas}\n` +
+					`Novas: ${data.novas}\n` +
+					`Atualizadas: ${data.atualizadas}\n` +
+					`Ignoradas: ${data.ignoradas}`
+				);
+
+				window.location.reload();
+
+			} catch (error) {
+
+				console.error(error);
+
+				alert(
+					"Erro de comunicação."
+				);
+			}
+		}
+    </script>
+
+    <script
+        src="{{ static_asset('common_layout.js') }}"
+    ></script>
+
+</body>
+</html>
