@@ -261,6 +261,11 @@
 			background: #fff1e6;
 			color: #e56b00;
 		}
+		
+		.source-badge.jsearch {
+			background: #f3e8ff;
+			color: #7e22ce;
+		}
 
         .source.catalogin {
             background: #ecfdf5;
@@ -414,6 +419,23 @@
 			opacity: 0.6;
 			cursor: wait;
 		}
+		
+		.jsearch-import-btn {
+			background: #7e22ce !important;
+			color: white;
+			border: none !important;
+			font-weight: 700;
+			cursor: pointer;
+		}
+
+		.jsearch-import-btn:hover {
+			opacity: 0.9;
+		}
+
+		.jsearch-import-btn:disabled {
+			opacity: 0.6;
+			cursor: wait;
+		}
 
         @media (max-width: 900px) {
             body.admin-has-sidebar .jobs-admin {
@@ -509,6 +531,15 @@
 				<span>Importadas da Adzuna</span>
 				<strong>{{ adzuna_jobs }}</strong>
 			</div>
+			
+			<div
+				class="stat job-filter-card"
+				data-filter="jsearch"
+				onclick="filterJobs('jsearch', this)"
+			>
+				<span>Importadas da JSearch</span>
+				<strong>{{ jsearch_jobs }}</strong>
+			</div>
 
 		</section>
 
@@ -597,6 +628,51 @@
 
 				<div
 					id="adzunaImportResult"
+					class="import-result"
+				></div>
+
+			</div>
+			
+			<div class="adzuna-import-area">
+
+				<h3>
+					Importar vagas da JSearch
+				</h3>
+
+				<p class="import-description">
+					Pesquise vagas disponíveis na JSearch
+					e importe diretamente para o CataLogin.
+				</p>
+
+				<div class="import-grid">
+
+					<input
+						type="text"
+						id="jsearchKeywords"
+						value="auxiliar administrativo"
+						placeholder="Ex.: auxiliar administrativo"
+					>
+
+					<input
+						type="text"
+						id="jsearchLocation"
+						value="Brasilia DF Brazil"
+						placeholder="Ex.: Brasilia DF Brazil"
+					>
+
+					<button
+						type="button"
+						id="importJsearchBtn"
+						class="jsearch-import-btn"
+						onclick="importJsearchJobs()"
+					>
+						🟣 Buscar na JSearch
+					</button>
+
+				</div>
+
+				<div
+					id="jsearchImportResult"
 					class="import-result"
 				></div>
 
@@ -712,6 +788,12 @@
 										<span class="source-badge adzuna">
 											Adzuna
 										</span>
+										
+									{% elif vacancy.source == "JSEARCH" %}
+
+										<span class="source-badge jsearch">
+											JSearch
+										</span>	
 
 									{% elif vacancy.source == "CATLOGIN" %}
 
@@ -931,6 +1013,11 @@
 					show =
 						source === "adzuna";
 				}
+				
+				if (filter === "jsearch") {
+					show =
+						source === "jsearch";
+				}
 
 				row.style.display =
 					show
@@ -964,6 +1051,12 @@
 				label =
 					"vagas importadas da Adzuna";
 			}
+			
+			if (filter === "jsearch") {
+				label =
+					"vagas importadas da JSearch";
+			}
+						
 
 			if (filterInfo) {
 				filterInfo.textContent =
@@ -1347,6 +1440,133 @@
 					"🟠 Buscar na Adzuna";
 			}
 		}
+		
+		async function importJsearchJobs() {
+
+			const keywords =
+				document.getElementById(
+					"jsearchKeywords"
+				).value.trim();
+
+			const location =
+				document.getElementById(
+					"jsearchLocation"
+				).value.trim();
+
+			const resultBox =
+				document.getElementById(
+					"jsearchImportResult"
+				);
+
+			const button =
+				document.getElementById(
+					"importJsearchBtn"
+				);
+
+			if (!keywords) {
+				alert(
+					"Informe uma palavra-chave."
+				);
+				return;
+			}
+
+			if (!location) {
+				alert(
+					"Informe uma localização."
+				);
+				return;
+			}
+
+			button.disabled = true;
+
+			button.textContent =
+				"⏳ Importando...";
+
+			resultBox.textContent =
+				"Consultando vagas da JSearch...";
+
+			try {
+
+				const response = await fetch(
+					"/admin/empregos/importar-jsearch",
+					{
+						method: "POST",
+
+						headers: {
+							"Content-Type":
+								"application/json"
+						},
+
+						body: JSON.stringify({
+							keywords: keywords,
+							location: location
+						})
+					}
+				);
+
+				let data = {};
+
+				try {
+					data =
+						await response.json();
+				} catch (error) {
+					data = {};
+				}
+
+				if (!response.ok) {
+					throw new Error(
+						data.message ||
+						"Erro ao importar vagas da JSearch."
+					);
+				}
+
+				resultBox.innerHTML = `
+					<strong>
+						✅ Importação concluída
+					</strong>
+					<br>
+					Recebidas:
+					${data.vagas_recebidas}
+					<br>
+					Novas:
+					${data.novas}
+					<br>
+					Atualizadas:
+					${data.atualizadas}
+					<br>
+					Ignoradas:
+					${data.ignoradas}
+				`;
+
+				alert(
+					"Importação da JSearch concluída!\n\n" +
+					`Recebidas: ${data.vagas_recebidas}\n` +
+					`Novas: ${data.novas}\n` +
+					`Atualizadas: ${data.atualizadas}\n` +
+					`Ignoradas: ${data.ignoradas}`
+				);
+
+				window.location.reload();
+
+			} catch (error) {
+
+				console.error(error);
+
+				resultBox.textContent =
+					error.message;
+
+				alert(
+					error.message
+				);
+
+			} finally {
+
+				button.disabled = false;
+
+				button.textContent =
+					"🟣 Buscar na JSearch";
+			}
+		}
 
         (function () {
 
@@ -1425,6 +1645,9 @@
 
 				const adzuna =
 					data.adzuna || {};
+					
+				const jsearch =
+					data.jsearch || {};	
 
 				let message =
 					"✅ IMPORTAÇÃO AUTOMÁTICA CONCLUÍDA\n\n";
@@ -1451,6 +1674,19 @@
 				if (adzuna.error) {
 					message +=
 						`Erro: ${adzuna.error}\n`;
+				}
+				
+				message +=
+					"\n🟣 JSEARCH\n" +
+					`Pesquisas: ${jsearch.searches || 0}\n` +
+					`Recebidas: ${jsearch.received || 0}\n` +
+					`Novas: ${jsearch.created || 0}\n` +
+					`Atualizadas: ${jsearch.updated || 0}\n` +
+					`Ignoradas: ${jsearch.ignored || 0}\n`;
+
+				if (jsearch.error) {
+					message +=
+						`Erro: ${jsearch.error}\n`;
 				}
 
 				message +=

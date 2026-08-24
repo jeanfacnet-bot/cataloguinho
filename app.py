@@ -905,7 +905,8 @@ def deactivate_old_external_jobs():
             JobVacancy.source.in_(
                 [
                     "JOOBLE",
-                    "ADZUNA"
+                    "ADZUNA",
+                    "JSEARCH"
                 ]
             ),
             JobVacancy.is_active.is_(True),
@@ -963,6 +964,28 @@ ADZUNA_AUTO_SEARCHES = [
     {
         "keywords": "tecnologia",
         "location": "Brasilia"
+    }
+]
+
+# =========================
+# JSEARCH - PESQUISAS AUTOMÁTICAS
+# =========================
+
+JSEARCH_AUTO_SEARCHES = [
+    {
+        "query": "auxiliar administrativo em Brasilia DF Brazil"
+    },
+    {
+        "query": "atendente em Brasilia DF Brazil"
+    },
+    {
+        "query": "vendedor em Brasilia DF Brazil"
+    },
+    {
+        "query": "estagio em Brasilia DF Brazil"
+    },
+    {
+        "query": "jovem aprendiz em Brasilia DF Brazil"
     }
 ]
 
@@ -1220,6 +1243,15 @@ def run_automatic_job_import():
             "updated": 0,
             "ignored": 0,
             "error": None
+        },
+
+        "jsearch": {
+            "searches": 0,
+            "received": 0,
+            "created": 0,
+            "updated": 0,
+            "ignored": 0,
+            "error": None
         }
     }
 
@@ -1251,6 +1283,8 @@ def run_automatic_job_import():
 
         except Exception as error:
 
+            db.session.rollback()
+
             print(
                 "ERRO JOOBLE AUTOMÁTICA:",
                 search,
@@ -1262,7 +1296,6 @@ def run_automatic_job_import():
                 error
             )
 
-            # Não interrompe a Adzuna
             break
 
     # =========================
@@ -1295,6 +1328,8 @@ def run_automatic_job_import():
 
         except Exception as error:
 
+            db.session.rollback()
+
             print(
                 "ERRO ADZUNA AUTOMÁTICA:",
                 search,
@@ -1309,12 +1344,62 @@ def run_automatic_job_import():
             break
 
     # =========================
+    # JSEARCH
+    # =========================
+
+    for search in JSEARCH_AUTO_SEARCHES:
+
+        try:
+            result = import_jsearch_search(
+                query=search["query"],
+                num_pages=1,
+                country="br",
+                language="pt",
+                location=(
+                    "Brasilia, Distrito Federal, Brazil"
+                ),
+                date_posted="all"
+            )
+
+            summary["jsearch"]["searches"] += 1
+            summary["jsearch"]["received"] += (
+                result["received"]
+            )
+            summary["jsearch"]["created"] += (
+                result["created"]
+            )
+            summary["jsearch"]["updated"] += (
+                result["updated"]
+            )
+            summary["jsearch"]["ignored"] += (
+                result["ignored"]
+            )
+
+        except Exception as error:
+
+            db.session.rollback()
+
+            print(
+                "ERRO JSEARCH AUTOMÁTICA:",
+                search,
+                repr(error),
+                flush=True
+            )
+
+            summary["jsearch"]["error"] = str(
+                error
+            )
+
+            break
+
+    # =========================
     # TOTAL GERAL
     # =========================
 
     for source in (
         "jooble",
-        "adzuna"
+        "adzuna",
+        "jsearch"
     ):
         summary["searches"] += (
             summary[source]["searches"]
@@ -1335,18 +1420,22 @@ def run_automatic_job_import():
         summary["ignored"] += (
             summary[source]["ignored"]
         )
-        
+
+    # =========================
+    # LIMPEZA DE VAGAS ANTIGAS
+    # =========================
+
     deactivated = (
         deactivate_old_external_jobs()
     )
 
     summary["deactivated"] = (
         deactivated
-    )    
+    )
 
     db.session.commit()
 
-    return summary  
+    return summary
 
 # =========================
 # HELPERS
@@ -1518,7 +1607,8 @@ def find_cross_source_job_duplicate(
     # Deduplicação somente entre APIs externas.
     if source not in {
         "JOOBLE",
-        "ADZUNA"
+        "ADZUNA",
+        "JSEARCH"
     }:
         return None
 
@@ -1568,7 +1658,8 @@ def find_cross_source_job_duplicate(
         item
         for item in [
             "JOOBLE",
-            "ADZUNA"
+            "ADZUNA",
+            "JSEARCH"
         ]
         if item != source
     ]
@@ -8729,6 +8820,411 @@ def import_adzuna_search(
             result.get("count") or 0
         )
     }  
+    
+def fetch_jsearch_jobs(
+    query="auxiliar administrativo em Brasilia DF Brazil",
+    num_pages=1,
+    country="br",
+    language="pt",
+    location="Brasilia, Distrito Federal, Brazil",
+    date_posted="all",
+):
+    api_key = os.getenv("JSEARCH_API_KEY")
+
+    if not api_key:
+        raise RuntimeError("JSEARCH_API_KEY não configurada.")
+
+    url = "https://jsearch.p.rapidapi.com/search-v2"
+
+    headers = {
+        "x-rapidapi-key": api_key,
+        "x-rapidapi-host": "jsearch.p.rapidapi.com",
+    }
+
+    params = {
+        "query": query,
+        "num_pages": num_pages,
+        "country": country,
+        "language": language,
+        "location": location,
+        "date_posted": date_posted,
+    }
+
+    try:
+        response = requests.get(
+            url,
+            headers=headers,
+            params=params,
+            timeout=30,
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError(
+            f"Erro de conexão com a JSearch: {exc}"
+        ) from exc
+
+    print("JSEARCH HTTP STATUS:", response.status_code)
+
+    if response.status_code != 200:
+        raise RuntimeError(
+            f"A JSearch retornou HTTP {response.status_code}: "
+            f"{response.text[:500]}"
+        )
+
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise RuntimeError(
+            "A JSearch retornou uma resposta inválida."
+        ) from exc
+
+    jobs = data.get("data", {}).get("jobs", [])
+
+    return {
+        "jobs": jobs,
+        "cursor": data.get("data", {}).get("cursor"),
+        "request_id": data.get("request_id"),
+    }   
+
+def import_jsearch_search(
+    query,
+    num_pages=1,
+    country="br",
+    language="pt",
+    location="Brasilia, Distrito Federal, Brazil",
+    date_posted="all",
+):
+    result = fetch_jsearch_jobs(
+        query=query,
+        num_pages=num_pages,
+        country=country,
+        language=language,
+        location=location,
+        date_posted=date_posted,
+    )
+
+    jobs = result.get("jobs") or []
+
+    created = 0
+    updated = 0
+    ignored = 0
+
+    for item in jobs:
+
+        # -------------------------
+        # ID EXTERNO
+        # -------------------------
+
+        raw_external_id = str(
+            item.get("job_id")
+            or ""
+        ).strip()
+
+        if not raw_external_id:
+            ignored += 1
+            continue
+
+        # O job_id da JSearch pode ultrapassar
+        # os 255 caracteres permitidos no banco.
+        # Criamos um identificador curto e estável.
+        external_id = hashlib.sha256(
+            raw_external_id.encode("utf-8")
+        ).hexdigest()
+
+        # -------------------------
+        # TÍTULO
+        # -------------------------
+
+        title = (
+            item.get("job_title")
+            or ""
+        ).strip()
+
+        if not title:
+            ignored += 1
+            continue
+
+        # -------------------------
+        # EMPRESA
+        # -------------------------
+
+        company = (
+            item.get("employer_name")
+            or ""
+        ).strip()
+
+        # -------------------------
+        # DESCRIÇÃO
+        # -------------------------
+
+        description = (
+            clean_job_description(
+                item.get("job_description")
+            )
+        )
+
+        # -------------------------
+        # LOCALIZAÇÃO
+        # -------------------------
+
+        city = (
+            item.get("job_city")
+            or ""
+        ).strip() or None
+
+        state = (
+            item.get("job_state")
+            or ""
+        ).strip() or None
+
+        country_name = (
+            item.get("job_country")
+            or "Brasil"
+        ).strip()
+
+        location_parts = [
+            part
+            for part in (
+                city,
+                state,
+                country_name
+            )
+            if part
+        ]
+
+        location_text = ", ".join(
+            location_parts
+        )
+
+        # -------------------------
+        # TIPO DE EMPREGO
+        # -------------------------
+
+        employment_type = (
+            item.get("job_employment_type")
+            or ""
+        ).strip()
+
+        job_type = classify_job_type(
+            title,
+            employment_type
+        )
+
+        # -------------------------
+        # MODELO DE TRABALHO
+        # -------------------------
+
+        work_model = None
+
+        if item.get("job_is_remote"):
+            work_model = "REMOTE"
+
+        # -------------------------
+        # SALÁRIO
+        # -------------------------
+
+        salary_min = item.get(
+            "job_min_salary"
+        )
+
+        salary_max = item.get(
+            "job_max_salary"
+        )
+
+        salary_currency = (
+            item.get("job_salary_currency")
+            or ""
+        ).strip()
+
+        salary = None
+
+        if (
+            salary_min is not None
+            or salary_max is not None
+        ):
+            salary_parts = []
+
+            if salary_min is not None:
+                salary_parts.append(
+                    str(salary_min)
+                )
+
+            if salary_max is not None:
+                salary_parts.append(
+                    str(salary_max)
+                )
+
+            salary = " - ".join(
+                salary_parts
+            )
+
+            if salary_currency:
+                salary = (
+                    f"{salary_currency} "
+                    f"{salary}"
+                )
+
+        # -------------------------
+        # LINK
+        # -------------------------
+
+        external_url = (
+            item.get("job_apply_link")
+            or item.get("job_google_link")
+            or ""
+        ).strip()
+
+        # -------------------------
+        # DATA DE PUBLICAÇÃO
+        # -------------------------
+
+        published_at = None
+
+        published_raw = (
+            item.get(
+                "job_posted_at_datetime_utc"
+            )
+            or ""
+        ).strip()
+
+        if published_raw:
+            try:
+                published_at = (
+                    datetime.fromisoformat(
+                        published_raw.replace(
+                            "Z",
+                            "+00:00"
+                        )
+                    )
+                )
+
+                if (
+                    published_at.tzinfo
+                    is not None
+                ):
+                    published_at = (
+                        published_at.replace(
+                            tzinfo=None
+                        )
+                    )
+
+            except Exception:
+                published_at = utc_now()
+
+        # -------------------------
+        # JÁ EXISTE NA JSEARCH?
+        # -------------------------
+
+        existing = (
+            JobVacancy.query
+            .filter_by(
+                source="JSEARCH",
+                external_id=external_id
+            )
+            .first()
+        )
+
+        if existing:
+
+            existing.title = title
+            existing.company = (
+                company or None
+            )
+            existing.description = (
+                description or None
+            )
+            existing.country = "Brasil"
+            existing.state = state
+            existing.city = city
+            existing.location_text = (
+                location_text or None
+            )
+            existing.job_type = job_type
+            existing.work_model = (
+                work_model
+            )
+            existing.salary = salary
+            existing.external_url = (
+                external_url or None
+            )
+            existing.published_at = (
+                published_at
+            )
+            existing.is_active = True
+
+            updated += 1
+            continue
+
+        # -------------------------
+        # DUPLICATA ENTRE APIS
+        # -------------------------
+
+        cross_duplicate = (
+            find_cross_source_job_duplicate(
+                source="JSEARCH",
+                title=title,
+                company=company,
+                city=city
+            )
+        )
+
+        if cross_duplicate:
+
+            print(
+                "DUPLICATA ENTRE APIS IGNORADA:",
+                "JSEARCH",
+                "->",
+                cross_duplicate.source,
+                "|",
+                title,
+                "|",
+                company,
+                "|",
+                city,
+                flush=True
+            )
+
+            ignored += 1
+            continue
+
+        # -------------------------
+        # NOVA VAGA
+        # -------------------------
+
+        vacancy = JobVacancy(
+            source="JSEARCH",
+            external_id=external_id,
+            title=title,
+            company=company or None,
+            description=description or None,
+            country="Brasil",
+            state=state,
+            city=city,
+            location_text=(
+                location_text or None
+            ),
+            job_type=job_type,
+            work_model=work_model,
+            salary=salary,
+            external_url=(
+                external_url or None
+            ),
+            is_active=True,
+            is_featured=False,
+            published_at=published_at
+        )
+
+        db.session.add(vacancy)
+
+        created += 1
+
+    db.session.commit()
+
+    return {
+        "received": len(jobs),
+        "created": created,
+        "updated": updated,
+        "ignored": ignored
+    }    
 
 @app.route(
     "/admin/empregos/importar-adzuna",
@@ -9127,6 +9623,131 @@ def jooble_request(payload):
         )
 
     return data
+    
+@app.route(
+    "/admin/empregos/importar-jsearch",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_import_jsearch():
+
+    try:
+        data = request.get_json(
+            silent=True
+        ) or {}
+
+        keywords = str(
+            data.get("keywords")
+            or ""
+        ).strip()
+
+        location = str(
+            data.get("location")
+            or ""
+        ).strip()
+
+        if not keywords:
+            return jsonify({
+                "message":
+                    "Informe uma palavra-chave."
+            }), 400
+
+        if not location:
+            return jsonify({
+                "message":
+                    "Informe uma localização."
+            }), 400
+
+        query = (
+            f"{keywords} em {location}"
+        )
+
+        result = import_jsearch_search(
+            query=query,
+            num_pages=1,
+            country="br",
+            language="pt",
+            location=location,
+            date_posted="all"
+        )
+
+        return jsonify({
+            "message":
+                "Importação da JSearch concluída.",
+
+            "keywords":
+                keywords,
+
+            "location":
+                location,
+
+            "vagas_recebidas":
+                result["received"],
+
+            "novas":
+                result["created"],
+
+            "atualizadas":
+                result["updated"],
+
+            "ignoradas":
+                result["ignored"]
+        })
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO IMPORTAÇÃO JSEARCH:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message": str(error)
+        }), 500    
+    
+@app.route("/admin/testar-jsearch")
+def admin_testar_jsearch():
+    try:
+        resultado = fetch_jsearch_jobs()
+
+        jobs = resultado["jobs"]
+
+        vagas = []
+
+        for job in jobs[:10]:
+            vagas.append({
+                "id": job.get("job_id"),
+                "titulo": job.get("job_title"),
+                "empresa": job.get("employer_name"),
+                "publicador": job.get("job_publisher"),
+                "cidade": job.get("job_city"),
+                "estado": job.get("job_state"),
+                "pais": job.get("job_country"),
+                "tipo": job.get("job_employment_type"),
+                "publicada_em": job.get("job_posted_at_datetime_utc"),
+                "link": (
+                    job.get("job_apply_link")
+                    or job.get("job_google_link")
+                ),
+            })
+
+        return jsonify({
+            "ok": True,
+            "recebidas": len(jobs),
+            "request_id": resultado.get("request_id"),
+            "vagas": vagas,
+        })
+
+    except Exception as exc:
+        print("ERRO TESTE JSEARCH:", repr(exc))
+
+        return jsonify({
+            "ok": False,
+            "erro": str(exc),
+        }), 500    
         
 @app.route(
     "/admin/empregos/importar-jooble",
@@ -9169,6 +9790,9 @@ def admin_run_automatic_job_import():
 
             "adzuna":
                 summary["adzuna"],
+                
+            "jsearch":
+                summary["jsearch"],    
                 
             "desativadas": summary.get(
                 "deactivated",
@@ -9595,6 +10219,14 @@ def admin_jobs_page():
         )
         .count()
     )
+    
+    jsearch_jobs = (
+        JobVacancy.query
+        .filter(
+            JobVacancy.source == "JSEARCH"
+        )
+        .count()
+    )
 
     return render_template(
         "admin_jobs.html",
@@ -9604,6 +10236,7 @@ def admin_jobs_page():
         catalogin_jobs=catalogin_jobs,
         jooble_jobs=jooble_jobs,
         adzuna_jobs=adzuna_jobs,
+        jsearch_jobs=jsearch_jobs,
         active_page="jobs"
     )       
     
