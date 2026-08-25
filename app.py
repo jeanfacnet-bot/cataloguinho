@@ -3286,6 +3286,17 @@ def sitemap():
         )
         .all()
     )
+    
+    jobs = (
+        JobVacancy.query
+        .filter(
+            JobVacancy.is_active.is_(True)
+        )
+        .order_by(
+            JobVacancy.updated_at.desc()
+        )
+        .all()
+    )
 
     base_url = BASE_URL.rstrip("/")
 
@@ -3356,6 +3367,15 @@ def sitemap():
         </url>
         """
     )
+    
+    # Empregos
+    xml_parts.append(
+        f"""
+        <url>
+            <loc>{base_url}/empregos</loc>
+        </url>
+        """
+    )
 
     # Páginas individuais dos anúncios
     for ad in ads:
@@ -3386,6 +3406,47 @@ def sitemap():
                 f"""
                 <url>
                     <loc>{ad_url}</loc>
+                </url>
+                """
+            )
+
+    # ============================================================
+    # VAGAS DE EMPREGO
+    # ============================================================
+
+    for vacancy in jobs:
+
+        job_url = (
+            f"{base_url}/empregos/{vacancy.id}"
+        )
+
+        lastmod_date = (
+            vacancy.updated_at
+            or vacancy.published_at
+            or vacancy.created_at
+        )
+
+        if lastmod_date:
+            lastmod = (
+                lastmod_date
+                .date()
+                .isoformat()
+            )
+
+            xml_parts.append(
+                f"""
+                <url>
+                    <loc>{job_url}</loc>
+                    <lastmod>{lastmod}</lastmod>
+                </url>
+                """
+            )
+
+        else:
+            xml_parts.append(
+                f"""
+                <url>
+                    <loc>{job_url}</loc>
                 </url>
                 """
             )
