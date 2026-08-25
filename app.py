@@ -8184,6 +8184,11 @@ def jobs_page():
         request.args.get("work_model")
         or ""
     ).strip().upper()
+    
+    sort = (
+        request.args.get("sort")
+        or "recentes"
+    ).strip().lower()
 
     query = (
         JobVacancy.query
@@ -8302,13 +8307,27 @@ def jobs_page():
             JobVacancy.work_model == work_model
         )
 
-    vacancies = (
-        query
-        .order_by(
+    if sort == "antigas":
+
+        query = query.order_by(
             JobVacancy.is_featured.desc(),
-            JobVacancy.published_at.desc(),
+            JobVacancy.published_at.asc().nullslast(),
+            JobVacancy.created_at.asc()
+        )
+
+    else:
+
+        # Padrão: vagas mais recentes primeiro
+        sort = "recentes"
+
+        query = query.order_by(
+            JobVacancy.is_featured.desc(),
+            JobVacancy.published_at.desc().nullslast(),
             JobVacancy.created_at.desc()
         )
+
+    vacancies = (
+        query
         .limit(100)
         .all()
     )
@@ -8320,8 +8339,9 @@ def jobs_page():
         selected_state=state,
         selected_city=city,
         selected_job_type=job_type,
-        selected_work_model=work_model
-    ) 
+        selected_work_model=work_model,
+        selected_sort=sort
+    )
     
 @app.route(
     "/empregos/<int:job_id>"
