@@ -48,6 +48,8 @@ load_dotenv()
 
 app = Flask(__name__)
 
+app.jinja_env.globals["timedelta"] = timedelta
+
 APP_VERSION = (
     os.getenv("RENDER_GIT_COMMIT")
     or os.getenv("APP_VERSION")
