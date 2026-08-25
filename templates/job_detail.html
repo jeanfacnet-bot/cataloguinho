@@ -96,6 +96,16 @@
             white-space: pre-line;
             margin-bottom: 28px;
         }
+		
+		.job-description-content {
+			margin-top: 14px;
+		}
+
+		.job-description-item {
+			display: block;
+			margin-bottom: 8px;
+			line-height: 1.6;
+		}
 
         .job-detail-description h2 {
             color: #111827;
@@ -301,17 +311,25 @@
 
             {% if vacancy.description %}
 
-                <div class="job-detail-description">
+				<div class="job-detail-description">
 
-                    <h2>
-                        Descrição da vaga
-                    </h2>
+					<h2>
+						Descrição da vaga
+					</h2>
 
-                    {{ vacancy.description }}
+					<div class="job-description-content">
+						{% for item in vacancy.description.split('•') %}
+							{% if item.strip() %}
+								<div class="job-description-item">
+									{{ item.strip() }}
+								</div>
+							{% endif %}
+						{% endfor %}
+					</div>
 
-                </div>
+				</div>
 
-            {% endif %}
+			{% endif %}
 
             <div class="job-detail-actions">
 
