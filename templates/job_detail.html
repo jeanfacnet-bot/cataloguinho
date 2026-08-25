@@ -161,8 +161,6 @@
 
     </style>
 
-    {% if vacancy.published_at %}
-
     <script type="application/ld+json">
 	{
 		"@context": "https://schema.org",
@@ -172,9 +170,7 @@
 
 		"description": {{ (vacancy.description or vacancy.title) | tojson }},
 
-		{% if vacancy.published_at %}
-		"datePosted": "{{ vacancy.published_at.strftime('%Y-%m-%d') }}",
-		{% endif %}
+		"datePosted": "{% if vacancy.published_at %}{{ vacancy.published_at.strftime('%Y-%m-%d') }}{% else %}{{ vacancy.created_at.strftime('%Y-%m-%d') }}{% endif %}",
 
 		{% if vacancy.expires_at %}
 		"validThrough": "{{ vacancy.expires_at.strftime('%Y-%m-%dT%H:%M:%S') }}",
@@ -190,7 +186,7 @@
 
 		"hiringOrganization": {
 			"@type": "Organization",
-			"name": {{ (vacancy.company or "Empresa não informada") | tojson }}
+			"name": {{ (vacancy.company or "confidential") | tojson }}
 		},
 
 		"identifier": {
@@ -201,6 +197,10 @@
 
 		{% if vacancy.work_model == "REMOTO" %}
 		"jobLocationType": "TELECOMMUTE",
+		"applicantLocationRequirements": {
+			"@type": "Country",
+			"name": "Brazil"
+		},
 		{% endif %}
 
 		{% if vacancy.city or vacancy.state %}
@@ -222,8 +222,6 @@
 		"url": "https://www.cataloginpk.com.br/empregos/{{ vacancy.id }}"
 	}
 	</script>
-
-    {% endif %}
 
 </head>
 
