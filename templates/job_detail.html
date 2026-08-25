@@ -91,20 +91,20 @@
         }
 
         .job-detail-description {
-            color: #334155;
-            line-height: 1.8;
-            white-space: pre-line;
-            margin-bottom: 28px;
-        }
-		
+			color: #334155;
+			line-height: 1.8;
+			margin-bottom: 28px;
+		}
+
 		.job-description-content {
 			margin-top: 14px;
 		}
 
 		.job-description-item {
 			display: block;
-			margin-bottom: 8px;
-			line-height: 1.6;
+			margin: 0 0 10px 0;
+			padding: 0;
+			line-height: 1.65;
 		}
 
         .job-detail-description h2 {
@@ -318,13 +318,27 @@
 					</h2>
 
 					<div class="job-description-content">
-						{% for item in vacancy.description.split('•') %}
-							{% if item.strip() %}
+
+						{% set description_clean = vacancy.description
+							| replace('·', '•')
+							| replace('▪', '•')
+							| replace('●', '•')
+						%}
+
+						{% for item in description_clean.split('•') %}
+
+							{% set text = item.strip() %}
+
+							{% if text %}
+
 								<div class="job-description-item">
-									{{ item.strip() }}
+									{{ text }}
 								</div>
+
 							{% endif %}
+
 						{% endfor %}
+
 					</div>
 
 				</div>

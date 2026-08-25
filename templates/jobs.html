@@ -492,6 +492,7 @@
                         <a
 							href="/empregos/{{ vacancy.id }}"
 							class="job-btn primary"
+							onclick="saveJobsScrollPosition()"
 						>
 							Ver detalhes da vaga
 						</a>
@@ -581,6 +582,36 @@
 					"/auth-page";
 			}
 		}
+		
+		function saveJobsScrollPosition() {
+			sessionStorage.setItem(
+				"jobsScrollPosition",
+				window.scrollY
+			);
+		}
+
+		window.addEventListener(
+			"load",
+			() => {
+
+				const savedPosition =
+					sessionStorage.getItem(
+						"jobsScrollPosition"
+					);
+
+				if (savedPosition !== null) {
+
+					window.scrollTo({
+						top: parseInt(savedPosition, 10),
+						behavior: "instant"
+					});
+
+					sessionStorage.removeItem(
+						"jobsScrollPosition"
+					);
+				}
+			}
+		);
     </script>
 
     <script
