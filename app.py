@@ -287,6 +287,12 @@ class BlockedLocation(db.Model):
     street = db.Column(db.String(150), nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+
+class AppSetting(db.Model):
+    __tablename__ = "app_settings"
+
+    id = db.Column(db.Integer, primary_key=True)
+
     mercado_livre_access_token = db.Column(
         db.Text,
         nullable=True
@@ -305,12 +311,7 @@ class BlockedLocation(db.Model):
     mercado_livre_user_id = db.Column(
         db.String(50),
         nullable=True
-    )    
-
-class AppSetting(db.Model):
-    __tablename__ = "app_settings"
-
-    id = db.Column(db.Integer, primary_key=True)
+    )
 
     free_ads_limit = db.Column(db.Integer, nullable=False, default=1)
     free_keywords_limit = db.Column(db.Integer, nullable=False, default=3)
