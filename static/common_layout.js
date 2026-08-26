@@ -423,7 +423,7 @@ async function renderSharedTopbar() {
     <button type="button" onclick="window.location.href='/feed-page'">Feed</button>
 	<button type="button" onclick="window.location.href='/empregos'">Empregos</button>
 	<button type="button" onclick="window.location.href='/ofertas'">🔥 Ofertas</button>
-    <button type="button" onclick="window.location.href='${savedUser ? "/create-ad-page" : "/auth-page"}'">Anuncie-se</button>
+    <button type="button" onclick="window.location.href='${savedUser ? "/create-ad-page" : "/auth-page"}'">Anunciar</button>
     ${savedUser ? `<button type="button" onclick="window.location.href='/profile-page'">Perfil</button>` : ""}
     <button type="button" class="vip-btn" onclick="window.location.href='/vip-page'">Tornar-se VIP</button>
     ${authButton}
@@ -435,7 +435,7 @@ async function renderSharedTopbar() {
     <button type="button" onclick="window.location.href='/feed-page'">Feed</button>
 	<button type="button" onclick="window.location.href='/empregos'">Empregos</button>
 	<button type="button" onclick="window.location.href='/ofertas'">🔥 Ofertas</button>
-    <button type="button" onclick="window.location.href='${savedUser ? "/create-ad-page" : "/auth-page"}'">Anuncie-se</button>
+    <button type="button" onclick="window.location.href='${savedUser ? "/create-ad-page" : "/auth-page"}'">Anunciar</button>
     ${savedUser ? `<button type="button" onclick="window.location.href='/profile-page'">Perfil</button>` : ""}
     <button type="button" class="vip-btn" onclick="window.location.href='/vip-page'">VIP</button>
     ${
