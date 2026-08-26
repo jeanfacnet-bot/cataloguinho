@@ -178,11 +178,7 @@
 			text-align: center;
 		}
 		
-		.action-btn.sync {
-			background: #dcfce7;
-			color: #166534;
-		}
-
+		
     </style>
 
 </head>
@@ -205,14 +201,7 @@
                 </p>
             </div>
 			
-			<a
-				href="/admin/mercadolivre/autorizar"
-				class="new-offer-btn"
-				style="background:#2563eb;"
-			>
-				🔗 Conectar Mercado Livre
-			</a>
-
+			
             <a
                 href="/admin/ofertas/nova"
                 class="new-offer-btn"
@@ -354,22 +343,7 @@
 										✏️ Editar
 									</a>
 									
-									{% if (
-										offer.store_code
-										== "MERCADO_LIVRE"
-										and offer.external_product_id
-									) %}
-
-										<button
-											type="button"
-											class="action-btn sync"
-											onclick="syncOffer({{ offer.id }})"
-										>
-											🔄 Atualizar preço
-										</button>
-
-									{% endif %}
-
+									
 									<button
 										type="button"
 										class="action-btn status"
@@ -558,86 +532,7 @@
 			}
 		}
 		
-		async function syncOffer(
-			offerId
-		) {
-
-			try {
-
-				const response =
-					await fetch(
-						`/admin/ofertas/${offerId}/sincronizar`,
-						{
-							method: "POST"
-						}
-					);
-
-				const data =
-					await response.json();
-
-				if (!response.ok) {
-
-					alert(
-						data.error
-						|| data.message
-						|| "Erro ao atualizar preço."
-					);
-
-					return;
-				}
-
-				let message =
-					"Produto atualizado!\n\n";
-
-				if (
-					data.old_price !== null
-					&& data.old_price !== undefined
-				) {
-
-					message +=
-						`Preço anterior: R$ ${
-							Number(
-								data.old_price
-							).toFixed(2)
-						}\n`;
-				}
-
-				if (
-					data.price !== null
-					&& data.price !== undefined
-				) {
-
-					message +=
-						`Preço atual: R$ ${
-							Number(
-								data.price
-							).toFixed(2)
-						}\n`;
-				}
-
-				message +=
-					`Status: ${
-						data.availability_status
-						|| "-"
-					}`;
-
-				alert(
-					message
-				);
-
-				window.location.reload();
-
-			} catch (error) {
-
-				console.error(
-					error
-				);
-
-				alert(
-					"Erro de comunicação."
-				);
-			}
-		}
+		
 
 	</script>
 
