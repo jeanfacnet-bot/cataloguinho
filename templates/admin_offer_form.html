@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Cadastrar oferta | CataLogin
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ static_asset('style.css') }}"
+    >
+
+    <style>
+
+        body {
+            margin: 0;
+            background: #f4f7fb;
+        }
+
+        .offer-form-page {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px 20px 60px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 18px;
+            color: #1d4ed8;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .offer-form-header {
+            margin-bottom: 22px;
+        }
+
+        .offer-form-header h1 {
+            margin-bottom: 8px;
+            color: #111827;
+        }
+
+        .offer-form-header p {
+            margin: 0;
+            color: #64748b;
+        }
+
+        .offer-form-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            padding: 24px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    2,
+                    minmax(0, 1fr)
+                );
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .form-group input,
+		.form-group textarea,
+		.form-group select {
+			padding: 12px;
+			border: 1px solid #cbd5e1;
+			border-radius: 10px;
+			font: inherit;
+			background: white;
+		}
+
+        .form-group textarea {
+            min-height: 130px;
+            resize: vertical;
+        }
+
+        .save-btn {
+            width: 100%;
+            margin-top: 20px;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: #16a34a;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .save-btn:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .affiliate-warning {
+            margin-top: 20px;
+            padding: 14px;
+            border-radius: 12px;
+            background: #fff7ed;
+            color: #9a3412;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 700px) {
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-group.full {
+                grid-column: auto;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    {% include "partials/topbar.html" %}
+    {% include "partials/admin_sidebar.html" %}
+
+    <main class="offer-form-page">
+
+        <a
+            href="/admin/ofertas"
+            class="back-link"
+        >
+            ← Voltar para ofertas
+        </a>
+
+        <div class="offer-form-header">
+
+            <h1>
+				{% if offer %}
+					Editar produto em promoção
+				{% else %}
+					Cadastrar produto em promoção
+				{% endif %}
+			</h1>
+
+            <p>
+                Cadastre uma oferta com seu link
+                de afiliado.
+            </p>
+
+        </div>
+
+        <section class="offer-form-card">
+
+            <form id="offerForm">
+
+                <div class="form-grid">
+
+                    <div class="form-group full">
+
+                        <label>
+                            Nome do produto *
+                        </label>
+
+                        <input
+							type="text"
+							name="title"
+							value="{{ offer.title if offer else '' }}"
+							required
+						>
+
+                    </div>
+					
+					<div class="form-group">
+
+						<label>
+							Origem da oferta
+						</label>
+
+						<select
+							name="store_code"
+							id="storeCode"
+						>
+
+							<option
+								value=""
+								{% if not offer or not offer.store_code %}
+									selected
+								{% endif %}
+							>
+								Manual / Outra loja
+							</option>
+
+							<option
+								value="MERCADO_LIVRE"
+								{% if offer and offer.store_code == "MERCADO_LIVRE" %}
+									selected
+								{% endif %}
+							>
+								Mercado Livre
+							</option>
+
+						</select>
+
+					</div>
+
+                    <div class="form-group">
+
+                        <label>
+                            Loja
+                        </label>
+
+                        <input
+							type="text"
+							name="store"
+							value="{{ offer.store if offer and offer.store else '' }}"
+						>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label>
+                            Categoria
+                        </label>
+
+                        <input
+							type="text"
+							name="category"
+							value="{{ offer.category if offer and offer.category else '' }}"
+						>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label>
+                            Preço anterior
+                        </label>
+
+                        <input
+							type="text"
+							name="old_price"
+							value="{% if offer and offer.old_price is not none %}{{ '%.2f'|format(offer.old_price)|replace('.', ',') }}{% endif %}"
+						>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label>
+                            Preço promocional
+                        </label>
+
+                        <input
+							type="text"
+							name="price"
+							value="{% if offer and offer.price is not none %}{{ '%.2f'|format(offer.price)|replace('.', ',') }}{% endif %}"
+						>
+
+                    </div>
+
+                    <div class="form-group full">
+
+                        <label>
+                            URL da imagem
+                        </label>
+
+                        <input
+							type="url"
+							name="image_url"
+							value="{{ offer.image_url if offer and offer.image_url else '' }}"
+						>
+
+                    </div>
+
+                    <div class="form-group full">
+
+                        <label>
+                            Link de afiliado *
+                        </label>
+
+                        <input
+							type="url"
+							name="affiliate_url"
+							id="affiliateUrl"
+							value="{{ offer.affiliate_url if offer else '' }}"
+							required
+						>
+
+                    </div>
+					
+					<div
+						class="form-group full"
+						id="externalProductGroup"
+						style="display: none;"
+					>
+
+						<label>
+							Código do produto Mercado Livre
+						</label>
+
+						<input
+							type="text"
+							name="external_product_id"
+							id="externalProductId"
+							value="{{ offer.external_product_id if offer and offer.external_product_id else '' }}"
+							placeholder="Ex.: MLB1234567890"
+						>
+
+						<small>
+							Para produtos do Mercado Livre, informe o código MLB do anúncio.
+						</small>
+
+					</div>
+
+                    <div class="form-group full">
+
+                        <label>
+                            Descrição
+                        </label>
+
+                        <textarea
+							name="description"
+						>{{ offer.description if offer and offer.description else '' }}
+						</textarea>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label>
+                            Oferta válida até
+                        </label>
+
+                        <input
+							type="date"
+							name="expires_at"
+							value="{% if offer and offer.expires_at %}{{ offer.expires_at.strftime('%Y-%m-%d') }}{% endif %}"
+						>
+
+                    </div>
+
+                </div>
+
+                <div class="affiliate-warning">
+                    ℹ️ Os produtos cadastrados poderão
+                    conter links de afiliados. O CataLogin
+                    poderá receber comissão quando uma
+                    compra for realizada através desses links,
+                    sem custo adicional ao consumidor.
+                </div>
+
+                <button
+					type="submit"
+					class="save-btn"
+					id="saveOfferBtn"
+				>
+					{% if offer %}
+						Salvar alterações
+					{% else %}
+						Salvar oferta
+					{% endif %}
+				</button>
+
+            </form>
+
+        </section>
+
+    </main>
+
+    <script>
+
+		const offerForm =
+			document.getElementById(
+				"offerForm"
+			);
+
+		const saveButton =
+			document.getElementById(
+				"saveOfferBtn"
+			);
+			
+		const storeCode =
+			document.getElementById(
+				"storeCode"
+			);
+
+		const externalProductGroup =
+			document.getElementById(
+				"externalProductGroup"
+			);
+
+		const externalProductId =
+			document.getElementById(
+				"externalProductId"
+			);
+			
+		const affiliateUrl =
+			document.getElementById(
+				"affiliateUrl"
+			);	
+
+
+		function updateExternalProductField() {
+
+			const isMercadoLivre =
+				storeCode.value ===
+				"MERCADO_LIVRE";
+
+			externalProductGroup.style.display =
+				isMercadoLivre
+					? "flex"
+					: "none";
+
+			externalProductId.required =
+				isMercadoLivre;
+
+		}
+
+
+		storeCode.addEventListener(
+			"change",
+			() => {
+
+				updateExternalProductField();
+
+				tryFillMercadoLivreItemId();
+			}
+		);
+
+
+		updateExternalProductField();	
+		
+		tryFillMercadoLivreItemId();
+
+		const isEditing =
+			{{ 'true' if offer else 'false' }};
+
+		const offerId =
+			{{ offer.id if offer else 'null' }};
+
+		offerForm.addEventListener(
+			"submit",
+			async (event) => {
+
+				event.preventDefault();
+
+				const formData =
+					new FormData(
+						offerForm
+					);
+
+				const payload =
+					Object.fromEntries(
+						formData.entries()
+					);
+
+				saveButton.disabled = true;
+
+				saveButton.textContent =
+					"Salvando...";
+
+				try {
+
+					const url =
+						isEditing
+							? `/admin/ofertas/${offerId}`
+							: "/admin/ofertas";
+
+					const method =
+						isEditing
+							? "PUT"
+							: "POST";
+
+					const response =
+						await fetch(
+							url,
+							{
+								method: method,
+
+								headers: {
+									"Content-Type":
+										"application/json"
+								},
+
+								body:
+									JSON.stringify(
+										payload
+									)
+							}
+						);
+
+					const data =
+						await response.json();
+
+					if (!response.ok) {
+
+						alert(
+							data.message ||
+							"Não foi possível salvar a oferta."
+						);
+
+						return;
+					}
+
+					alert(
+						isEditing
+							? "Oferta atualizada com sucesso!"
+							: "Oferta cadastrada com sucesso!"
+					);
+
+					window.location.href =
+						"/admin/ofertas";
+
+				} catch (error) {
+
+					console.error(
+						error
+					);
+
+					alert(
+						"Erro de comunicação."
+					);
+
+				} finally {
+
+					saveButton.disabled =
+						false;
+
+					saveButton.textContent =
+						isEditing
+							? "Salvar alterações"
+							: "Salvar oferta";
+				}
+
+			}
+		);
+		
+		function extractMercadoLivreItemId(urlValue) {
+
+			if (!urlValue) {
+				return "";
+			}
+
+			try {
+
+				const url =
+					new URL(
+						urlValue
+					);
+
+				// Primeiro tenta pegar item_id da URL.
+				const itemId =
+					url.searchParams.get(
+						"item_id"
+					);
+
+				if (
+					itemId &&
+					/^MLB\d+$/i.test(
+						itemId
+					)
+				) {
+
+					return itemId.toUpperCase();
+				}
+
+				// Fallback:
+				// procura MLB + números em qualquer parte da URL.
+				const match =
+					urlValue.match(
+						/MLB\d+/i
+					);
+
+				if (match) {
+					return match[0].toUpperCase();
+				}
+
+			} catch (error) {
+
+				// Caso não seja uma URL válida,
+				// ainda tenta localizar o MLB no texto.
+				const match =
+					String(
+						urlValue
+					).match(
+						/MLB\d+/i
+					);
+
+				if (match) {
+					return match[0].toUpperCase();
+				}
+			}
+
+			return "";
+		}
+		
+		
+		async function tryFillMercadoLivreItemId() {
+
+			if (
+				storeCode.value !==
+				"MERCADO_LIVRE"
+			) {
+				return;
+			}
+
+			const link =
+				affiliateUrl.value.trim();
+
+			if (!link) {
+				return;
+			}
+
+			// Primeiro tenta descobrir diretamente.
+			// Isso funciona quando a URL longa já contém MLB.
+			const localId =
+				extractMercadoLivreItemId(
+					link
+				);
+
+			if (localId) {
+
+				externalProductId.value =
+					localId;
+
+				return;
+			}
+
+			// Se for link curto meli.la,
+			// pede ao backend para seguir o redirecionamento.
+			try {
+
+				externalProductId.value = "";
+
+				externalProductId.placeholder =
+					"Identificando produto...";
+
+				const response =
+					await fetch(
+						"/admin/ofertas/detectar-mercado-livre",
+						{
+							method: "POST",
+
+							headers: {
+								"Content-Type":
+									"application/json"
+							},
+
+							body:
+								JSON.stringify({
+									url: link
+								})
+						}
+					);
+
+				const data =
+					await response.json();
+
+				if (!response.ok) {
+
+					console.warn(
+						data.message
+					);
+
+					externalProductId.placeholder =
+						"Não foi possível identificar automaticamente";
+
+					return;
+				}
+
+				externalProductId.value =
+					data.external_product_id || "";
+
+				externalProductId.placeholder =
+					"Ex.: MLB1234567890";
+
+			} catch (error) {
+
+				console.error(
+					"Erro ao identificar produto:",
+					error
+				);
+
+				externalProductId.placeholder =
+					"Erro ao identificar produto";
+			}
+		}
+
+		affiliateUrl.addEventListener(
+			"blur",
+			tryFillMercadoLivreItemId
+		);
+
+		affiliateUrl.addEventListener(
+			"change",
+			tryFillMercadoLivreItemId
+		);
+
+	</script>
+
+	
+
+    <script
+        src="{{ static_asset('common_layout.js') }}"
+    ></script>
+
+</body>
+
+</html>

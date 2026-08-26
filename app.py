@@ -31,7 +31,12 @@ import requests
 import time
 from threading import Lock
 from urllib.request import urlopen, Request
-from urllib.parse import quote
+from urllib.parse import (
+    quote,
+    urlparse,
+    unquote,
+    urlencode
+)
 from functools import wraps
 from flask_mail import Mail, Message
 import secrets
@@ -40,6 +45,7 @@ import re
 import unicodedata
 import base64
 import qrcode
+from decimal import Decimal, InvalidOperation
 
 
 
@@ -79,7 +85,39 @@ NEIGHBORHOODS_CACHE_SECONDS = 6 * 60 * 60
 
 MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "")
 
+MERCADO_LIVRE_ACCESS_TOKEN = (
+    os.getenv(
+        "MERCADO_LIVRE_ACCESS_TOKEN",
+        ""
+    )
+    .strip()
+)
+
 BASE_URL = os.getenv("BASE_URL", "https://www.cataloginpk.com.br")
+
+MERCADO_LIVRE_CLIENT_ID = (
+    os.getenv(
+        "MERCADO_LIVRE_CLIENT_ID",
+        ""
+    ).strip()
+)
+
+MERCADO_LIVRE_CLIENT_SECRET = (
+    os.getenv(
+        "MERCADO_LIVRE_CLIENT_SECRET",
+        ""
+    ).strip()
+)
+
+MERCADO_LIVRE_REDIRECT_URI = (
+    os.getenv(
+        "MERCADO_LIVRE_REDIRECT_URI",
+        (
+            BASE_URL.rstrip("/")
+            + "/mercadolivre/callback"
+        )
+    ).strip()
+)
 
 # =========================
 # ADZUNA API
@@ -247,7 +285,27 @@ class BlockedLocation(db.Model):
     city = db.Column(db.String(150), nullable=True, index=True)
     neighborhood = db.Column(db.String(150), nullable=True, index=True)
     street = db.Column(db.String(150), nullable=True, index=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    mercado_livre_access_token = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    mercado_livre_refresh_token = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    mercado_livre_token_expires_at = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
+    mercado_livre_user_id = db.Column(
+        db.String(50),
+        nullable=True
+    )    
 
 class AppSetting(db.Model):
     __tablename__ = "app_settings"
@@ -1439,6 +1497,117 @@ def run_automatic_job_import():
     db.session.commit()
 
     return summary
+    
+class AffiliateProduct(db.Model):
+    __tablename__ = "affiliate_products"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    title = db.Column(
+        db.String(255),
+        nullable=False
+    )
+
+    store = db.Column(
+        db.String(120),
+        nullable=True
+    )
+
+    category = db.Column(
+        db.String(120),
+        nullable=True
+    )
+
+    description = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    image_url = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    affiliate_url = db.Column(
+        db.Text,
+        nullable=False
+    )
+    
+    external_product_id = db.Column(
+        db.String(100),
+        nullable=True,
+        index=True
+    )
+
+    store_code = db.Column(
+        db.String(50),
+        nullable=True,
+        index=True
+    )
+
+    availability_status = db.Column(
+        db.String(30),
+        nullable=True
+    )
+
+    last_synced_at = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
+    sync_error = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    old_price = db.Column(
+        db.Numeric(10, 2),
+        nullable=True
+    )
+
+    price = db.Column(
+        db.Numeric(10, 2),
+        nullable=True
+    )
+
+    is_active = db.Column(
+        db.Boolean,
+        default=True,
+        nullable=False
+    )
+
+    is_featured = db.Column(
+        db.Boolean,
+        default=False,
+        nullable=False
+    )
+
+    expires_at = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
+    click_count = db.Column(
+        db.Integer,
+        default=0,
+        nullable=False
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    updated_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False
+    )   
 
 # =========================
 # HELPERS
@@ -1517,6 +1686,456 @@ def hash_reset_token(raw_token):
     
 def utc_now():
     return datetime.now(UTC).replace(tzinfo=None)  
+    
+def save_mercado_livre_tokens(
+    token_data
+):
+
+    settings = get_app_settings()
+
+    access_token = str(
+        token_data.get(
+            "access_token"
+        )
+        or ""
+    ).strip()
+
+    refresh_token = str(
+        token_data.get(
+            "refresh_token"
+        )
+        or ""
+    ).strip()
+
+    expires_in = token_data.get(
+        "expires_in"
+    )
+
+    user_id = token_data.get(
+        "user_id"
+    )
+
+    if not access_token:
+        raise RuntimeError(
+            "Mercado Livre não retornou access_token."
+        )
+
+    settings.mercado_livre_access_token = (
+        access_token
+    )
+
+    # Importante:
+    # cada refresh pode devolver um NOVO refresh_token.
+    if refresh_token:
+        settings.mercado_livre_refresh_token = (
+            refresh_token
+        )
+
+    if expires_in:
+
+        try:
+
+            seconds = int(
+                expires_in
+            )
+
+            settings.mercado_livre_token_expires_at = (
+                utc_now()
+                + timedelta(
+                    seconds=seconds
+                )
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            settings.mercado_livre_token_expires_at = (
+                None
+            )
+
+    if user_id is not None:
+
+        settings.mercado_livre_user_id = str(
+            user_id
+        )
+
+    db.session.commit()
+
+    return access_token  
+
+def refresh_mercado_livre_access_token():
+
+    if (
+        not MERCADO_LIVRE_CLIENT_ID
+        or not MERCADO_LIVRE_CLIENT_SECRET
+    ):
+        raise RuntimeError(
+            "Credenciais do Mercado Livre "
+            "não configuradas."
+        )
+
+    settings = get_app_settings()
+
+    refresh_token = str(
+        settings.mercado_livre_refresh_token
+        or ""
+    ).strip()
+
+    if not refresh_token:
+
+        raise RuntimeError(
+            "Refresh Token do Mercado Livre "
+            "não encontrado. Autorize a aplicação."
+        )
+
+    response = requests.post(
+        "https://api.mercadolibre.com/oauth/token",
+        headers={
+            "Accept":
+                "application/json",
+            "Content-Type":
+                "application/x-www-form-urlencoded"
+        },
+        data={
+            "grant_type":
+                "refresh_token",
+
+            "client_id":
+                MERCADO_LIVRE_CLIENT_ID,
+
+            "client_secret":
+                MERCADO_LIVRE_CLIENT_SECRET,
+
+            "refresh_token":
+                refresh_token
+        },
+        timeout=(5, 20)
+    )
+
+    try:
+        data = response.json()
+    except Exception:
+        data = {}
+
+    if not response.ok:
+
+        error_description = (
+            data.get(
+                "error_description"
+            )
+            or data.get("message")
+            or "Falha ao renovar token."
+        )
+
+        raise RuntimeError(
+            "Mercado Livre OAuth: "
+            + str(error_description)
+        )
+
+    return save_mercado_livre_tokens(
+        data
+    )
+
+def get_mercado_livre_access_token():
+
+    settings = get_app_settings()
+
+    stored_token = str(
+        settings.mercado_livre_access_token
+        or ""
+    ).strip()
+
+    expires_at = (
+        settings
+        .mercado_livre_token_expires_at
+    )
+
+    # Usa o token salvo se ainda tiver
+    # pelo menos 2 minutos de validade.
+    if (
+        stored_token
+        and expires_at
+        and expires_at
+            > utc_now()
+            + timedelta(minutes=2)
+    ):
+
+        return stored_token
+
+    # Se temos refresh token,
+    # renova automaticamente.
+    if (
+        settings
+        .mercado_livre_refresh_token
+    ):
+
+        return (
+            refresh_mercado_livre_access_token()
+        )
+
+    # Fallback temporário para a variável
+    # antiga, caso você já possua um token.
+    if MERCADO_LIVRE_ACCESS_TOKEN:
+
+        return MERCADO_LIVRE_ACCESS_TOKEN
+
+    raise RuntimeError(
+        "Mercado Livre ainda não autorizado."
+    )    
+    
+def sync_mercado_livre_offer(
+    offer,
+    commit=True
+):
+
+    if not offer:
+        raise ValueError(
+            "Oferta não informada."
+        )
+
+    if (
+        str(
+            offer.store_code
+            or ""
+        ).upper()
+        != "MERCADO_LIVRE"
+    ):
+        raise ValueError(
+            "A oferta não é do Mercado Livre."
+        )
+
+    item_id = (
+        str(
+            offer.external_product_id
+            or ""
+        )
+        .strip()
+        .upper()
+    )
+
+    if not re.fullmatch(
+        r"MLB\d+",
+        item_id
+    ):
+        raise ValueError(
+            "Código MLB inválido."
+        )
+
+    access_token = (
+        get_mercado_livre_access_token()
+    )
+
+    headers = {
+        "Authorization":
+            f"Bearer {access_token}",
+
+        "Accept":
+            "application/json"
+    }
+
+    now = utc_now()
+
+    try:
+
+        # =====================================
+        # 1. CONSULTA SITUAÇÃO DO ANÚNCIO
+        # =====================================
+
+        item_response = requests.get(
+            (
+                "https://api.mercadolibre.com/"
+                f"items/{item_id}"
+            ),
+            headers=headers,
+            timeout=(5, 15)
+        )
+
+        if item_response.status_code == 404:
+
+            offer.availability_status = (
+                "NOT_FOUND"
+            )
+
+            offer.sync_error = (
+                "Produto não encontrado "
+                "no Mercado Livre."
+            )
+
+            offer.last_synced_at = now
+
+            if commit:
+                db.session.commit()
+
+            return {
+                "success": False,
+                "availability_status":
+                    "NOT_FOUND",
+                "message":
+                    "Produto não encontrado."
+            }
+
+        item_response.raise_for_status()
+
+        item_data = (
+            item_response.json()
+            or {}
+        )
+
+        item_status = (
+            str(
+                item_data.get("status")
+                or ""
+            )
+            .strip()
+            .lower()
+        )
+
+        sub_status = (
+            item_data.get("sub_status")
+            or []
+        )
+
+        # Para produtos de terceiros, a quantidade
+        # real pode não estar disponível.
+        if item_status == "active":
+
+            offer.availability_status = (
+                "AVAILABLE"
+            )
+
+        elif (
+            item_status == "paused"
+            and "out_of_stock"
+            in sub_status
+        ):
+
+            offer.availability_status = (
+                "OUT_OF_STOCK"
+            )
+
+        elif item_status == "closed":
+
+            offer.availability_status = (
+                "CLOSED"
+            )
+
+        elif item_status:
+
+            offer.availability_status = (
+                item_status.upper()
+            )
+
+        else:
+
+            offer.availability_status = (
+                "UNKNOWN"
+            )
+
+
+        # =====================================
+        # 2. CONSULTA PREÇO ATUAL
+        # =====================================
+
+        price_response = requests.get(
+            (
+                "https://api.mercadolibre.com/"
+                f"items/{item_id}/sale_price"
+            ),
+            headers=headers,
+            params={
+                "context":
+                    "channel_marketplace"
+            },
+            timeout=(5, 15)
+        )
+
+        price_response.raise_for_status()
+
+        price_data = (
+            price_response.json()
+            or {}
+        )
+
+        current_price = (
+            price_data.get("amount")
+        )
+
+        regular_price = (
+            price_data.get(
+                "regular_amount"
+            )
+        )
+
+        if current_price is not None:
+
+            offer.price = Decimal(
+                str(current_price)
+            )
+
+        if (
+            regular_price is not None
+            and current_price is not None
+            and Decimal(str(regular_price))
+                > Decimal(str(current_price))
+        ):
+
+            offer.old_price = Decimal(
+                str(regular_price)
+            )
+
+        else:
+
+            offer.old_price = None
+
+
+        # =====================================
+        # 3. FINALIZA SINCRONIZAÇÃO
+        # =====================================
+
+        offer.last_synced_at = now
+        offer.sync_error = None
+
+        if commit:
+            db.session.commit()
+
+        return {
+            "success": True,
+            "external_product_id":
+                item_id,
+            "price":
+                float(offer.price)
+                if offer.price is not None
+                else None,
+            "old_price":
+                float(offer.old_price)
+                if offer.old_price is not None
+                else None,
+            "availability_status":
+                offer.availability_status,
+            "last_synced_at":
+                now.isoformat()
+        }
+
+
+    except Exception as error:
+
+        offer.last_synced_at = now
+
+        offer.sync_error = str(
+            error
+        )[:2000]
+
+        if commit:
+
+            try:
+                db.session.commit()
+
+            except Exception:
+                db.session.rollback()
+
+        raise    
 
 def format_job_age(published_at):
     if not published_at:
@@ -2518,6 +3137,177 @@ def admin_required_page(view_func):
 
         return view_func(*args, **kwargs)
     return wrapper
+    
+@app.route(
+    "/admin/mercadolivre/autorizar"
+)
+@admin_required_page
+def admin_mercado_livre_authorize():
+
+    if (
+        not MERCADO_LIVRE_CLIENT_ID
+        or not MERCADO_LIVRE_CLIENT_SECRET
+    ):
+        return (
+            "Credenciais Mercado Livre "
+            "não configuradas.",
+            500
+        )
+
+    state = secrets.token_urlsafe(32)
+
+    session[
+        "mercado_livre_oauth_state"
+    ] = state
+
+    params = {
+        "response_type": "code",
+        "client_id":
+            MERCADO_LIVRE_CLIENT_ID,
+        "redirect_uri":
+            MERCADO_LIVRE_REDIRECT_URI,
+        "state": state
+    }
+
+    authorization_url = (
+        "https://auth.mercadolivre.com.br/"
+        "authorization?"
+        + urlencode(params)
+    )
+
+    return redirect(
+        authorization_url
+    )
+
+@app.route(
+    "/mercadolivre/callback"
+)
+@admin_required_page
+def mercado_livre_callback():
+
+    oauth_error = (
+        request.args.get("error")
+        or ""
+    ).strip()
+
+    if oauth_error:
+        return (
+            "Autorização Mercado Livre "
+            f"cancelada: {oauth_error}",
+            400
+        )
+
+    code = (
+        request.args.get("code")
+        or ""
+    ).strip()
+
+    received_state = (
+        request.args.get("state")
+        or ""
+    ).strip()
+
+    expected_state = (
+        session.pop(
+            "mercado_livre_oauth_state",
+            ""
+        )
+        or ""
+    )
+
+    if (
+        not received_state
+        or not expected_state
+        or not secrets.compare_digest(
+            received_state,
+            expected_state
+        )
+    ):
+        return (
+            "Estado OAuth inválido.",
+            400
+        )
+
+    if not code:
+        return (
+            "Código de autorização "
+            "não recebido.",
+            400
+        )
+
+    try:
+
+        response = requests.post(
+            (
+                "https://api.mercadolibre.com/"
+                "oauth/token"
+            ),
+            headers={
+                "Accept":
+                    "application/json",
+                "Content-Type":
+                    "application/"
+                    "x-www-form-urlencoded"
+            },
+            data={
+                "grant_type":
+                    "authorization_code",
+                "client_id":
+                    MERCADO_LIVRE_CLIENT_ID,
+                "client_secret":
+                    MERCADO_LIVRE_CLIENT_SECRET,
+                "code":
+                    code,
+                "redirect_uri":
+                    MERCADO_LIVRE_REDIRECT_URI
+            },
+            timeout=(5, 20)
+        )
+
+        try:
+            token_data = response.json()
+        except Exception:
+            token_data = {}
+
+        if not response.ok:
+
+            print(
+                "ERRO OAUTH MERCADO LIVRE:",
+                response.status_code,
+                token_data,
+                flush=True
+            )
+
+            return (
+                "Não foi possível concluir "
+                "a autorização do Mercado Livre.",
+                502
+            )
+
+        save_mercado_livre_tokens(
+            token_data
+        )
+
+        return redirect(
+            "/admin/ofertas"
+            "?mercadolivre=autorizado"
+        )
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO CALLBACK MERCADO LIVRE:",
+            repr(error),
+            flush=True
+        )
+
+        return (
+            "Erro ao conectar "
+            "Mercado Livre.",
+            500
+        )    
 
 def plan_priority_case():
     return case(
@@ -3508,7 +4298,30 @@ Sitemap: {base_url}/sitemap.xml
     
 @app.route("/")
 def home():
-    return render_template("home.html")
+
+    now = utc_now()
+
+    featured_offers = (
+        AffiliateProduct.query
+        .filter(
+            AffiliateProduct.is_active.is_(True),
+            or_(
+                AffiliateProduct.expires_at.is_(None),
+                AffiliateProduct.expires_at >= now
+            )
+        )
+        .order_by(
+            AffiliateProduct.is_featured.desc(),
+            AffiliateProduct.created_at.desc()
+        )
+        .limit(4)
+        .all()
+    )
+
+    return render_template(
+        "home.html",
+        featured_offers=featured_offers
+    )
     
 @app.route("/anunciar-empresa")
 def anunciar_empresa():
@@ -4937,6 +5750,1030 @@ def admin_create_trip():
             f"/passeios/{trip.slug}"
         )
     }), 201 
+    
+@app.route("/admin/ofertas")
+@admin_required_page
+def admin_offers_page():
+
+    offers = (
+        AffiliateProduct.query
+        .order_by(
+            AffiliateProduct.created_at.desc()
+        )
+        .all()
+    )
+
+    total_offers = (
+        AffiliateProduct.query
+        .count()
+    )
+
+    active_offers = (
+        AffiliateProduct.query
+        .filter(
+            AffiliateProduct.is_active.is_(True)
+        )
+        .count()
+    )
+
+    featured_offers = (
+        AffiliateProduct.query
+        .filter(
+            AffiliateProduct.is_featured.is_(True)
+        )
+        .count()
+    )
+
+    expired_offers = (
+        AffiliateProduct.query
+        .filter(
+            AffiliateProduct.expires_at.isnot(None),
+            AffiliateProduct.expires_at < utc_now()
+        )
+        .count()
+    )
+
+    total_clicks = (
+        db.session.query(
+            func.coalesce(
+                func.sum(
+                    AffiliateProduct.click_count
+                ),
+                0
+            )
+        )
+        .scalar()
+    )
+
+    return render_template(
+        "admin_offers.html",
+        offers=offers,
+        total_offers=total_offers,
+        active_offers=active_offers,
+        featured_offers=featured_offers,
+        expired_offers=expired_offers,
+        total_clicks=total_clicks,
+        active_page="offers"
+    ) 
+    
+@app.route(
+    "/admin/ofertas/<int:offer_id>/toggle-status",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_offer_toggle_status(offer_id):
+
+    offer = db.session.get(
+        AffiliateProduct,
+        offer_id
+    )
+
+    if not offer:
+        return jsonify({
+            "message": "Oferta não encontrada."
+        }), 404
+
+    try:
+
+        offer.is_active = not bool(
+            offer.is_active
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            "message": (
+                "Oferta ativada com sucesso."
+                if offer.is_active
+                else "Oferta desativada com sucesso."
+            ),
+            "is_active": offer.is_active
+        })
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO ALTERAR STATUS OFERTA:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Não foi possível alterar o status."
+        }), 500
+
+@app.route(
+    "/admin/ofertas/<int:offer_id>/sincronizar",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_sync_mercado_livre_offer(
+    offer_id
+):
+
+    offer = db.session.get(
+        AffiliateProduct,
+        offer_id
+    )
+
+    if not offer:
+
+        return jsonify({
+            "message":
+                "Oferta não encontrada."
+        }), 404
+
+    if (
+        str(
+            offer.store_code
+            or ""
+        ).upper()
+        != "MERCADO_LIVRE"
+    ):
+
+        return jsonify({
+            "message":
+                "Esta oferta não é do Mercado Livre."
+        }), 400
+
+    try:
+
+        result = (
+            sync_mercado_livre_offer(
+                offer
+            )
+        )
+
+        return jsonify({
+            "message":
+                "Produto atualizado com sucesso.",
+            **result
+        })
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO SINCRONIZAR MERCADO LIVRE:",
+            offer_id,
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Não foi possível atualizar "
+                "o produto no Mercado Livre.",
+            "error":
+                str(error)
+        }), 500
+
+@app.route(
+    "/admin/ofertas/<int:offer_id>/toggle-featured",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_offer_toggle_featured(offer_id):
+
+    offer = db.session.get(
+        AffiliateProduct,
+        offer_id
+    )
+
+    if not offer:
+        return jsonify({
+            "message": "Oferta não encontrada."
+        }), 404
+
+    try:
+
+        offer.is_featured = not bool(
+            offer.is_featured
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            "message": (
+                "Oferta destacada com sucesso."
+                if offer.is_featured
+                else "Destaque removido com sucesso."
+            ),
+            "is_featured":
+                offer.is_featured
+        })
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO ALTERAR DESTAQUE OFERTA:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Não foi possível alterar o destaque."
+        }), 500
+
+@app.route(
+    "/admin/ofertas/<int:offer_id>/excluir",
+    methods=["DELETE"]
+)
+@admin_required_page
+def admin_offer_delete(offer_id):
+
+    offer = db.session.get(
+        AffiliateProduct,
+        offer_id
+    )
+
+    if not offer:
+        return jsonify({
+            "message": "Oferta não encontrada."
+        }), 404
+
+    try:
+
+        title = offer.title
+
+        db.session.delete(
+            offer
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            "message":
+                f'Oferta "{title}" excluída com sucesso.'
+        })
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO EXCLUIR OFERTA:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Não foi possível excluir a oferta."
+        }), 500
+
+@app.route(
+    "/admin/ofertas/<int:offer_id>/editar"
+)
+@admin_required_page
+def admin_edit_offer_page(offer_id):
+
+    offer = db.session.get(
+        AffiliateProduct,
+        offer_id
+    )
+
+    if not offer:
+        abort(404)
+
+    return render_template(
+        "admin_offer_form.html",
+        offer=offer,
+        active_page="offers"
+    )     
+
+@app.route(
+    "/admin/ofertas/<int:offer_id>",
+    methods=["PUT"]
+)
+@admin_required_page
+def admin_update_offer(offer_id):
+
+    offer = db.session.get(
+        AffiliateProduct,
+        offer_id
+    )
+
+    if not offer:
+
+        return jsonify({
+            "message":
+                "Oferta não encontrada."
+        }), 404
+
+    try:
+
+        data = (
+            request.get_json(
+                silent=True
+            )
+            or {}
+        )
+
+        title = str(
+            data.get("title")
+            or ""
+        ).strip()
+
+        affiliate_url = str(
+            data.get("affiliate_url")
+            or ""
+        ).strip()
+        
+        store_code = str(
+            data.get("store_code")
+            or ""
+        ).strip().upper()
+
+        external_product_id = str(
+            data.get("external_product_id")
+            or ""
+        ).strip().upper()
+        
+        if store_code == "MERCADO_LIVRE":
+
+            if not external_product_id:
+
+                return jsonify({
+                    "message":
+                        "Informe o código MLB do produto do Mercado Livre."
+                }), 400
+
+            if not re.fullmatch(
+                r"MLB\d+",
+                external_product_id
+            ):
+
+                return jsonify({
+                    "message":
+                        "Código Mercado Livre inválido. Use o formato MLB1234567890."
+                }), 400
+
+        if not title:
+
+            return jsonify({
+                "message":
+                    "Informe o nome do produto."
+            }), 400
+
+        if not affiliate_url:
+
+            return jsonify({
+                "message":
+                    "Informe o link de afiliado."
+            }), 400
+
+        def parse_price(value):
+
+            value = str(
+                value or ""
+            ).strip()
+
+            if not value:
+                return None
+
+            value = (
+                value
+                .replace("R$", "")
+                .replace(" ", "")
+                .strip()
+            )
+
+            if "." in value and "," in value:
+
+                if value.rfind(",") > value.rfind("."):
+                    # 1.990,90 -> 1990.90
+                    value = (
+                        value
+                        .replace(".", "")
+                        .replace(",", ".")
+                    )
+                else:
+                    # 1,990.90 -> 1990.90
+                    value = value.replace(",", "")
+
+            elif "," in value:
+                # 19,90 -> 19.90
+                value = value.replace(",", ".")
+
+            # Se houver somente ponto, mantém.
+            # 19.90 -> 19.90
+
+            try:
+
+                return Decimal(
+                    value
+                )
+
+            except InvalidOperation:
+
+                return None
+
+        expires_at = None
+
+        expires_raw = str(
+            data.get("expires_at")
+            or ""
+        ).strip()
+
+        if expires_raw:
+
+            try:
+
+                expires_at = datetime.strptime(
+                    expires_raw,
+                    "%Y-%m-%d"
+                )
+
+            except ValueError:
+
+                return jsonify({
+                    "message":
+                        "Data de validade inválida."
+                }), 400
+
+        offer.title = title
+
+        offer.store = (
+            str(
+                data.get("store")
+                or ""
+            ).strip()
+            or None
+        )
+
+        offer.category = (
+            str(
+                data.get("category")
+                or ""
+            ).strip()
+            or None
+        )
+
+        offer.description = (
+            str(
+                data.get("description")
+                or ""
+            ).strip()
+            or None
+        )
+
+        offer.image_url = (
+            str(
+                data.get("image_url")
+                or ""
+            ).strip()
+            or None
+        )
+
+        offer.affiliate_url = (
+            affiliate_url
+        )
+
+        offer.old_price = parse_price(
+            data.get("old_price")
+        )
+
+        offer.price = parse_price(
+            data.get("price")
+        )
+
+        offer.expires_at = (
+            expires_at
+        )
+        
+        offer.store_code = (
+            store_code or None
+        )
+
+        offer.external_product_id = (
+            external_product_id or None
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            "message":
+                "Oferta atualizada com sucesso."
+        })
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO ATUALIZAR OFERTA:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Não foi possível atualizar a oferta."
+        }), 500    
+
+@app.route(
+    "/admin/ofertas/detectar-mercado-livre",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_detect_mercado_livre_product():
+
+    try:
+
+        data = (
+            request.get_json(
+                silent=True
+            )
+            or {}
+        )
+
+        affiliate_url = str(
+            data.get("url")
+            or ""
+        ).strip()
+
+        if not affiliate_url:
+
+            return jsonify({
+                "message":
+                    "Informe o link do Mercado Livre."
+            }), 400
+
+        # ========================================
+        # SEGURANÇA: aceita somente Mercado Livre
+        # ========================================
+
+        parsed_url = urlparse(
+            affiliate_url
+        )
+
+        hostname = (
+            parsed_url.hostname
+            or ""
+        ).lower()
+
+        allowed_hosts = (
+            "meli.la",
+            "mercadolivre.com.br",
+            "www.mercadolivre.com.br"
+        )
+
+        if hostname not in allowed_hosts:
+
+            return jsonify({
+                "message":
+                    "O link informado não pertence ao Mercado Livre."
+            }), 400
+
+        # ========================================
+        # SEGUE O REDIRECIONAMENTO DO LINK CURTO
+        # ========================================
+
+        response = requests.get(
+            affiliate_url,
+            allow_redirects=True,
+            timeout=(5, 12),
+            headers={
+                "User-Agent":
+                    "Mozilla/5.0 CataLogin/1.0"
+            }
+        )
+
+        response.raise_for_status()
+
+        final_url = (
+            response.url
+            or affiliate_url
+        )
+
+        decoded_url = unquote(
+            final_url
+        )
+        
+        
+        for index, history_item in enumerate(
+            response.history
+        ):
+
+            print(
+                f"ML REDIRECT {index}:",
+                history_item.status_code,
+                history_item.headers.get(
+                    "Location"
+                ),
+                flush=True
+            )
+
+        # ========================================
+        # PROCURA O ID REAL DO ANÚNCIO
+        #
+        # Exemplos:
+        # item_id:MLB6713010960
+        # item_id=MLB6713010960
+        # wid=MLB6713010960
+        # ========================================
+
+        external_product_id = None
+
+
+        # ========================================
+        # 1. PROCURA NA URL FINAL
+        # ========================================
+
+        url_patterns = [
+            r"item_id[:=%3A]+(MLB\d+)",
+            r"[?&#]wid=(MLB\d+)",
+            r"item_id(?:=|:)(MLB\d+)"
+        ]
+
+        for pattern in url_patterns:
+
+            match = re.search(
+                pattern,
+                decoded_url,
+                flags=re.IGNORECASE
+            )
+
+            if match:
+
+                external_product_id = (
+                    match
+                    .group(1)
+                    .upper()
+                )
+
+                break
+
+
+        # ========================================
+        # 2. PROCURA NOS REDIRECIONAMENTOS
+        # ========================================
+
+        if not external_product_id:
+
+            for history_item in response.history:
+
+                location = (
+                    history_item.headers.get(
+                        "Location"
+                    )
+                    or ""
+                )
+
+                location = unquote(
+                    location
+                )
+
+                for pattern in url_patterns:
+
+                    match = re.search(
+                        pattern,
+                        location,
+                        flags=re.IGNORECASE
+                    )
+
+                    if match:
+
+                        external_product_id = (
+                            match
+                            .group(1)
+                            .upper()
+                        )
+
+                        break
+
+                if external_product_id:
+                    break
+
+
+        # ========================================
+        # 3. PROCURA NO HTML RETORNADO
+        # ========================================
+
+        if not external_product_id:
+
+            html = (
+                response.text
+                or ""
+            )
+
+            html_patterns = [
+                r'"item_id"\s*:\s*"?(MLB\d+)"?',
+                r'"itemId"\s*:\s*"?(MLB\d+)"?',
+                r'"id"\s*:\s*"(MLB\d{8,})"',
+                r'wid=(MLB\d+)',
+                r'item_id(?:%3A|:|=)(MLB\d+)'
+            ]
+
+            for pattern in html_patterns:
+
+                match = re.search(
+                    pattern,
+                    html,
+                    flags=re.IGNORECASE
+                )
+
+                if match:
+
+                    external_product_id = (
+                        match
+                        .group(1)
+                        .upper()
+                    )
+
+                    break
+
+        if not external_product_id:
+
+            return jsonify({
+                "message": (
+                    "O Mercado Livre abriu o produto, "
+                    "mas não foi possível identificar "
+                    "o código MLB do anúncio."
+                ),
+                "final_url":
+                    final_url
+            }), 422
+
+        return jsonify({
+            "success": True,
+            "external_product_id":
+                external_product_id,
+            "final_url":
+                final_url
+        })
+
+    except requests.RequestException as error:
+
+        print(
+            "ERRO RESOLVER LINK MERCADO LIVRE:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Não foi possível consultar o link do Mercado Livre."
+        }), 502
+
+    except Exception as error:
+
+        print(
+            "ERRO DETECTAR PRODUTO MERCADO LIVRE:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Erro ao identificar o produto do Mercado Livre."
+        }), 500
+
+@app.route("/admin/ofertas/nova")
+@admin_required_page
+def admin_new_offer_page():
+
+    return render_template(
+        "admin_offer_form.html",
+        active_page="offers"
+    )   
+
+@app.route(
+    "/admin/ofertas",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_create_offer():
+
+    try:
+
+        data = (
+            request.get_json(
+                silent=True
+            )
+            or {}
+        )
+
+        title = str(
+            data.get("title")
+            or ""
+        ).strip()
+
+        store = str(
+            data.get("store")
+            or ""
+        ).strip()
+
+        category = str(
+            data.get("category")
+            or ""
+        ).strip()
+
+        description = str(
+            data.get("description")
+            or ""
+        ).strip()
+
+        image_url = str(
+            data.get("image_url")
+            or ""
+        ).strip()
+
+        affiliate_url = str(
+            data.get("affiliate_url")
+            or ""
+        ).strip()
+        
+        store_code = str(
+            data.get("store_code")
+            or ""
+        ).strip().upper()
+
+        external_product_id = str(
+            data.get("external_product_id")
+            or ""
+        ).strip().upper()
+
+        old_price_raw = str(
+            data.get("old_price")
+            or ""
+        ).strip()
+
+        price_raw = str(
+            data.get("price")
+            or ""
+        ).strip()
+
+        expires_at_raw = str(
+            data.get("expires_at")
+            or ""
+        ).strip()
+
+        # -------------------------
+        # VALIDAÇÕES
+        # -------------------------
+
+        if not title:
+
+            return jsonify({
+                "message":
+                    "Informe o nome do produto."
+            }), 400
+
+        if not affiliate_url:
+
+            return jsonify({
+                "message":
+                    "Informe o link de afiliado."
+            }), 400
+            
+        if store_code == "MERCADO_LIVRE":
+
+            if not external_product_id:
+
+                return jsonify({
+                    "message":
+                        "Informe o código MLB do produto do Mercado Livre."
+                }), 400
+
+            if not re.fullmatch(
+                r"MLB\d+",
+                external_product_id
+            ):
+
+                return jsonify({
+                    "message":
+                        "Código Mercado Livre inválido. Use o formato MLB1234567890."
+                }), 400    
+
+        # -------------------------
+        # CONVERSÃO DE PREÇO
+        # -------------------------
+
+        def parse_price(value):
+
+            if not value:
+                return None
+
+            value = (
+                value
+                .replace("R$", "")
+                .replace(" ", "")
+                .strip()
+            )
+
+            if "." in value and "," in value:
+
+                if value.rfind(",") > value.rfind("."):
+                    # 1.990,90 -> 1990.90
+                    value = (
+                        value
+                        .replace(".", "")
+                        .replace(",", ".")
+                    )
+                else:
+                    # 1,990.90 -> 1990.90
+                    value = value.replace(",", "")
+
+            elif "," in value:
+                # 19,90 -> 19.90
+                value = value.replace(",", ".")
+
+            # Se houver somente ponto, mantém.
+            # 19.90 -> 19.90
+
+            try:
+                return Decimal(value)
+
+            except InvalidOperation:
+                return None
+
+        old_price = parse_price(
+            old_price_raw
+        )
+
+        price = parse_price(
+            price_raw
+        )
+
+        # -------------------------
+        # VALIDADE
+        # -------------------------
+
+        expires_at = None
+
+        if expires_at_raw:
+
+            try:
+                expires_at = datetime.strptime(
+                    expires_at_raw,
+                    "%Y-%m-%d"
+                )
+
+            except ValueError:
+
+                return jsonify({
+                    "message":
+                        "Data de validade inválida."
+                }), 400
+
+        # -------------------------
+        # CRIA OFERTA
+        # -------------------------
+
+        offer = AffiliateProduct(
+            title=title,
+            store=store or None,
+            store_code=store_code or None,
+            external_product_id=external_product_id or None,
+            category=category or None,
+            description=description or None,
+            image_url=image_url or None,
+            affiliate_url=affiliate_url,
+            old_price=old_price,
+            price=price,
+            expires_at=expires_at,
+            is_active=True,
+            is_featured=False,
+            click_count=0
+        )
+
+        db.session.add(
+            offer
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            "message":
+                "Oferta cadastrada com sucesso.",
+
+            "offer_id":
+                offer.id
+        }), 201
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO CADASTRAR OFERTA:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Não foi possível cadastrar a oferta."
+        }), 500    
 
 @app.route("/passeios/<slug>")
 def public_trip_page(slug):
@@ -10341,7 +12178,193 @@ def admin_jobs_page():
         adzuna_jobs=adzuna_jobs,
         jsearch_jobs=jsearch_jobs,
         active_page="jobs"
-    )       
+    )
+
+@app.route("/ofertas")
+def public_offers_page():
+
+    now = utc_now()
+
+    q = (
+        request.args.get("q")
+        or ""
+    ).strip()
+
+    category = (
+        request.args.get("category")
+        or ""
+    ).strip()
+
+    store = (
+        request.args.get("store")
+        or ""
+    ).strip()
+
+    sort = (
+        request.args.get("sort")
+        or "recentes"
+    ).strip().lower()
+
+    query = (
+        AffiliateProduct.query
+        .filter(
+            AffiliateProduct.is_active.is_(True),
+            or_(
+                AffiliateProduct.expires_at.is_(None),
+                AffiliateProduct.expires_at >= now
+            )
+        )
+    )
+
+    if q:
+
+        search_term = (
+            f"%{q}%"
+        )
+
+        query = query.filter(
+            or_(
+                AffiliateProduct.title.ilike(
+                    search_term
+                ),
+                AffiliateProduct.description.ilike(
+                    search_term
+                ),
+                AffiliateProduct.category.ilike(
+                    search_term
+                ),
+                AffiliateProduct.store.ilike(
+                    search_term
+                )
+            )
+        )
+
+    if category:
+
+        query = query.filter(
+            AffiliateProduct.category == category
+        )
+
+    if store:
+
+        query = query.filter(
+            AffiliateProduct.store == store
+        )
+
+    if sort == "menor_preco":
+
+        query = query.order_by(
+            AffiliateProduct.is_featured.desc(),
+            AffiliateProduct.price.asc().nullslast(),
+            AffiliateProduct.created_at.desc()
+        )
+
+    elif sort == "maior_preco":
+
+        query = query.order_by(
+            AffiliateProduct.is_featured.desc(),
+            AffiliateProduct.price.desc().nullslast(),
+            AffiliateProduct.created_at.desc()
+        )
+
+    else:
+
+        sort = "recentes"
+
+        query = query.order_by(
+            AffiliateProduct.is_featured.desc(),
+            AffiliateProduct.created_at.desc()
+        )
+
+    offers = query.all()
+
+    categories = (
+        db.session.query(
+            AffiliateProduct.category
+        )
+        .filter(
+            AffiliateProduct.category.isnot(None),
+            AffiliateProduct.category != "",
+            AffiliateProduct.is_active.is_(True)
+        )
+        .distinct()
+        .order_by(
+            AffiliateProduct.category.asc()
+        )
+        .all()
+    )
+
+    stores = (
+        db.session.query(
+            AffiliateProduct.store
+        )
+        .filter(
+            AffiliateProduct.store.isnot(None),
+            AffiliateProduct.store != "",
+            AffiliateProduct.is_active.is_(True)
+        )
+        .distinct()
+        .order_by(
+            AffiliateProduct.store.asc()
+        )
+        .all()
+    )
+
+    categories = [
+        item[0]
+        for item in categories
+    ]
+
+    stores = [
+        item[0]
+        for item in stores
+    ]
+
+    return render_template(
+        "offers.html",
+        offers=offers,
+        categories=categories,
+        stores=stores,
+        selected_q=q,
+        selected_category=category,
+        selected_store=store,
+        selected_sort=sort
+    )
+
+@app.route("/ofertas/<int:offer_id>/ir")
+def affiliate_offer_redirect(offer_id):
+
+    offer = db.session.get(
+        AffiliateProduct,
+        offer_id
+    )
+
+    if (
+        not offer
+        or not offer.is_active
+        or not offer.affiliate_url
+    ):
+        abort(404)
+
+    if (
+        offer.expires_at
+        and offer.expires_at < utc_now()
+    ):
+        abort(404)
+
+    try:
+        offer.click_count = (
+            offer.click_count or 0
+        ) + 1
+
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+
+    return redirect(
+        offer.affiliate_url
+    )    
     
     
 # =========================

@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Produtos em promoção | CataLogin
+    </title>
+
+    <meta
+        name="description"
+        content="Encontre produtos em promoção, ofertas e descontos selecionados pelo CataLogin."
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ static_asset('style.css') }}"
+    >
+
+    <style>
+
+        body {
+            margin: 0;
+            background: #f4f7fb;
+        }
+
+        .offers-page {
+			width: 100%;
+			max-width: 1500px;
+			margin: 0 auto;
+			padding: 30px 32px 60px;
+			box-sizing: border-box;
+		}
+
+        .offers-hero {
+            padding: 34px;
+            border-radius: 24px;
+            margin-bottom: 26px;
+            background:
+                linear-gradient(
+                    135deg,
+                    #ea580c,
+                    #991b1b
+                );
+            color: white;
+        }
+
+        .offers-hero h1 {
+            margin: 0 0 10px;
+            font-size: 36px;
+        }
+
+        .offers-hero p {
+            margin: 0;
+            line-height: 1.6;
+            color: #ffedd5;
+        }
+
+        .offers-grid {
+			display: grid;
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+			gap: 18px;
+			width: 100%;
+		}
+
+		.offer-card {
+			position: relative;
+			overflow: hidden;
+			width: 100%;
+			min-width: 0;
+			background: #ffffff;
+			border: 1px solid #e5e7eb;
+			border-radius: 10px;
+			padding: 0;
+			box-sizing: border-box;
+			transition:
+				box-shadow 0.2s ease,
+				transform 0.2s ease;
+		}
+
+		.offer-card:hover {
+			box-shadow:
+				0 8px 24px
+				rgba(0, 0, 0, 0.10);
+
+			transform: translateY(-2px);
+		}
+
+		.offer-card.featured {
+			border: 1px solid #f59e0b;
+		}
+
+		.featured-badge {
+			position: absolute;
+			top: 10px;
+			left: 10px;
+			z-index: 5;
+			padding: 5px 7px;
+			background: #ff6d2d;
+			color: #ffffff;
+			border-radius: 3px;
+			font-size: 11px;
+			font-weight: 700;
+		}
+
+		.offer-image-wrapper {
+			width: 100%;
+			height: 300px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: #ffffff;
+			overflow: hidden;
+			border-bottom: 1px solid #eeeeee;
+		}
+
+		.offer-image {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+			padding: 8px;
+			box-sizing: border-box;
+		}
+
+		.offer-card-content {
+			padding: 14px 15px 12px;
+		}
+
+		.offer-store {
+			margin-bottom: 7px;
+			color: #737373;
+			font-size: 13px;
+		}
+
+		.offer-title {
+			margin: 0 0 8px;
+			color: #222222;
+			font-size: 16px;
+			font-weight: 500;
+			line-height: 1.35;
+
+			display: -webkit-box;
+			-webkit-line-clamp: 2;
+			-webkit-box-orient: vertical;
+
+			overflow: hidden;
+			min-height: 43px;
+		}
+
+		.offer-description {
+			display: none;
+		}
+
+		.old-price {
+			margin-top: 10px;
+			color: #999999;
+			font-size: 13px;
+			text-decoration: line-through;
+		}
+
+		.price {
+			margin-top: 2px;
+			color: #222222;
+			font-size: 24px;
+			font-weight: 500;
+		}
+
+		.discount {
+			display: inline-block;
+			margin-top: 5px;
+			padding: 3px 6px;
+			background: #dcfce7;
+			color: #15803d;
+			border-radius: 4px;
+			font-size: 12px;
+			font-weight: 700;
+		}
+
+		.offer-btn {
+			display: block;
+			margin-top: 14px;
+			padding: 11px 8px;
+			background: #e8f0fe;
+			color: #2563eb;
+			border-radius: 6px;
+			text-align: center;
+			text-decoration: none;
+			font-size: 14px;
+			font-weight: 700;
+		}
+
+        .affiliate-notice {
+            margin-top: 28px;
+            padding: 16px;
+            border-radius: 14px;
+            background: #fff7ed;
+            color: #9a3412;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .empty-box {
+            padding: 35px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            text-align: center;
+            color: #64748b;
+        }
+		
+		.offers-filters {
+			margin-bottom: 24px;
+		}
+
+		.offers-filter-form {
+			display: grid;
+			grid-template-columns:
+				2fr
+				1fr
+				1fr
+				1fr
+				auto
+				auto;
+			gap: 10px;
+			align-items: center;
+		}
+
+		.offers-filter-form input,
+		.offers-filter-form select {
+			width: 100%;
+			padding: 11px 12px;
+			border: 1px solid #d1d5db;
+			border-radius: 8px;
+			background: white;
+			font: inherit;
+			box-sizing: border-box;
+		}
+
+		.offers-filter-form button {
+			padding: 11px 18px;
+			border: none;
+			border-radius: 8px;
+			background: #2563eb;
+			color: white;
+			font-weight: 700;
+			cursor: pointer;
+		}
+
+		.clear-filters {
+			padding: 11px 14px;
+			border-radius: 8px;
+			background: #e5e7eb;
+			color: #374151;
+			text-decoration: none;
+			font-weight: 700;
+			text-align: center;
+		}
+
+		@media (max-width: 900px) {
+
+			.offers-filter-form {
+				grid-template-columns:
+					repeat(2, minmax(0, 1fr));
+			}
+
+		}
+
+		@media (max-width: 520px) {
+
+			.offers-filter-form {
+				grid-template-columns: 1fr;
+			}
+
+		}
+
+        @media (max-width: 1100px) {
+
+			.offers-grid {
+				grid-template-columns:
+					repeat(3, minmax(0, 1fr));
+			}
+
+		}
+
+		@media (max-width: 800px) {
+
+			.offers-grid {
+				grid-template-columns:
+					repeat(2, minmax(0, 1fr));
+
+				gap: 12px;
+			}
+
+			.offer-image-wrapper {
+				height: 220px;
+			}
+
+		}
+
+		@media (max-width: 480px) {
+
+			.offers-page {
+				padding: 20px 10px 50px;
+			}
+
+			.offers-grid {
+				grid-template-columns:
+					repeat(2, minmax(0, 1fr));
+
+				gap: 8px;
+			}
+
+			.offer-image-wrapper {
+				height: 170px;
+			}
+
+			.offer-card-content {
+				padding: 10px;
+			}
+
+			.offer-title {
+				font-size: 14px;
+			}
+
+			.price {
+				font-size: 20px;
+			}
+
+		}
+
+    </style>
+
+</head>
+
+<body>
+
+    {% include "partials/topbar.html" %}
+
+    <main class="offers-page">
+
+        <section class="offers-hero">
+
+            <h1>
+                🔥 Produtos em promoção
+            </h1>
+
+            <p>
+                Ofertas e descontos selecionados
+                para você economizar.
+				(Observar na fonte se o produto teve o preço atualizado.)
+            </p>
+			
+                
+            
+
+        </section>
+		
+		<section class="offers-filters">
+
+			<form
+				method="GET"
+				action="/ofertas"
+				class="offers-filter-form"
+			>
+
+				<input
+					type="text"
+					name="q"
+					value="{{ selected_q }}"
+					placeholder="Buscar produto..."
+				>
+
+				<select name="category">
+
+					<option value="">
+						Todas as categorias
+					</option>
+
+					{% for category in categories %}
+
+						<option
+							value="{{ category }}"
+							{% if selected_category == category %}
+								selected
+							{% endif %}
+						>
+							{{ category }}
+						</option>
+
+					{% endfor %}
+
+				</select>
+
+				<select name="store">
+
+					<option value="">
+						Todas as lojas
+					</option>
+
+					{% for store in stores %}
+
+						<option
+							value="{{ store }}"
+							{% if selected_store == store %}
+								selected
+							{% endif %}
+						>
+							{{ store }}
+						</option>
+
+					{% endfor %}
+
+				</select>
+
+				<select name="sort">
+
+					<option
+						value="recentes"
+						{% if selected_sort == "recentes" %}
+							selected
+						{% endif %}
+					>
+						Mais recentes
+					</option>
+
+					<option
+						value="menor_preco"
+						{% if selected_sort == "menor_preco" %}
+							selected
+						{% endif %}
+					>
+						Menor preço
+					</option>
+
+					<option
+						value="maior_preco"
+						{% if selected_sort == "maior_preco" %}
+							selected
+						{% endif %}
+					>
+						Maior preço
+					</option>
+
+				</select>
+
+				<button type="submit">
+					Buscar
+				</button>
+
+				<a
+					href="/ofertas"
+					class="clear-filters"
+				>
+					Limpar
+				</a>
+
+			</form>
+
+		</section>
+
+        {% if offers %}
+
+            <section class="offers-grid">
+
+                {% for offer in offers %}
+
+                    <article
+                        class="
+                            offer-card
+                            {% if offer.is_featured %}
+                                featured
+                            {% endif %}
+                        "
+                    >
+
+                        {% if offer.is_featured %}
+
+                            <div class="featured-badge">
+                                ⭐ DESTAQUE
+                            </div>
+
+                        {% endif %}
+
+                        {% if offer.image_url %}
+
+                            <div class="offer-image-wrapper">
+
+                                <img
+                                    src="{{ offer.image_url }}"
+                                    alt="{{ offer.title }}"
+                                    class="offer-image"
+                                    loading="lazy"
+                                >
+
+                            </div>
+
+                        {% endif %}
+						
+						<div class="offer-card-content">
+
+                        {% if offer.store %}
+
+                            <div class="offer-store">
+                                {{ offer.store }}
+                            </div>
+
+                        {% endif %}
+
+                        <h2 class="offer-title">
+                            {{ offer.title }}
+                        </h2>
+
+                        {% if offer.description %}
+
+                            <div class="offer-description">
+                                {{ offer.description[:180] }}
+
+                                {% if offer.description|length > 180 %}
+                                    ...
+                                {% endif %}
+                            </div>
+
+                        {% endif %}
+
+                        {% if offer.old_price %}
+
+                            <div class="old-price">
+                                De R$
+                                {{ "%.2f"|format(offer.old_price) }}
+                            </div>
+
+                        {% endif %}
+
+                        {% if offer.price %}
+
+                            <div class="price">
+                                R$
+                                {{ "%.2f"|format(offer.price) }}
+                            </div>
+
+                        {% endif %}
+
+                        {% if (
+                            offer.old_price
+                            and offer.price
+                            and offer.old_price > offer.price
+                        ) %}
+
+                            {% set discount =
+                                (
+                                    (
+                                        offer.old_price
+                                        - offer.price
+                                    )
+                                    / offer.old_price
+                                    * 100
+                                )
+                                | round
+                                | int
+                            %}
+
+                            <div class="discount">
+                                {{ discount }}% OFF
+                            </div>
+
+                        {% endif %}
+
+                        <a
+                            href="/ofertas/{{ offer.id }}/ir"
+                            class="offer-btn"
+                            rel="sponsored nofollow"
+                            target="_blank"
+                        >
+                            Ver oferta
+                        </a>
+						
+						</div>
+
+                    </article>
+
+                {% endfor %}
+
+            </section>
+
+        {% else %}
+
+            <div class="empty-box">
+                Nenhuma promoção disponível no momento.
+            </div>
+
+        {% endif %}
+
+        <div class="affiliate-notice">
+            Alguns produtos podem ter o preço atualizado na fonte.
+        </div>
+
+    </main>
+
+    <script
+        src="{{ static_asset('common_layout.js') }}"
+    ></script>
+
+</body>
+
+</html>

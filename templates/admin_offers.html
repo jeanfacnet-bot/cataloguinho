@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Ofertas de afiliados | Admin
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ static_asset('style.css') }}"
+    >
+
+    <style>
+
+        body {
+            margin: 0;
+            background: #f4f7fb;
+        }
+
+        .offers-admin-page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px 60px;
+        }
+
+        .offers-admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .offers-admin-header h1 {
+            margin: 0;
+            color: #111827;
+        }
+
+        .new-offer-btn {
+            display: inline-block;
+            padding: 12px 18px;
+            border-radius: 10px;
+            background: #16a34a;
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(170px, 1fr)
+                );
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 18px;
+        }
+
+        .stat-card span {
+            display: block;
+            color: #64748b;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .stat-card strong {
+            font-size: 26px;
+            color: #111827;
+        }
+
+        .offers-table-wrapper {
+            overflow-x: auto;
+            background: white;
+            border-radius: 18px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .offers-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 900px;
+        }
+
+        .offers-table th,
+        .offers-table td {
+            padding: 14px;
+            text-align: left;
+            border-bottom:
+                1px solid #e5e7eb;
+        }
+
+        .offers-table th {
+            background: #f8fafc;
+            color: #334155;
+            font-size: 13px;
+        }
+
+        .offer-image {
+            width: 64px;
+            height: 64px;
+            object-fit: cover;
+            border-radius: 10px;
+            background: #f1f5f9;
+        }
+
+        .status-active {
+            color: #15803d;
+            font-weight: 700;
+        }
+
+        .status-inactive {
+            color: #b91c1c;
+            font-weight: 700;
+        }
+
+        .empty-box {
+            background: white;
+            padding: 30px;
+            border-radius: 18px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+            color: #64748b;
+        }
+		
+		.offer-actions {
+			min-width: 150px;
+		}
+
+		.action-btn {
+			display: block;
+			width: 100%;
+			margin-bottom: 6px;
+			padding: 8px 10px;
+			border: none;
+			border-radius: 7px;
+			cursor: pointer;
+			font-size: 12px;
+			font-weight: 700;
+		}
+
+		.action-btn.status {
+			background: #e0f2fe;
+			color: #0369a1;
+		}
+
+		.action-btn.featured {
+			background: #fef3c7;
+			color: #92400e;
+		}
+
+		.action-btn.delete {
+			background: #fee2e2;
+			color: #b91c1c;
+		}
+		.action-btn.edit {
+			display: block;
+			background: #ede9fe;
+			color: #6d28d9;
+			text-decoration: none;
+			text-align: center;
+		}
+		
+		.action-btn.sync {
+			background: #dcfce7;
+			color: #166534;
+		}
+
+    </style>
+
+</head>
+
+<body>
+
+    {% include "partials/topbar.html" %}
+    {% include "partials/admin_sidebar.html" %}
+
+    <main class="offers-admin-page">
+
+        <div class="offers-admin-header">
+
+            <div>
+                <h1>
+                    Produtos em promoção
+                </h1>
+                <p>
+                    Gerencie os produtos e links de afiliados.
+                </p>
+            </div>
+			
+			<a
+				href="/admin/mercadolivre/autorizar"
+				class="new-offer-btn"
+				style="background:#2563eb;"
+			>
+				🔗 Conectar Mercado Livre
+			</a>
+
+            <a
+                href="/admin/ofertas/nova"
+                class="new-offer-btn"
+            >
+                + Cadastrar oferta
+            </a>
+
+        </div>
+
+        <section class="stats-grid">
+
+            <div class="stat-card">
+                <span>Total de ofertas</span>
+                <strong>{{ total_offers }}</strong>
+            </div>
+
+            <div class="stat-card">
+                <span>Ativas</span>
+                <strong>{{ active_offers }}</strong>
+            </div>
+
+            <div class="stat-card">
+                <span>Expiradas</span>
+                <strong>{{ expired_offers }}</strong>
+            </div>
+
+            <div class="stat-card">
+                <span>Em destaque</span>
+                <strong>{{ featured_offers }}</strong>
+            </div>
+
+            <div class="stat-card">
+                <span>Cliques</span>
+                <strong>{{ total_clicks }}</strong>
+            </div>
+
+        </section>
+
+        {% if offers %}
+
+            <div class="offers-table-wrapper">
+
+                <table class="offers-table">
+
+                    <thead>
+                        <tr>
+                            <th>Imagem</th>
+                            <th>Produto</th>
+                            <th>Loja</th>
+                            <th>Preço</th>
+                            <th>Status</th>
+                            <th>Destaque</th>
+                            <th>Cliques</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for offer in offers %}
+
+                            <tr>
+
+                                <td>
+
+                                    {% if offer.image_url %}
+
+                                        <img
+                                            src="{{ offer.image_url }}"
+                                            alt="{{ offer.title }}"
+                                            class="offer-image"
+                                        >
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+                                    <strong>
+                                        {{ offer.title }}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    {{ offer.store or "-" }}
+                                </td>
+
+                                <td>
+
+                                    {% if offer.price %}
+
+                                        R$
+                                        {{ "%.2f"|format(offer.price) }}
+
+                                    {% else %}
+
+                                        -
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+
+                                    {% if offer.is_active %}
+
+                                        <span class="status-active">
+                                            Ativa
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="status-inactive">
+                                            Inativa
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+                                    {% if offer.is_featured %}
+                                        ⭐ Sim
+                                    {% else %}
+                                        Não
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {{ offer.click_count }}
+                                </td>
+
+                                <td class="offer-actions">
+								
+									<a
+										href="/admin/ofertas/{{ offer.id }}/editar"
+										class="action-btn edit"
+									>
+										✏️ Editar
+									</a>
+									
+									{% if (
+										offer.store_code
+										== "MERCADO_LIVRE"
+										and offer.external_product_id
+									) %}
+
+										<button
+											type="button"
+											class="action-btn sync"
+											onclick="syncOffer({{ offer.id }})"
+										>
+											🔄 Atualizar preço
+										</button>
+
+									{% endif %}
+
+									<button
+										type="button"
+										class="action-btn status"
+										onclick="toggleOfferStatus({{ offer.id }})"
+									>
+										{% if offer.is_active %}
+											Desativar
+										{% else %}
+											Ativar
+										{% endif %}
+									</button>
+
+									<button
+										type="button"
+										class="action-btn featured"
+										onclick="toggleOfferFeatured({{ offer.id }})"
+									>
+										{% if offer.is_featured %}
+											Remover destaque
+										{% else %}
+											⭐ Destacar
+										{% endif %}
+									</button>
+
+									<button
+										type="button"
+										class="action-btn delete"
+										onclick="deleteOffer({{ offer.id }})"
+									>
+										Excluir
+									</button>
+
+								</td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="empty-box">
+                Nenhuma oferta cadastrada ainda.
+            </div>
+
+        {% endif %}
+
+    </main>
+	
+	<script>
+
+		async function toggleOfferStatus(
+			offerId
+		) {
+
+			try {
+
+				const response =
+					await fetch(
+						`/admin/ofertas/${offerId}/toggle-status`,
+						{
+							method: "POST"
+						}
+					);
+
+				const data =
+					await response.json();
+
+				if (!response.ok) {
+
+					alert(
+						data.message ||
+						"Erro ao alterar status."
+					);
+
+					return;
+				}
+
+				window.location.reload();
+
+			} catch (error) {
+
+				console.error(error);
+
+				alert(
+					"Erro de comunicação."
+				);
+			}
+		}
+
+
+		async function toggleOfferFeatured(
+			offerId
+		) {
+
+			try {
+
+				const response =
+					await fetch(
+						`/admin/ofertas/${offerId}/toggle-featured`,
+						{
+							method: "POST"
+						}
+					);
+
+				const data =
+					await response.json();
+
+				if (!response.ok) {
+
+					alert(
+						data.message ||
+						"Erro ao alterar destaque."
+					);
+
+					return;
+				}
+
+				window.location.reload();
+
+			} catch (error) {
+
+				console.error(error);
+
+				alert(
+					"Erro de comunicação."
+				);
+			}
+		}
+
+
+		async function deleteOffer(
+			offerId
+		) {
+
+			const confirmed =
+				confirm(
+					"Deseja realmente excluir esta oferta?"
+				);
+
+			if (!confirmed) {
+				return;
+			}
+
+			try {
+
+				const response =
+					await fetch(
+						`/admin/ofertas/${offerId}/excluir`,
+						{
+							method: "DELETE"
+						}
+					);
+
+				const data =
+					await response.json();
+
+				if (!response.ok) {
+
+					alert(
+						data.message ||
+						"Erro ao excluir oferta."
+					);
+
+					return;
+				}
+
+				alert(
+					data.message
+				);
+
+				window.location.reload();
+
+			} catch (error) {
+
+				console.error(error);
+
+				alert(
+					"Erro de comunicação."
+				);
+			}
+		}
+		
+		async function syncOffer(
+			offerId
+		) {
+
+			try {
+
+				const response =
+					await fetch(
+						`/admin/ofertas/${offerId}/sincronizar`,
+						{
+							method: "POST"
+						}
+					);
+
+				const data =
+					await response.json();
+
+				if (!response.ok) {
+
+					alert(
+						data.error
+						|| data.message
+						|| "Erro ao atualizar preço."
+					);
+
+					return;
+				}
+
+				let message =
+					"Produto atualizado!\n\n";
+
+				if (
+					data.old_price !== null
+					&& data.old_price !== undefined
+				) {
+
+					message +=
+						`Preço anterior: R$ ${
+							Number(
+								data.old_price
+							).toFixed(2)
+						}\n`;
+				}
+
+				if (
+					data.price !== null
+					&& data.price !== undefined
+				) {
+
+					message +=
+						`Preço atual: R$ ${
+							Number(
+								data.price
+							).toFixed(2)
+						}\n`;
+				}
+
+				message +=
+					`Status: ${
+						data.availability_status
+						|| "-"
+					}`;
+
+				alert(
+					message
+				);
+
+				window.location.reload();
+
+			} catch (error) {
+
+				console.error(
+					error
+				);
+
+				alert(
+					"Erro de comunicação."
+				);
+			}
+		}
+
+	</script>
+
+    <script
+        src="{{ static_asset('common_layout.js') }}"
+    ></script>
+
+</body>
+
+</html>
