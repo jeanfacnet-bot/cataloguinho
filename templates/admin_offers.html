@@ -85,6 +85,56 @@
             font-size: 26px;
             color: #111827;
         }
+		
+		.store-section {
+			margin-bottom: 24px;
+		}
+
+		.store-section-title {
+			margin: 0 0 12px;
+			color: #111827;
+			font-size: 16px;
+			font-weight: 700;
+		}
+
+		.store-cards {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 12px;
+		}
+
+		.store-card {
+			display: flex;
+			align-items: center;
+			gap: 9px;
+			min-width: 150px;
+			padding: 13px 16px;
+			background: #ffffff;
+			border: 1px solid #e5e7eb;
+			border-radius: 12px;
+			color: #334155;
+			font-size: 14px;
+			font-weight: 700;
+			box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+
+			text-decoration: none;
+			cursor: pointer;
+
+			transition:
+				transform 0.15s ease,
+				box-shadow 0.15s ease,
+				border-color 0.15s ease;
+		}
+		
+		.store-card:hover {
+			transform: translateY(-2px);
+			border-color: #2563eb;
+			box-shadow: 0 6px 16px rgba(37, 99, 235, 0.12);
+		}
+
+		.store-card-icon {
+			font-size: 19px;
+		}
 
         .offers-table-wrapper {
             overflow-x: auto;
@@ -239,6 +289,75 @@
             </div>
 
         </section>
+		
+		        {% if offers %}
+
+					{% set store_data = namespace(names=[]) %}
+
+					{% for offer in offers %}
+
+						{% if (
+							offer.store
+							and offer.store not in store_data.names
+						) %}
+
+							{% set store_data.names =
+								store_data.names + [offer.store]
+							%}
+
+						{% endif %}
+
+					{% endfor %}
+
+					{% if store_data.names %}
+
+						<section class="store-section">
+
+							<h2 class="store-section-title">
+								🏪 Lojas cadastradas
+							</h2>
+
+							<div class="store-cards">
+
+								<a
+									href="/admin/ofertas"
+									class="store-card"
+								>
+									<span class="store-card-icon">
+										🧾
+									</span>
+
+									<span>
+										Todas
+									</span>
+								</a>
+
+								{% for store_name in store_data.names %}
+
+									<a
+										href="/admin/ofertas?store={{ store_name | urlencode }}"
+										class="store-card"
+									>
+
+										<span class="store-card-icon">
+											🛍️
+										</span>
+
+										<span>
+											{{ store_name }}
+										</span>
+
+									</a>
+
+								{% endfor %}
+
+							</div>
+
+						</section>
+
+					{% endif %}
+
+				{% endif %}
 
         {% if offers %}
 

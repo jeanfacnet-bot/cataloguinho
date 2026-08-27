@@ -5074,9 +5074,21 @@ def admin_create_trip():
 @app.route("/admin/ofertas")
 @admin_required_page
 def admin_offers_page():
+    
+    selected_store = (
+        request.args.get("store")
+        or ""
+    ).strip()
+
+    query = AffiliateProduct.query
+
+    if selected_store:
+        query = query.filter(
+            AffiliateProduct.store == selected_store
+        )
 
     offers = (
-        AffiliateProduct.query
+        query
         .order_by(
             AffiliateProduct.created_at.desc()
         )
@@ -5133,8 +5145,9 @@ def admin_offers_page():
         featured_offers=featured_offers,
         expired_offers=expired_offers,
         total_clicks=total_clicks,
+        selected_store=selected_store,
         active_page="offers"
-    ) 
+    )
     
 @app.route(
     "/admin/ofertas/<int:offer_id>/toggle-status",

@@ -140,6 +140,13 @@
 			color: #737373;
 			font-size: 13px;
 		}
+		
+		.offer-posted-time {
+			margin: -2px 0 7px;
+			color: #9ca3af;
+			font-size: 12px;
+			font-weight: 500;
+		}
 
 		.offer-title {
 			margin: 0 0 8px;
@@ -264,12 +271,25 @@
 			font-weight: 700;
 			text-align: center;
 		}
+		
+		/* Layout quando administrador estiver logado */
+		body.admin-has-sidebar .offers-page {
+			max-width: none;
+			width: auto;
+			margin-left: 270px;
+			margin-right: 24px;
+		}
 
 		@media (max-width: 900px) {
 
 			.offers-filter-form {
 				grid-template-columns:
 					repeat(2, minmax(0, 1fr));
+			}
+			
+			body.admin-has-sidebar .offers-page {
+				margin-left: auto;
+				margin-right: auto;
 			}
 
 		}
@@ -344,6 +364,7 @@
 <body>
 
     {% include "partials/topbar.html" %}
+	{% include "partials/admin_sidebar.html" %}
 
     <main class="offers-page">
 
@@ -514,6 +535,12 @@
                             </div>
 
                         {% endif %}
+						
+						{% if offer.created_at %}
+							<div class="offer-posted-time">
+								🕒 {{ format_job_age(offer.created_at) | replace("Publicado", "Postado") }}
+							</div>
+						{% endif %}
 
                         <h2 class="offer-title">
                             {{ offer.title }}
@@ -604,6 +631,59 @@
         </div>
 
     </main>
+	
+	<script>
+		(function () {
+
+			let adminLayoutUser = null;
+
+			try {
+
+				adminLayoutUser = JSON.parse(
+					localStorage.getItem(
+						"catalogo_user"
+					) || "null"
+				);
+
+			} catch (error) {
+
+				console.warn(
+					"Dados inválidos do usuário:",
+					error
+				);
+
+				localStorage.removeItem(
+					"catalogo_user"
+				);
+			}
+
+			const adminSidebar =
+				document.getElementById(
+					"adminSidebar"
+				);
+
+			const isAdmin =
+				adminLayoutUser &&
+				(
+					adminLayoutUser.is_admin === true ||
+					adminLayoutUser.role === "admin"
+				);
+
+			if (
+				isAdmin &&
+				adminSidebar
+			) {
+
+				document.body.classList.add(
+					"admin-has-sidebar"
+				);
+
+				adminSidebar.style.display =
+					"flex";
+			}
+
+		})();
+	</script>
 
     <script
         src="{{ static_asset('common_layout.js') }}"
