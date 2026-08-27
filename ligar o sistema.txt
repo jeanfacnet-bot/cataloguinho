@@ -1,4 +1,4 @@
 git add .
-git commit -m "ofertas"
+git commit -m "passeios"
 git push
 

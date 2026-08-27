@@ -5071,6 +5071,289 @@ def admin_create_trip():
         )
     }), 201 
     
+@app.route(
+    "/admin/passeios/<int:trip_id>/excluir",
+    methods=["DELETE"]
+)
+@admin_required_page
+def admin_delete_trip(trip_id):
+
+    trip = db.session.get(
+        TripEvent,
+        trip_id
+    )
+
+    if not trip:
+        return jsonify({
+            "message":
+                "Passeio não encontrado."
+        }), 404
+
+    try:
+
+        title = trip.title
+
+        db.session.delete(
+            trip
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            "message":
+                f'Passeio "{title}" excluído com sucesso.'
+        })
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO EXCLUIR PASSEIO:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Não foi possível excluir o passeio."
+        }), 500   
+
+@app.route(
+    "/admin/passeios/<int:trip_id>/editar",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_edit_trip(trip_id):
+
+    trip = db.session.get(
+        TripEvent,
+        trip_id
+    )
+
+    if not trip:
+        return jsonify({
+            "message":
+                "Passeio não encontrado."
+        }), 404
+
+    title = (
+        request.form.get("title")
+        or ""
+    ).strip()
+
+    description = (
+        request.form.get("description")
+        or ""
+    ).strip()
+
+    destination = (
+        request.form.get("destination")
+        or ""
+    ).strip()
+
+    event_date_raw = (
+        request.form.get("event_date")
+        or ""
+    ).strip()
+
+    departure_time_raw = (
+        request.form.get("departure_time")
+        or ""
+    ).strip()
+
+    return_time_raw = (
+        request.form.get("return_time")
+        or ""
+    ).strip()
+
+    price_raw = (
+        request.form.get("price")
+        or "0"
+    ).strip()
+
+    registration_deadline_raw = (
+        request.form.get(
+            "registration_deadline"
+        )
+        or ""
+    ).strip()
+
+    payment_instructions = (
+        request.form.get(
+            "payment_instructions"
+        )
+        or ""
+    ).strip()
+
+    pix_key = (
+        request.form.get("pix_key")
+        or ""
+    ).strip()
+
+    pix_key_type = (
+        request.form.get("pix_key_type")
+        or ""
+    ).strip().upper()
+
+    pix_receiver_name = (
+        request.form.get(
+            "pix_receiver_name"
+        )
+        or ""
+    ).strip()
+
+    pix_receiver_city = (
+        request.form.get(
+            "pix_receiver_city"
+        )
+        or ""
+    ).strip()
+
+    if not title:
+        return jsonify({
+            "message":
+                "Informe o nome do passeio."
+        }), 400
+
+    if not event_date_raw:
+        return jsonify({
+            "message":
+                "Informe a data do passeio."
+        }), 400
+
+    try:
+        event_date = datetime.strptime(
+            event_date_raw,
+            "%Y-%m-%d"
+        ).date()
+
+    except ValueError:
+        return jsonify({
+            "message":
+                "Data inválida."
+        }), 400
+
+    departure_time = None
+
+    if departure_time_raw:
+
+        try:
+            departure_time = datetime.strptime(
+                departure_time_raw,
+                "%H:%M"
+            ).time()
+
+        except ValueError:
+            return jsonify({
+                "message":
+                    "Horário de saída inválido."
+            }), 400
+
+    return_time = None
+
+    if return_time_raw:
+
+        try:
+            return_time = datetime.strptime(
+                return_time_raw,
+                "%H:%M"
+            ).time()
+
+        except ValueError:
+            return jsonify({
+                "message":
+                    "Horário de retorno inválido."
+            }), 400
+
+    try:
+        price = float(
+            price_raw.replace(",", ".")
+        )
+
+    except ValueError:
+        return jsonify({
+            "message":
+                "Valor inválido."
+        }), 400
+
+    registration_deadline = None
+
+    if registration_deadline_raw:
+
+        try:
+            registration_deadline = (
+                datetime.fromisoformat(
+                    registration_deadline_raw
+                )
+            )
+
+        except ValueError:
+            return jsonify({
+                "message":
+                    "Prazo de inscrição inválido."
+            }), 400
+
+    try:
+
+        trip.title = title
+        trip.description = (
+            description or None
+        )
+        trip.destination = (
+            destination or None
+        )
+        trip.event_date = event_date
+        trip.departure_time = departure_time
+        trip.return_time = return_time
+        trip.price = price
+
+        trip.registration_deadline = (
+            registration_deadline
+        )
+
+        trip.payment_instructions = (
+            payment_instructions or None
+        )
+
+        trip.pix_key = (
+            pix_key or None
+        )
+
+        trip.pix_key_type = (
+            pix_key_type or None
+        )
+
+        trip.pix_receiver_name = (
+            pix_receiver_name or None
+        )
+
+        trip.pix_receiver_city = (
+            pix_receiver_city or None
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            "message":
+                "Passeio atualizado com sucesso."
+        })
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO EDITAR PASSEIO:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Não foi possível atualizar o passeio."
+        }), 500        
+    
 @app.route("/admin/ofertas")
 @admin_required_page
 def admin_offers_page():
