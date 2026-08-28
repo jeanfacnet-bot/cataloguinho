@@ -232,32 +232,65 @@
 		
 		.result-actions .view-details-btn {
 		  flex: 0 0 auto;
+
+		  display: inline-flex;
+		  align-items: center;
+		  justify-content: center;
+
+		  min-height: 34px;
+		  padding: 0 16px;
+
+		  background: linear-gradient(
+			135deg,
+			#2563eb 0%,
+			#1d4ed8 100%
+		  );
+
+		  color: white;
+		  border: 1px solid rgba(255, 255, 255, 0.15);
+		  border-radius: 10px;
+
+		  font-size: 13px;
+		  font-weight: 700;
+		  line-height: 1;
+
+		  text-decoration: none;
+		  white-space: nowrap;
+
+		  cursor: pointer;
+
+		  box-shadow:
+			0 4px 10px rgba(37, 99, 235, 0.18);
+
+		  transition:
+			transform 0.18s ease,
+			box-shadow 0.18s ease,
+			background 0.18s ease;
 		}
 
-		.result-actions 
-		
+		.result-actions .view-details-btn:hover {
+		  transform: translateY(-1px);
+
+		  background: linear-gradient(
+			135deg,
+			#3b82f6 0%,
+			#2563eb 100%
+		  );
+
+		  box-shadow:
+			0 7px 16px rgba(37, 99, 235, 0.26);
+		}
+
+		.result-actions .view-details-btn:active {
+		  transform: translateY(0);
+
+		  box-shadow:
+			0 3px 8px rgba(37, 99, 235, 0.18);
+		}
+
 		.report-btn {
 		  margin-left: auto;
 		}
-
-	  .result-actions button
-	  .result-actions .view-details-btn {
-		background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-		color: white;
-		border: none;
-		padding: 11px 16px;
-		border-radius: 12px;
-		font-size: 14px;
-		font-weight: 700;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	  }
-
-	  .result-actions button:hover,
-	  .result-actions .view-details-btn:hover {
-		transform: translateY(-1px);
-		box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
-	  }
 	  
 	  .result-actions .share-whatsapp-btn {
 		  

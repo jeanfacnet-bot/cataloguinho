@@ -203,31 +203,59 @@ function openAdDetailsFromSearch(adId, adSlug) {
   window.location.href = detailsUrl.toString();
 }
 
-function shareAdOnWhatsApp(adId, adTitle, adSlug) {
-  let adUrl;
+async function shareAd(
+    adId,
+    adTitle,
+    adSlug
+) {
 
-  if (adSlug) {
-    adUrl =
-      `${window.location.origin}/anuncio/${adSlug}`;
-  } else {
-    adUrl =
-      `${window.location.origin}/item/${adId}/view`;
-  }
+    let adUrl;
 
-  const message = [
-    "Olha este anúncio no CataLogin:",
-    `"${adTitle || "Anúncio"}"`,
-    adUrl
-  ].join("\n");
+    if (adSlug) {
+        adUrl =
+            `${window.location.origin}/anuncio/${adSlug}`;
+    } else {
+        adUrl =
+            `${window.location.origin}/item/${adId}/view`;
+    }
 
-  const whatsappUrl =
-    `https://wa.me/?text=${encodeURIComponent(message)}`;
+    const shareData = {
+        title: adTitle || "Anúncio",
+        text:
+            `Confira este anúncio no CataLogin: ${adTitle || "Anúncio"}`,
+        url: adUrl
+    };
 
-  window.open(
-    whatsappUrl,
-    "_blank",
-    "noopener,noreferrer"
-  );
+    try {
+
+        if (navigator.share) {
+
+            await navigator.share(
+                shareData
+            );
+
+            return;
+        }
+
+        await navigator.clipboard.writeText(
+            adUrl
+        );
+
+        alert(
+            "Link do anúncio copiado!"
+        );
+
+    } catch (error) {
+
+        if (
+            error.name !== "AbortError"
+        ) {
+            console.error(
+                "Erro ao compartilhar:",
+                error
+            );
+        }
+    }
 }
 
 
@@ -383,10 +411,10 @@ resultsContainer
 	    button.dataset.adSlug || ""
 	  );
 
-	  shareAdOnWhatsApp(
-	    adId,
-	    adTitle,
-	    adSlug
+	  shareAd(
+	  	  adId,
+		  adTitle,
+		  adSlug
 	  );
     });
   });

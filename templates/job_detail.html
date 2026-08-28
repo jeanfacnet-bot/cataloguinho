@@ -32,6 +32,11 @@
         rel="stylesheet"
         href="{{ static_asset('style.css') }}"
     >
+	
+	<link
+		rel="stylesheet"
+		href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+	/>
 
     <style>
 
@@ -135,6 +140,45 @@
             background: #16a34a;
             color: white;
         }
+		
+		.job-detail-btn.share {
+			width: 34px;
+			min-width: 34px;
+			height: 34px;
+
+			padding: 0;
+
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+
+			background: linear-gradient(
+				135deg,
+				#25d366 0%,
+				#128c4a 100%
+			);
+
+			color: white;
+			border: none;
+			border-radius: 50%;
+
+			font-size: 15px;
+			line-height: 1;
+
+			cursor: pointer;
+			box-shadow: none;
+			flex: 0 0 34px;
+		}
+
+		.job-detail-btn.share:hover {
+			transform: translateY(-1px);
+			box-shadow: 0 6px 14px rgba(
+				37,
+				211,
+				102,
+				0.22
+			);
+		}
 
         .back-jobs {
             display: inline-block;
@@ -346,6 +390,8 @@
 			{% endif %}
 
             <div class="job-detail-actions">
+			
+			
 
                 {% if vacancy.external_url %}
 
@@ -359,6 +405,18 @@
                     </a>
 
                 {% endif %}
+				
+				<button
+					type="button"
+					class="job-detail-btn share"
+					id="shareJobBtn"
+					title="Compartilhar vaga"
+					aria-label="Compartilhar vaga"
+				>
+					<span class="material-symbols-outlined">
+						share
+					</span>
+				</button>
 
                 {% if vacancy.contact_whatsapp %}
 
@@ -377,6 +435,71 @@
         </article>
 
     </main>
+
+	<script>
+		async function shareJob() {
+
+			const shareData = {
+				title: {{ vacancy.title | tojson }},
+				text: {{ (
+					"Confira esta vaga"
+					~ (
+						" na " ~ vacancy.company
+						if vacancy.company
+						else ""
+					)
+					~ " no CataLogin!"
+				) | tojson }},
+				url: window.location.href
+			};
+
+			try {
+
+				if (navigator.share) {
+
+					await navigator.share(
+						shareData
+					);
+
+					return;
+				}
+
+				await navigator.clipboard.writeText(
+					window.location.href
+				);
+
+				alert(
+					"Link da vaga copiado!"
+				);
+
+			} catch (error) {
+
+				if (
+					error.name !== "AbortError"
+				) {
+					console.error(
+						"Erro ao compartilhar:",
+						error
+					);
+				}
+			}
+		}
+		
+		const shareJobBtn =
+			document.getElementById(
+				"shareJobBtn"
+			);
+
+		if (shareJobBtn) {
+
+			shareJobBtn.addEventListener(
+				"click",
+				() => {
+					shareJob();
+				}
+			);
+		}
+	</script>
 
     <script
         src="{{ static_asset('common_layout.js') }}"
