@@ -479,16 +479,30 @@
 
                     {% if vacancy.is_featured %}
 
-                        <div
-                            class="
-                                job-badge
-                                featured
-                            "
-                        >
-                            ⭐ Vaga em destaque
-                        </div>
+						<div
+							class="
+								job-badge
+								featured
+							"
+						>
+							⭐ Vaga em destaque
+						</div>
 
-                    {% elif vacancy.source != "CATLOGIN" %}
+						{% if vacancy.published_at %}
+
+							<div
+								style="
+									color: #64748b;
+									font-size: 13px;
+									margin-bottom: 10px;
+								"
+							>
+								🕒 {{ format_job_age(vacancy.published_at) }}
+							</div>
+
+						{% endif %}
+
+					{% elif vacancy.source != "CATLOGIN" %}
 
                         <div class="job-badge">
                             Vaga externa
