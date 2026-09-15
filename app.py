@@ -10705,17 +10705,51 @@ def fetch_jsearch_jobs(
         "date_posted": date_posted,
     }
 
-    try:
-        response = requests.get(
-            url,
-            headers=headers,
-            params=params,
-            timeout=30,
-        )
-    except requests.RequestException as exc:
+    last_error = None
+
+    for attempt in range(1, 4):
+
+        try:
+
+            print(
+                f"JSEARCH tentativa {attempt}/3",
+                flush=True
+            )
+
+            response = requests.get(
+                url,
+                headers=headers,
+                params=params,
+                timeout=(10, 60)
+            )
+
+            break
+
+        except requests.Timeout as exc:
+
+            last_error = exc
+
+            print(
+                f"JSEARCH timeout na tentativa {attempt}/3:",
+                repr(exc),
+                flush=True
+            )
+
+            if attempt < 3:
+                time.sleep(2 * attempt)
+
+        except requests.RequestException as exc:
+
+            raise RuntimeError(
+                f"Erro de conexão com a JSearch: {exc}"
+            ) from exc
+
+    else:
+
         raise RuntimeError(
-            f"Erro de conexão com a JSearch: {exc}"
-        ) from exc
+            "A JSearch demorou demais para responder "
+            "após 3 tentativas. Tente novamente em alguns minutos."
+        ) from last_error
 
     print("JSEARCH HTTP STATUS:", response.status_code)
 
