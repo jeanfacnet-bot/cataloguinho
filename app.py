@@ -10707,12 +10707,12 @@ def fetch_jsearch_jobs(
 
     last_error = None
 
-    for attempt in range(1, 4):
+    for attempt in range(1, 3):
 
         try:
 
             print(
-                f"JSEARCH tentativa {attempt}/3",
+                f"JSEARCH tentativa {attempt}/2",
                 flush=True
             )
 
@@ -10720,7 +10720,7 @@ def fetch_jsearch_jobs(
                 url,
                 headers=headers,
                 params=params,
-                timeout=(10, 60)
+                timeout=(5, 15)
             )
 
             break
@@ -10730,13 +10730,13 @@ def fetch_jsearch_jobs(
             last_error = exc
 
             print(
-                f"JSEARCH timeout na tentativa {attempt}/3:",
+                f"JSEARCH timeout na tentativa {attempt}/2:",
                 repr(exc),
                 flush=True
             )
 
-            if attempt < 3:
-                time.sleep(2 * attempt)
+            if attempt < 2:
+                time.sleep(1)
 
         except requests.RequestException as exc:
 
@@ -10747,8 +10747,7 @@ def fetch_jsearch_jobs(
     else:
 
         raise RuntimeError(
-            "A JSearch demorou demais para responder "
-            "após 3 tentativas. Tente novamente em alguns minutos."
+            "JSearch não respondeu dentro do tempo limite."
         ) from last_error
 
     print("JSEARCH HTTP STATUS:", response.status_code)
