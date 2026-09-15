@@ -504,6 +504,15 @@
 				<span>Vagas ativas</span>
 				<strong>{{ active_jobs }}</strong>
 			</div>
+			
+			<div
+				class="stat job-filter-card"
+				data-filter="featured"
+				onclick="filterJobs('featured', this)"
+			>
+				<span>⭐ Vagas destacadas</span>
+				<strong id="featuredJobsCount">0</strong>
+			</div>
 
 			<div
 				class="stat job-filter-card"
@@ -763,6 +772,7 @@
 								class="job-row"
 								data-source="{{ vacancy.source | lower }}"
 								data-active="{{ 'true' if vacancy.is_active else 'false' }}"
+								data-featured="{{ 'true' if vacancy.is_featured else 'false' }}"
 							>
 
                                 <td>
@@ -988,6 +998,9 @@
 
 				const active =
 					row.dataset.active === "true";
+					
+				const featured =
+					row.dataset.featured === "true";	
 
 				let show = false;
 
@@ -997,6 +1010,10 @@
 
 				if (filter === "active") {
 					show = active;
+				}
+				
+				if (filter === "featured") {
+					show = featured;
 				}
 
 				if (filter === "catalogin") {
@@ -1035,6 +1052,11 @@
 			if (filter === "active") {
 				label =
 					"somente vagas ativas";
+			}
+			
+			if (filter === "featured") {
+				label =
+					"somente vagas destacadas";
 			}
 
 			if (filter === "catalogin") {
@@ -1608,6 +1630,29 @@
             }
 
         })();
+		
+		function updateFeaturedJobsCount() {
+
+			const featuredRows =
+				document.querySelectorAll(
+					'.job-row[data-featured="true"]'
+				);
+
+			const counter =
+				document.getElementById(
+					"featuredJobsCount"
+				);
+
+			if (counter) {
+				counter.textContent =
+					featuredRows.length;
+			}
+		}
+
+		document.addEventListener(
+			"DOMContentLoaded",
+			updateFeaturedJobsCount
+		);
 		
 		async function runAutomaticImport() {
 

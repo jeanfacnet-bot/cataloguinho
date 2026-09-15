@@ -1447,6 +1447,53 @@ def run_automatic_job_import():
 
     return summary
     
+class AffiliateStore(db.Model):
+    __tablename__ = "affiliate_stores"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    name = db.Column(
+        db.String(120),
+        nullable=False
+    )
+
+    logo_url = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    affiliate_url = db.Column(
+        db.Text,
+        nullable=False
+    )
+
+    is_active = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=True
+    )
+
+    display_order = db.Column(
+        db.Integer,
+        nullable=False,
+        default=0
+    )
+
+    click_count = db.Column(
+        db.Integer,
+        nullable=False,
+        default=0
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )    
+    
 class AffiliateProduct(db.Model):
     __tablename__ = "affiliate_products"
 
@@ -5419,10 +5466,20 @@ def admin_offers_page():
         )
         .scalar()
     )
+    
+    affiliate_stores = (
+        AffiliateStore.query
+        .order_by(
+            AffiliateStore.display_order.asc(),
+            AffiliateStore.name.asc()
+        )
+        .all()
+    )
 
     return render_template(
         "admin_offers.html",
         offers=offers,
+        affiliate_stores=affiliate_stores,
         total_offers=total_offers,
         active_offers=active_offers,
         featured_offers=featured_offers,
@@ -6087,6 +6144,313 @@ def admin_detect_mercado_livre_product():
             "message":
                 "Erro ao identificar o produto do Mercado Livre."
         }), 500
+        
+@app.route(
+    "/admin/ofertas/lojas",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_create_affiliate_store():
+
+    try:
+
+        data = (
+            request.get_json(
+                silent=True
+            )
+            or {}
+        )
+
+        name = str(
+            data.get("name")
+            or ""
+        ).strip()
+
+        logo_url = str(
+            data.get("logo_url")
+            or ""
+        ).strip()
+
+        affiliate_url = str(
+            data.get("affiliate_url")
+            or ""
+        ).strip()
+
+        display_order_raw = (
+            data.get("display_order")
+            or 0
+        )
+
+        if not name:
+
+            return jsonify({
+                "message":
+                    "Informe o nome da loja."
+            }), 400
+
+        if not affiliate_url:
+
+            return jsonify({
+                "message":
+                    "Informe o link de afiliado da loja."
+            }), 400
+
+        try:
+            display_order = int(
+                display_order_raw
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            display_order = 0
+
+        affiliate_store = AffiliateStore(
+            name=name,
+            logo_url=logo_url or None,
+            affiliate_url=affiliate_url,
+            is_active=True,
+            display_order=display_order,
+            click_count=0
+        )
+
+        db.session.add(
+            affiliate_store
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            "message":
+                "Loja de afiliado cadastrada com sucesso.",
+
+            "store_id":
+                affiliate_store.id
+        }), 201
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO CADASTRAR LOJA DE AFILIADO:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Não foi possível cadastrar a loja."
+        }), 500    
+
+@app.route(
+    "/admin/ofertas/lojas/<int:store_id>",
+    methods=["PUT"]
+)
+@admin_required_page
+def admin_update_affiliate_store(store_id):
+
+    affiliate_store = db.session.get(
+        AffiliateStore,
+        store_id
+    )
+
+    if not affiliate_store:
+        return jsonify({
+            "message": "Loja de afiliado não encontrada."
+        }), 404
+
+    try:
+
+        data = (
+            request.get_json(
+                silent=True
+            )
+            or {}
+        )
+
+        name = str(
+            data.get("name")
+            or ""
+        ).strip()
+
+        logo_url = str(
+            data.get("logo_url")
+            or ""
+        ).strip()
+
+        affiliate_url = str(
+            data.get("affiliate_url")
+            or ""
+        ).strip()
+
+        display_order_raw = (
+            data.get("display_order")
+            or 0
+        )
+
+        if not name:
+
+            return jsonify({
+                "message":
+                    "Informe o nome da loja."
+            }), 400
+
+        if not affiliate_url:
+
+            return jsonify({
+                "message":
+                    "Informe o link de afiliado da loja."
+            }), 400
+
+        try:
+
+            display_order = int(
+                display_order_raw
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            display_order = 0
+
+        affiliate_store.name = name
+        affiliate_store.logo_url = (
+            logo_url or None
+        )
+        affiliate_store.affiliate_url = (
+            affiliate_url
+        )
+        affiliate_store.display_order = (
+            display_order
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            "message":
+                "Loja atualizada com sucesso."
+        })
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO ATUALIZAR LOJA DE AFILIADO:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Não foi possível atualizar a loja."
+        }), 500
+
+
+@app.route(
+    "/admin/ofertas/lojas/<int:store_id>/toggle-status",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_toggle_affiliate_store_status(store_id):
+
+    affiliate_store = db.session.get(
+        AffiliateStore,
+        store_id
+    )
+
+    if not affiliate_store:
+
+        return jsonify({
+            "message":
+                "Loja de afiliado não encontrada."
+        }), 404
+
+    try:
+
+        affiliate_store.is_active = not bool(
+            affiliate_store.is_active
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            "message": (
+                "Loja ativada com sucesso."
+                if affiliate_store.is_active
+                else "Loja desativada com sucesso."
+            ),
+            "is_active":
+                affiliate_store.is_active
+        })
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO ALTERAR STATUS DA LOJA:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Não foi possível alterar o status da loja."
+        }), 500
+
+
+@app.route(
+    "/admin/ofertas/lojas/<int:store_id>",
+    methods=["DELETE"]
+)
+@admin_required_page
+def admin_delete_affiliate_store(store_id):
+
+    affiliate_store = db.session.get(
+        AffiliateStore,
+        store_id
+    )
+
+    if not affiliate_store:
+
+        return jsonify({
+            "message":
+                "Loja de afiliado não encontrada."
+        }), 404
+
+    try:
+
+        db.session.delete(
+            affiliate_store
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            "message":
+                "Loja excluída com sucesso."
+        })
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO EXCLUIR LOJA DE AFILIADO:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message":
+                "Não foi possível excluir a loja."
+        }), 500        
 
 @app.route("/admin/ofertas/nova")
 @admin_required_page
@@ -11870,10 +12234,23 @@ def public_offers_page():
         item[0]
         for item in stores
     ]
+    
+    affiliate_stores = (
+        AffiliateStore.query
+        .filter(
+            AffiliateStore.is_active.is_(True)
+        )
+        .order_by(
+            AffiliateStore.display_order.asc(),
+            AffiliateStore.name.asc()
+        )
+        .all()
+    )
 
     return render_template(
         "offers.html",
         offers=offers,
+        affiliate_stores=affiliate_stores,
         categories=categories,
         stores=stores,
         selected_q=q,
@@ -11881,6 +12258,39 @@ def public_offers_page():
         selected_store=store,
         selected_sort=sort
     )
+    
+@app.route(
+    "/ofertas/lojas/<int:store_id>/ir"
+)
+def affiliate_store_redirect(store_id):
+
+    affiliate_store = db.session.get(
+        AffiliateStore,
+        store_id
+    )
+
+    if (
+        not affiliate_store
+        or not affiliate_store.is_active
+        or not affiliate_store.affiliate_url
+    ):
+        abort(404)
+
+    try:
+
+        affiliate_store.click_count = (
+            affiliate_store.click_count or 0
+        ) + 1
+
+        db.session.commit()
+
+    except Exception:
+
+        db.session.rollback()
+
+    return redirect(
+        affiliate_store.affiliate_url
+    )    
 
 @app.route("/ofertas/<int:offer_id>/ir")
 def affiliate_offer_redirect(offer_id):

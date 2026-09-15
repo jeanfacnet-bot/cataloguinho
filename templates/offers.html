@@ -356,6 +356,150 @@
 			}
 
 		}
+		
+		/* =========================
+		   LOJAS PARCEIRAS
+		========================= */
+
+		.affiliate-stores-section {
+			margin: 24px 0;
+			padding: 22px;
+			background: #ffffff;
+			border: 1px solid #e5e7eb;
+			border-radius: 18px;
+		}
+
+		.affiliate-stores-header {
+			margin-bottom: 16px;
+		}
+
+		.affiliate-stores-header h2 {
+			margin: 0 0 5px;
+			font-size: 20px;
+			color: #111827;
+		}
+
+		.affiliate-stores-header p {
+			margin: 0;
+			color: #64748b;
+			font-size: 14px;
+		}
+
+		.affiliate-stores-list {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 12px;
+		}
+
+		.affiliate-store-card {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+
+			width: 180px;
+			max-width: 180px;
+
+			padding: 12px;
+
+			background: #f8fafc;
+
+			border: 1px solid #e5e7eb;
+			border-radius: 12px;
+
+			text-decoration: none;
+			color: #111827;
+
+			transition:
+				transform 0.15s ease,
+				box-shadow 0.15s ease,
+				border-color 0.15s ease;
+		}
+
+		.affiliate-store-card:hover {
+			transform: translateY(-2px);
+
+			border-color: #2563eb;
+
+			box-shadow:
+				0 6px 18px
+				rgba(37, 99, 235, 0.12);
+		}
+
+		.affiliate-store-logo {
+			width: 52px;
+			height: 52px;
+
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			flex-shrink: 0;
+
+			background: #ffffff;
+
+			border-radius: 10px;
+
+			border:
+				1px solid #e5e7eb;
+		}
+
+		.affiliate-store-logo img {
+			width: 42px;
+			height: 42px;
+
+			object-fit: contain;
+		}
+
+		.affiliate-store-logo span {
+			font-size: 27px;
+		}
+
+		.affiliate-store-info {
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+
+			min-width: 0;
+		}
+
+		.affiliate-store-info strong {
+			font-size: 14px;
+			color: #111827;
+		}
+
+		.affiliate-store-info span {
+			font-size: 12px;
+			color: #2563eb;
+			font-weight: 700;
+		}
+
+
+		/* MOBILE */
+
+		@media (max-width: 600px) {
+
+			.affiliate-stores-section {
+				padding: 16px;
+			}
+
+			.affiliate-stores-list {
+				display: grid;
+				grid-template-columns:
+					repeat(2, minmax(0, 1fr));
+				gap: 10px;
+			}
+
+			.affiliate-store-card {
+				width: auto;
+				max-width: none;
+
+				flex-direction: column;
+				text-align: center;
+
+				padding: 12px 8px;
+			}
+
+		}
 
     </style>
 
@@ -384,6 +528,77 @@
             
 
         </section>
+		
+		{% if affiliate_stores %}
+
+			<section class="affiliate-stores-section">
+
+				<div class="affiliate-stores-header">
+
+					<h2>
+						🏪 Lojas parceiras
+					</h2>
+
+					<p>
+						Acesse nossas lojas parceiras e confira mais ofertas.
+					</p>
+
+				</div>
+
+
+				<div class="affiliate-stores-list">
+
+					{% for store in affiliate_stores %}
+
+						<a
+							href="/ofertas/lojas/{{ store.id }}/ir"
+							target="_blank"
+							rel="noopener noreferrer sponsored"
+							class="affiliate-store-card"
+						>
+
+							<div class="affiliate-store-logo">
+
+								{% if store.logo_url %}
+
+									<img
+										src="{{ store.logo_url }}"
+										alt="{{ store.name }}"
+										loading="lazy"
+									>
+
+								{% else %}
+
+									<span>
+										🛍️
+									</span>
+
+								{% endif %}
+
+							</div>
+
+
+							<div class="affiliate-store-info">
+
+								<strong>
+									{{ store.name }}
+								</strong>
+
+								<span>
+									Ver loja →
+								</span>
+
+							</div>
+
+						</a>
+
+					{% endfor %}
+
+				</div>
+
+			</section>
+
+		{% endif %}
 		
 		<section class="offers-filters">
 

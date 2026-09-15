@@ -258,8 +258,153 @@
             >
                 + Cadastrar oferta
             </a>
+			
+			<button
+				type="button"
+				class="new-offer-btn"
+				onclick="openAffiliateStoreForm()"
+			>
+				🏪 Nova loja afiliada
+			</button>
 
         </div>
+		
+		<section
+			id="affiliateStoreForm"
+			style="
+				display: none;
+				background: #ffffff;
+				border: 1px solid #e5e7eb;
+				border-radius: 18px;
+				padding: 20px;
+				margin-bottom: 24px;
+			"
+		>
+
+			<h2
+				id="affiliateStoreFormTitle"
+				style="margin-top: 0;"
+			>
+				🏪 Cadastrar loja de afiliado
+			</h2>
+
+			<div
+				style="
+					display: grid;
+					grid-template-columns:
+						repeat(auto-fit, minmax(220px, 1fr));
+					gap: 14px;
+				"
+			>
+
+				<div>
+					<label>
+						Nome da loja
+					</label>
+
+					<input
+						type="text"
+						id="affiliateStoreName"
+						placeholder="Ex.: Mercado Livre"
+						style="
+							width: 100%;
+							padding: 11px;
+							margin-top: 6px;
+							box-sizing: border-box;
+						"
+					>
+				</div>
+
+				<div>
+					<label>
+						URL da logo
+					</label>
+
+					<input
+						type="url"
+						id="affiliateStoreLogo"
+						placeholder="https://..."
+						style="
+							width: 100%;
+							padding: 11px;
+							margin-top: 6px;
+							box-sizing: border-box;
+						"
+					>
+				</div>
+
+				<div>
+					<label>
+						Link de afiliado da loja
+					</label>
+
+					<input
+						type="url"
+						id="affiliateStoreUrl"
+						placeholder="https://..."
+						style="
+							width: 100%;
+							padding: 11px;
+							margin-top: 6px;
+							box-sizing: border-box;
+						"
+					>
+				</div>
+
+				<div>
+					<label>
+						Ordem de exibição
+					</label>
+
+					<input
+						type="number"
+						id="affiliateStoreOrder"
+						value="0"
+						min="0"
+						style="
+							width: 100%;
+							padding: 11px;
+							margin-top: 6px;
+							box-sizing: border-box;
+						"
+					>
+				</div>
+
+			</div>
+
+			<div
+				style="
+					display: flex;
+					gap: 10px;
+					margin-top: 18px;
+				"
+			>
+
+				<button
+					type="button"
+					id="affiliateStoreSaveButton"
+					class="new-offer-btn"
+					onclick="saveAffiliateStore()"
+				>
+					Cadastrar loja
+				</button>
+
+				<button
+					type="button"
+					onclick="closeAffiliateStoreForm()"
+					style="
+						border: none;
+						border-radius: 8px;
+						padding: 10px 16px;
+						cursor: pointer;
+					"
+				>
+					Cancelar
+				</button>
+
+			</div>
+
+		</section>
 
         <section class="stats-grid">
 
@@ -290,74 +435,179 @@
 
         </section>
 		
-		        {% if offers %}
+		        {% if affiliate_stores %}
 
-					{% set store_data = namespace(names=[]) %}
+    <section class="store-section">
 
-					{% for offer in offers %}
+        <h2 class="store-section-title">
+            🏪 Lojas afiliadas cadastradas
+        </h2>
 
-						{% if (
-							offer.store
-							and offer.store not in store_data.names
-						) %}
+        <div class="store-cards">
 
-							{% set store_data.names =
-								store_data.names + [offer.store]
-							%}
+            {% for store in affiliate_stores %}
 
-						{% endif %}
-
-					{% endfor %}
-
-					{% if store_data.names %}
-
-						<section class="store-section">
-
-							<h2 class="store-section-title">
-								🏪 Lojas cadastradas
-							</h2>
-
-							<div class="store-cards">
+							<div
+								class="store-card"
+								style="
+									flex-direction: column;
+									align-items: stretch;
+									min-width: 190px;
+								"
+							>
 
 								<a
-									href="/admin/ofertas"
-									class="store-card"
+									href="/admin/ofertas?store={{ store.name | urlencode }}"
+									style="
+										display: flex;
+										align-items: center;
+										gap: 9px;
+										color: inherit;
+										text-decoration: none;
+									"
 								>
+
 									<span class="store-card-icon">
-										🧾
+
+										{% if store.logo_url %}
+
+											<img
+												src="{{ store.logo_url }}"
+												alt="{{ store.name }}"
+												style="
+													width: 28px;
+													height: 28px;
+													object-fit: contain;
+													border-radius: 5px;
+												"
+											>
+
+										{% else %}
+
+											🛍️
+
+										{% endif %}
+
 									</span>
 
 									<span>
-										Todas
+
+										{{ store.name }}
+
+										{% if not store.is_active %}
+
+											<small
+												style="
+													display: block;
+													margin-top: 2px;
+													color: #b91c1c;
+													font-weight: 700;
+												"
+											>
+												Inativa
+											</small>
+
+										{% endif %}
+
 									</span>
+
 								</a>
 
-								{% for store_name in store_data.names %}
+								<div
+									style="
+										display: flex;
+										gap: 5px;
+										margin-top: 10px;
+										flex-wrap: wrap;
+									"
+								>
 
-									<a
-										href="/admin/ofertas?store={{ store_name | urlencode }}"
-										class="store-card"
+									<button
+										type="button"
+
+										data-store-id="{{ store.id }}"
+										data-store-name="{{ store.name | e }}"
+										data-store-logo="{{ (store.logo_url or '') | e }}"
+										data-store-url="{{ store.affiliate_url | e }}"
+										data-store-order="{{ store.display_order }}"
+
+										onclick="editAffiliateStoreFromButton(this)"
+
+										style="
+											flex: 1;
+											border: none;
+											border-radius: 6px;
+											padding: 7px;
+											cursor: pointer;
+											background: #ede9fe;
+											color: #6d28d9;
+											font-weight: 700;
+											font-size: 11px;
+										"
+									>
+										✏️ Editar
+									</button>
+
+									<button
+										type="button"
+										onclick="toggleAffiliateStoreStatus(
+											{{ store.id }}
+										)"
+										style="
+											flex: 1;
+											border: none;
+											border-radius: 6px;
+											padding: 7px;
+											cursor: pointer;
+											background: #e0f2fe;
+											color: #0369a1;
+											font-weight: 700;
+											font-size: 11px;
+										"
 									>
 
-										<span class="store-card-icon">
-											🛍️
-										</span>
+										{% if store.is_active %}
+											Desativar
+										{% else %}
+											Ativar
+										{% endif %}
 
-										<span>
-											{{ store_name }}
-										</span>
+									</button>
 
-									</a>
+									<button
+										type="button"
 
-								{% endfor %}
+										data-store-id="{{ store.id }}"
+										data-store-name="{{ store.name | e }}"
+
+										onclick="deleteAffiliateStoreFromButton(this)"
+
+										style="
+											flex: 1;
+											border: none;
+											border-radius: 6px;
+											padding: 7px;
+											cursor: pointer;
+											background: #fee2e2;
+											color: #b91c1c;
+											font-weight: 700;
+											font-size: 11px;
+										"
+									>
+										🗑️ Excluir
+									</button>
+
+								</div>
 
 							</div>
 
-						</section>
+						{% endfor %}
 
-					{% endif %}
+					</div>
 
-				{% endif %}
+				</section>
+
+			{% endif %}
 
         {% if offers %}
 
@@ -651,6 +901,433 @@
 			}
 		}
 		
+		function openAffiliateStoreForm() {
+
+			editingAffiliateStoreId = null;
+
+			document.getElementById(
+				"affiliateStoreName"
+			).value = "";
+
+			document.getElementById(
+				"affiliateStoreLogo"
+			).value = "";
+
+			document.getElementById(
+				"affiliateStoreUrl"
+			).value = "";
+
+			document.getElementById(
+				"affiliateStoreOrder"
+			).value = "0";
+
+
+			const title =
+				document.getElementById(
+					"affiliateStoreFormTitle"
+				);
+
+			if (title) {
+				title.textContent =
+					"🏪 Cadastrar loja de afiliado";
+			}
+
+
+			const button =
+				document.getElementById(
+					"affiliateStoreSaveButton"
+				);
+
+			if (button) {
+				button.textContent =
+					"Cadastrar loja";
+			}
+
+
+			const form =
+				document.getElementById(
+					"affiliateStoreForm"
+				);
+
+			if (form) {
+
+				form.style.display = "block";
+
+				form.scrollIntoView({
+					behavior: "smooth",
+					block: "start"
+				});
+			}
+		}
+
+
+		function closeAffiliateStoreForm() {
+
+			editingAffiliateStoreId = null;
+
+			const form =
+				document.getElementById(
+					"affiliateStoreForm"
+				);
+
+			if (form) {
+				form.style.display = "none";
+			}
+
+			document.getElementById(
+				"affiliateStoreName"
+			).value = "";
+
+			document.getElementById(
+				"affiliateStoreLogo"
+			).value = "";
+
+			document.getElementById(
+				"affiliateStoreUrl"
+			).value = "";
+
+			document.getElementById(
+				"affiliateStoreOrder"
+			).value = "0";
+		}
+
+
+		async function saveAffiliateStore() {
+
+			const name =
+				document.getElementById(
+					"affiliateStoreName"
+				).value.trim();
+
+			const logoUrl =
+				document.getElementById(
+					"affiliateStoreLogo"
+				).value.trim();
+
+			const affiliateUrl =
+				document.getElementById(
+					"affiliateStoreUrl"
+				).value.trim();
+
+			const displayOrder =
+				document.getElementById(
+					"affiliateStoreOrder"
+				).value;
+
+			if (!name) {
+
+				alert(
+					"Informe o nome da loja."
+				);
+
+				return;
+			}
+
+			if (!affiliateUrl) {
+
+				alert(
+					"Informe o link de afiliado da loja."
+				);
+
+				return;
+			}
+
+			try {
+
+				const requestUrl =
+					editingAffiliateStoreId
+						? `/admin/ofertas/lojas/${editingAffiliateStoreId}`
+						: "/admin/ofertas/lojas";
+
+				const requestMethod =
+					editingAffiliateStoreId
+						? "PUT"
+						: "POST";
+
+
+				const response =
+					await fetch(
+						requestUrl,
+						{
+							method: requestMethod,
+
+							headers: {
+								"Content-Type":
+									"application/json"
+							},
+
+							body:
+								JSON.stringify({
+									name: name,
+									logo_url: logoUrl,
+									affiliate_url: affiliateUrl,
+									display_order: displayOrder
+								})
+						}
+					);
+
+				const data =
+					await response.json();
+
+				if (!response.ok) {
+
+					alert(
+						data.message ||
+						"Não foi possível cadastrar a loja."
+					);
+
+					return;
+				}
+
+				alert(
+					data.message ||
+					"Loja cadastrada com sucesso!"
+				);
+				
+				editingAffiliateStoreId = null;
+				window.location.reload();
+				
+
+			} catch (error) {
+
+				console.error(
+					"ERRO CADASTRAR LOJA:",
+					error
+				);
+
+				alert(
+					"Erro de comunicação."
+				);
+			}
+		}
+		
+	let editingAffiliateStoreId = null;
+	
+	function editAffiliateStoreFromButton(
+		button
+	) {
+
+		const storeId =
+			Number(
+				button.dataset.storeId
+			);
+
+		const name =
+			button.dataset.storeName
+			|| "";
+
+		const logoUrl =
+			button.dataset.storeLogo
+			|| "";
+
+		const affiliateUrl =
+			button.dataset.storeUrl
+			|| "";
+
+		const displayOrder =
+			Number(
+				button.dataset.storeOrder
+				|| 0
+			);
+
+
+		editAffiliateStore(
+			storeId,
+			name,
+			logoUrl,
+			affiliateUrl,
+			displayOrder
+		);
+	}
+
+
+	function editAffiliateStore(
+		storeId,
+		name,
+		logoUrl,
+		affiliateUrl,
+		displayOrder
+	) {
+
+		editingAffiliateStoreId = storeId;
+		
+		const title =
+			document.getElementById(
+				"affiliateStoreFormTitle"
+			);
+
+		if (title) {
+			title.textContent =
+				"✏️ Editar loja de afiliado";
+		}
+
+
+		const button =
+			document.getElementById(
+				"affiliateStoreSaveButton"
+			);
+
+		if (button) {
+			button.textContent =
+				"Salvar alterações";
+		}
+
+		document.getElementById(
+			"affiliateStoreName"
+		).value = name || "";
+
+		document.getElementById(
+			"affiliateStoreLogo"
+		).value = logoUrl || "";
+
+		document.getElementById(
+			"affiliateStoreUrl"
+		).value = affiliateUrl || "";
+
+		document.getElementById(
+			"affiliateStoreOrder"
+		).value = displayOrder || 0;
+
+		const form =
+			document.getElementById(
+				"affiliateStoreForm"
+			);
+
+		if (form) {
+
+			form.style.display =
+				"block";
+
+			form.scrollIntoView({
+				behavior: "smooth",
+				block: "start"
+			});
+		}
+	}
+
+
+	async function toggleAffiliateStoreStatus(
+		storeId
+	) {
+
+		try {
+
+			const response =
+				await fetch(
+					`/admin/ofertas/lojas/${storeId}/toggle-status`,
+					{
+						method: "POST"
+					}
+				);
+
+			const data =
+				await response.json();
+
+			if (!response.ok) {
+
+				alert(
+					data.message ||
+					"Não foi possível alterar o status da loja."
+				);
+
+				return;
+			}
+
+			alert(
+				data.message ||
+				"Status alterado com sucesso."
+			);
+
+			window.location.reload();
+
+		} catch (error) {
+
+			console.error(
+				"ERRO STATUS LOJA:",
+				error
+			);
+
+			alert(
+				"Erro de comunicação."
+			);
+		}
+	}
+
+	function deleteAffiliateStoreFromButton(
+		button
+	) {
+
+		const storeId =
+			Number(
+				button.dataset.storeId
+			);
+
+		const storeName =
+			button.dataset.storeName
+			|| "";
+
+		deleteAffiliateStore(
+			storeId,
+			storeName
+		);
+	}
+
+	async function deleteAffiliateStore(
+		storeId,
+		storeName
+	) {
+
+		const confirmed =
+			confirm(
+				`Deseja realmente excluir a loja "${storeName}"?`
+			);
+
+		if (!confirmed) {
+			return;
+		}
+
+		try {
+
+			const response =
+				await fetch(
+					`/admin/ofertas/lojas/${storeId}`,
+					{
+						method: "DELETE"
+					}
+				);
+
+			const data =
+				await response.json();
+
+			if (!response.ok) {
+
+				alert(
+					data.message ||
+					"Não foi possível excluir a loja."
+				);
+
+				return;
+			}
+
+			alert(
+				data.message ||
+				"Loja excluída com sucesso."
+			);
+
+			window.location.reload();
+
+		} catch (error) {
+
+			console.error(
+				"ERRO EXCLUIR LOJA:",
+				error
+			);
+
+			alert(
+				"Erro de comunicação."
+			);
+		}
+	}	
 		
 
 	</script>
