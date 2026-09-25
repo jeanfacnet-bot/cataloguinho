@@ -73,7 +73,36 @@
               <div class="group"><label>Pelotão</label><div class="platoon" id="platoonPreview">Selecione a idade</div></div>
               <div class="group"><label>Turno</label><select name="shift" required><option value="">Selecione</option><option value="MATUTINO">Matutino</option><option value="VESPERTINO">Vespertino</option></select></div>
               <div class="group"><label>WhatsApp do responsável</label><input type="tel" name="guardian_whatsapp" placeholder="(61) 99999-9999" inputmode="tel" required></div>
-              <div class="group full"><label>Comprovante de pagamento</label><input type="file" name="payment_receipt" accept=".png,.jpg,.jpeg,.webp,.pdf"><span class="hint">Envie uma imagem ou PDF do comprovante.</span></div>
+              <div class="group full">
+
+				<label>
+					Comprovante de pagamento
+				</label>
+
+				<input
+					type="file"
+					name="payment_receipt"
+					id="paymentReceipt"
+					accept="
+						image/*,
+						.jpg,
+						.jpeg,
+						.png,
+						.webp,
+						.heic,
+						.heif,
+						.pdf,
+						application/pdf
+					"
+				>
+
+				<span class="hint">
+					Envie uma foto ou PDF do comprovante.
+					Formatos aceitos: JPG, JPEG, PNG, WEBP,
+					HEIC, HEIF e PDF. Máximo de 20 MB.
+				</span>
+
+			</div>
             </div>
             <button type="submit" class="submit" id="submitRegistrationBtn">Enviar inscrição</button>
           </form>
@@ -114,8 +143,100 @@
     const ageSelect=document.getElementById("age");const platoonPreview=document.getElementById("platoonPreview");
     function updatePlatoon(){if(!ageSelect||!platoonPreview)return;const age=Number(ageSelect.value);let platoon="Selecione a idade";if([7,8,9].includes(age))platoon="1º Pelotão";if([10,11].includes(age))platoon="2º Pelotão";if([12,13,14,15].includes(age))platoon="3º Pelotão";platoonPreview.textContent=platoon}
     if(ageSelect)ageSelect.addEventListener("change",updatePlatoon);
+	const paymentReceipt =
+		document.getElementById(
+			"paymentReceipt"
+		);
+
+	const MAX_RECEIPT_SIZE =
+		20 * 1024 * 1024;
     const registrationForm=document.getElementById("registrationForm");const successPanel=document.getElementById("successPanel");const successText=document.getElementById("successText");const submitBtn=document.getElementById("submitRegistrationBtn");
-    if(registrationForm){registrationForm.addEventListener("submit",async(event)=>{event.preventDefault();if(submitBtn){submitBtn.disabled=true;submitBtn.textContent="Enviando inscrição...";submitBtn.style.opacity=".75"}try{const formData=new FormData(registrationForm);const response=await fetch(window.location.pathname+"/inscrever",{method:"POST",body:formData});const data=await response.json();if(!response.ok){alert(data.message||"Não foi possível realizar a inscrição.");return}registrationForm.style.display="none";if(successText)successText.textContent="Inscrição recebida. Pelotão: "+data.platoon+". O pagamento será conferido pela organização.";if(successPanel){successPanel.classList.add("show");successPanel.scrollIntoView({behavior:"smooth",block:"center"})}}catch(error){console.error(error);alert("Erro de comunicação ao enviar a inscrição.")}finally{if(submitBtn&&registrationForm.style.display!=="none"){submitBtn.disabled=false;submitBtn.textContent="Enviar inscrição";submitBtn.style.opacity="1"}}})}
+    if(registrationForm){registrationForm.addEventListener("submit",async(event)=>{event.preventDefault();
+	if (
+		paymentReceipt &&
+		paymentReceipt.files &&
+		paymentReceipt.files.length > 0
+	) {
+
+		const file =
+			paymentReceipt.files[0];
+
+		if (
+			file.size >
+			MAX_RECEIPT_SIZE
+		) {
+
+			alert(
+				"O comprovante selecionado é muito grande.\n\n" +
+				"O tamanho máximo permitido é 20 MB.\n\n" +
+				"Escolha outra imagem ou PDF."
+			);
+
+			return;
+		}
+	}
+	if(submitBtn){submitBtn.disabled=true;submitBtn.textContent="Enviando inscrição...";submitBtn.style.opacity=".75"}try{const formData=new FormData(registrationForm);
+	const response = await fetch(
+		window.location.pathname + "/inscrever",
+		{
+			method: "POST",
+			body: formData
+		}
+	);
+
+	const responseText =
+		await response.text();
+
+	let data = {};
+
+	try {
+
+		data = responseText
+			? JSON.parse(responseText)
+			: {};
+
+	} catch (error) {
+
+		console.error(
+			"Resposta não JSON do servidor:",
+			responseText
+		);
+
+	}
+
+
+	if (!response.ok) {
+
+		let message =
+			data.message ||
+			"Não foi possível realizar a inscrição.";
+
+
+		if (response.status === 413) {
+
+			message =
+				"O comprovante enviado é muito grande.\n\n" +
+				"O tamanho máximo permitido é 20 MB.\n\n" +
+				"Escolha uma imagem ou PDF menor e tente novamente.";
+
+		}
+
+
+		if (response.status >= 500) {
+
+			message =
+				data.message ||
+				"O servidor encontrou um problema ao receber a inscrição.\n\n" +
+				"Tente novamente em alguns instantes.";
+
+		}
+
+
+		alert(message);
+
+		return;
+	}
+	registrationForm.style.display="none";if(successText)successText.textContent="Inscrição recebida. Pelotão: "+data.platoon+". O pagamento será conferido pela organização.";if(successPanel){successPanel.classList.add("show");successPanel.scrollIntoView({behavior:"smooth",block:"center"})}}catch(error){console.error(error);alert("Erro de comunicação ao enviar a inscrição.")}finally{if(submitBtn&&registrationForm.style.display!=="none"){submitBtn.disabled=false;submitBtn.textContent="Enviar inscrição";submitBtn.style.opacity="1"}}})}
     function goToCreate(){
       const rawUser=localStorage.getItem("catalogo_user");
       const user=rawUser?JSON.parse(rawUser):null;
