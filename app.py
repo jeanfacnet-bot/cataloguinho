@@ -192,6 +192,211 @@ MAX_TRIP_RECEIPT_SIZE = (
     20 * 1024 * 1024
 )
 
+def save_trip_receipt(
+    receipt_file,
+    trip_id
+):
+    """
+    Valida e salva um comprovante de passeio.
+
+    Retorna:
+        caminho_publico, erro, status_http
+    """
+
+    if (
+        not receipt_file
+        or not receipt_file.filename
+    ):
+        return (
+            None,
+            "Selecione um comprovante.",
+            400
+        )
+
+
+    filename = (
+        receipt_file.filename
+        or ""
+    ).strip()
+
+    filename_lower = filename.lower()
+
+
+    # =========================
+    # EXTENSÃO
+    # =========================
+
+    if "." not in filename_lower:
+
+        return (
+            None,
+            (
+                "Não foi possível identificar "
+                "o formato do comprovante. "
+                "Envie uma foto ou arquivo PDF."
+            ),
+            400
+        )
+
+
+    extension = (
+        filename_lower
+        .rsplit(".", 1)[1]
+        .strip()
+    )
+
+
+    if (
+        extension
+        not in
+        ALLOWED_TRIP_RECEIPT_EXTENSIONS
+    ):
+
+        return (
+            None,
+            (
+                "Formato de comprovante não aceito. "
+                "Envie JPG, JPEG, PNG, WEBP, "
+                "HEIC, HEIF ou PDF."
+            ),
+            400
+        )
+
+
+    # =========================
+    # TAMANHO
+    # =========================
+
+    try:
+
+        receipt_file.stream.seek(
+            0,
+            os.SEEK_END
+        )
+
+        file_size = (
+            receipt_file.stream.tell()
+        )
+
+        receipt_file.stream.seek(0)
+
+    except Exception as error:
+
+        print(
+            "ERRO AO VERIFICAR COMPROVANTE:",
+            repr(error),
+            flush=True
+        )
+
+        return (
+            None,
+            (
+                "Não foi possível verificar "
+                "o comprovante enviado."
+            ),
+            400
+        )
+
+
+    if file_size <= 0:
+
+        return (
+            None,
+            (
+                "O comprovante enviado está vazio. "
+                "Selecione o arquivo novamente."
+            ),
+            400
+        )
+
+
+    if (
+        file_size >
+        MAX_TRIP_RECEIPT_SIZE
+    ):
+
+        return (
+            None,
+            (
+                "O comprovante é muito grande. "
+                "O tamanho máximo permitido é 20 MB."
+            ),
+            413
+        )
+
+
+    # =========================
+    # NOME DO ARQUIVO
+    # =========================
+
+    receipt_filename = (
+        f"trip_{trip_id}_"
+        f"{uuid.uuid4().hex}."
+        f"{extension}"
+    )
+
+
+    # =========================
+    # PASTA
+    # =========================
+
+    receipt_folder = os.path.join(
+        UPLOAD_BASE,
+        "trip_receipts"
+    )
+
+    os.makedirs(
+        receipt_folder,
+        exist_ok=True
+    )
+
+
+    receipt_full_path = os.path.join(
+        receipt_folder,
+        receipt_filename
+    )
+
+
+    # =========================
+    # SALVAR
+    # =========================
+
+    try:
+
+        receipt_file.save(
+            receipt_full_path
+        )
+
+    except Exception as error:
+
+        print(
+            "ERRO AO SALVAR COMPROVANTE:",
+            repr(error),
+            flush=True
+        )
+
+        return (
+            None,
+            (
+                "Não foi possível salvar "
+                "o comprovante."
+            ),
+            500
+        )
+
+
+    receipt_path = (
+        f"/media/trip-receipts/"
+        f"{receipt_filename}"
+    )
+
+
+    return (
+        receipt_path,
+        None,
+        200
+    )
+
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 
 # =========================
@@ -6850,151 +7055,20 @@ def register_trip_student(slug):
 
     if receipt_file and receipt_file.filename:
 
-        filename = (
-            receipt_file.filename
-            or ""
-        ).strip()
+        (
+            receipt_path,
+            receipt_error,
+            receipt_status
+        ) = save_trip_receipt(
+            receipt_file,
+            trip.id
+        )
 
-        filename_lower = filename.lower()
-
-        # =========================
-        # EXTENSÃO
-        # =========================
-
-        if "." not in filename_lower:
+        if receipt_error:
 
             return jsonify({
-                "message": (
-                    "Não foi possível identificar "
-                    "o formato do comprovante. "
-                    "Envie uma foto ou arquivo PDF."
-                )
-            }), 400
-
-
-        extension = (
-            filename_lower
-            .rsplit(".", 1)[1]
-            .strip()
-        )
-
-
-        if (
-            extension
-            not in
-            ALLOWED_TRIP_RECEIPT_EXTENSIONS
-        ):
-
-            return jsonify({
-                "message": (
-                    "Formato de comprovante não aceito. "
-                    "Envie JPG, JPEG, PNG, WEBP, "
-                    "HEIC, HEIF ou PDF."
-                )
-            }), 400
-
-
-        # =========================
-        # TAMANHO DO ARQUIVO
-        # =========================
-
-        receipt_file.stream.seek(
-            0,
-            os.SEEK_END
-        )
-
-        file_size = (
-            receipt_file.stream.tell()
-        )
-
-        receipt_file.stream.seek(0)
-
-
-        if file_size <= 0:
-
-            return jsonify({
-                "message": (
-                    "O comprovante enviado está vazio. "
-                    "Selecione o arquivo novamente."
-                )
-            }), 400
-
-
-        if (
-            file_size >
-            MAX_TRIP_RECEIPT_SIZE
-        ):
-
-            return jsonify({
-                "message": (
-                    "O comprovante é muito grande. "
-                    "O tamanho máximo permitido é 20 MB."
-                )
-            }), 413
-
-
-        # =========================
-        # NOME ÚNICO
-        # =========================
-
-        receipt_filename = (
-            f"trip_{trip.id}_"
-            f"{uuid.uuid4().hex}."
-            f"{extension}"
-        )
-
-
-        # =========================
-        # PASTA
-        # =========================
-
-        receipt_folder = os.path.join(
-            UPLOAD_BASE,
-            "trip_receipts"
-        )
-
-        os.makedirs(
-            receipt_folder,
-            exist_ok=True
-        )
-
-
-        receipt_full_path = os.path.join(
-            receipt_folder,
-            receipt_filename
-        )
-
-
-        # =========================
-        # SALVAR
-        # =========================
-
-        try:
-
-            receipt_file.save(
-                receipt_full_path
-            )
-
-        except Exception as error:
-
-            print(
-                "ERRO AO SALVAR COMPROVANTE:",
-                repr(error),
-                flush=True
-            )
-
-            return jsonify({
-                "message": (
-                    "Não foi possível salvar o comprovante. "
-                    "Tente selecionar o arquivo novamente."
-                )
-            }), 500
-
-
-        receipt_path = (
-            f"/media/trip-receipts/"
-            f"{receipt_filename}"
-        )
+                "message": receipt_error
+            }), receipt_status
 
     registration = TripRegistration(
         trip_id=trip.id,
@@ -7519,7 +7593,88 @@ def admin_edit_trip_registration(registration_id):
     return jsonify({
         "message": "Inscrição atualizada com sucesso.",
         "platoon": platoon
-    })    
+    })  
+
+@app.route(
+    "/admin/passeios/inscricoes/"
+    "<int:registration_id>/comprovante",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_upload_trip_receipt(
+    registration_id
+):
+
+    registration = (
+        TripRegistration.query
+        .get_or_404(registration_id)
+    )
+
+    receipt_file = request.files.get(
+        "payment_receipt"
+    )
+
+
+    # =========================
+    # VALIDAR / SALVAR
+    # =========================
+
+    (
+        receipt_path,
+        receipt_error,
+        receipt_status
+    ) = save_trip_receipt(
+        receipt_file,
+        registration.trip_id
+    )
+
+
+    if receipt_error:
+
+        return jsonify({
+            "message": receipt_error
+        }), receipt_status
+
+
+    # =========================
+    # ATUALIZAR INSCRIÇÃO
+    # =========================
+
+    registration.payment_receipt = (
+        receipt_path
+    )
+
+
+    try:
+
+        db.session.commit()
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "ERRO AO ATUALIZAR "
+            "COMPROVANTE DA INSCRIÇÃO:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "message": (
+                "O comprovante foi enviado, "
+                "mas não foi possível atualizar "
+                "a inscrição."
+            )
+        }), 500
+
+
+    return jsonify({
+        "message": (
+            "Comprovante salvo com sucesso."
+        ),
+        "payment_receipt": receipt_path
+    }), 200    
 
 # =========================
 # SEED INICIAL OPCIONAL

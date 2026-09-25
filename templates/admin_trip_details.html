@@ -479,23 +479,86 @@
 
                             <td>
 
-                                {% if item.payment_receipt %}
+								{% if item.payment_receipt %}
 
-                                    <a
-                                        class="receipt-link"
-                                        href="{{ item.payment_receipt }}"
-                                        target="_blank"
-                                    >
-                                        Ver comprovante
-                                    </a>
+									<a
+										class="receipt-link"
+										href="{{ item.payment_receipt }}"
+										target="_blank"
+									>
+										Ver comprovante
+									</a>
 
-                                {% else %}
+									<br>
 
-                                    Sem comprovante
+									<button
+										type="button"
+										class="payment-btn"
+										style="
+											background: #475569;
+											color: white;
+											margin-top: 7px;
+										"
+										onclick="selectTripReceipt(
+											{{ item.id }}
+										)"
+									>
+										🔄 Substituir comprovante
+									</button>
 
-                                {% endif %}
+								{% else %}
 
-                            </td>
+									<span
+										style="
+											color: #64748b;
+											font-size: 13px;
+										"
+									>
+										Sem comprovante
+									</span>
+
+									<br>
+
+									<button
+										type="button"
+										class="payment-btn"
+										style="
+											background: #2563eb;
+											color: white;
+											margin-top: 7px;
+										"
+										onclick="selectTripReceipt(
+											{{ item.id }}
+										)"
+									>
+										📎 Adicionar comprovante
+									</button>
+
+								{% endif %}
+
+
+								<input
+									type="file"
+									id="tripReceiptInput{{ item.id }}"
+									accept="
+										image/*,
+										.jpg,
+										.jpeg,
+										.png,
+										.webp,
+										.heic,
+										.heif,
+										.pdf,
+										application/pdf
+									"
+									style="display: none;"
+									onchange="uploadTripReceipt(
+										{{ item.id }},
+										this
+									)"
+								>
+
+							</td>
 
                             <td>
 
@@ -868,6 +931,149 @@
 				);
 			}
 		}
+		
+	async function selectTripReceipt(
+		registrationId
+	) {
+
+		const input =
+			document.getElementById(
+				`tripReceiptInput${registrationId}`
+			);
+
+		if (!input) {
+			return;
+		}
+
+		input.click();
+	}
+
+
+	async function uploadTripReceipt(
+		registrationId,
+		input
+	) {
+
+		if (
+			!input.files ||
+			input.files.length === 0
+		) {
+			return;
+		}
+
+
+		const file = input.files[0];
+
+		const MAX_RECEIPT_SIZE =
+			20 * 1024 * 1024;
+
+
+		// =========================
+		// TAMANHO
+		// =========================
+
+		if (
+			file.size >
+			MAX_RECEIPT_SIZE
+		) {
+
+			alert(
+				"O comprovante selecionado é muito grande.\n\n" +
+				"O tamanho máximo permitido é 20 MB."
+			);
+
+			input.value = "";
+
+			return;
+		}
+
+
+		const formData =
+			new FormData();
+
+		formData.append(
+			"payment_receipt",
+			file
+		);
+
+
+		try {
+
+			const response = await fetch(
+				`/admin/passeios/inscricoes/${registrationId}/comprovante`,
+				{
+					method: "POST",
+					body: formData
+				}
+			);
+
+
+			const responseText =
+				await response.text();
+
+			let data = {};
+
+
+			try {
+
+				data = responseText
+					? JSON.parse(responseText)
+					: {};
+
+			} catch (error) {
+
+				console.error(
+					"Resposta do servidor:",
+					responseText
+				);
+
+			}
+
+
+			if (!response.ok) {
+
+				let message =
+					data.message ||
+					"Não foi possível enviar o comprovante.";
+
+
+				if (response.status === 413) {
+
+					message =
+						"O comprovante é muito grande.\n\n" +
+						"O tamanho máximo permitido é 20 MB.";
+
+				}
+
+
+				alert(message);
+
+				input.value = "";
+
+				return;
+			}
+
+
+			alert(
+				data.message ||
+				"Comprovante salvo com sucesso."
+			);
+
+
+			window.location.reload();
+
+
+		} catch (error) {
+
+			console.error(error);
+
+			alert(
+				"Erro de comunicação ao enviar o comprovante."
+			);
+
+			input.value = "";
+		}
+	}	
 
     </script>
 
