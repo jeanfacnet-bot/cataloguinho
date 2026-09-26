@@ -176,8 +176,13 @@
 		}
 	}
 	if(submitBtn){submitBtn.disabled=true;submitBtn.textContent="Enviando inscrição...";submitBtn.style.opacity=".75"}try{const formData=new FormData(registrationForm);
+	const cleanPath =
+		"/" +
+		window.location.pathname
+			.replace(/^\/+/, "");
+
 	const response = await fetch(
-		window.location.pathname + "/inscrever",
+		cleanPath + "/inscrever",
 		{
 			method: "POST",
 			body: formData
