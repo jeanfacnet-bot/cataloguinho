@@ -101,6 +101,24 @@ body {
   fill: #22c55e;
 }
 
+.topbar-left-actions .topbar-instagram-link {
+  font-size: 0;
+  padding: 0;
+}
+
+.topbar-left-actions .topbar-instagram-link::after {
+  content: "Instagram";
+  font-size: 15px;
+  line-height: 1.15;
+  margin-top: 8px;
+}
+
+.topbar-left-actions .topbar-instagram-link svg {
+  width: 42px;
+  height: 42px;
+  fill: #e1306c;
+}
+
 .logo {
   grid-area: logo;
   justify-self: center;
@@ -210,7 +228,7 @@ body {
 
   .topbar-main {
     min-height: 100px !important;
-    grid-template-columns: 104px 1fr 104px !important;
+    grid-template-columns: 154px 1fr 104px !important;
     grid-template-rows: 78px 40px !important;
     grid-template-areas:
       "left logo user"
@@ -246,6 +264,16 @@ body {
     width: 22px !important;
     height: 22px !important;
   }
+  
+  .topbar-left-actions .topbar-instagram-link::after {
+	  font-size: 8px !important;
+	  margin-top: 3px !important;
+	}
+
+	.topbar-left-actions .topbar-instagram-link svg {
+	  width: 22px !important;
+	  height: 22px !important;
+	}
 
   .logo {
     width: 100% !important;

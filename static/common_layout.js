@@ -243,7 +243,7 @@ function getTopbarRemainingDaysText(user) {
   return "Expirado";
 }
 
-async function getSupportWhatsapp() {
+async function getSupportContacts() {
   try {
     const response = await fetch("/public/support-whatsapp", {
       method: "GET",
@@ -253,14 +253,31 @@ async function getSupportWhatsapp() {
     });
 
     if (!response.ok) {
-      return "";
+      return {
+        supportWhatsapp: "",
+        instagramUrl: ""
+      };
     }
 
     const data = await response.json();
-    return (data.support_whatsapp || "").trim();
+
+    return {
+      supportWhatsapp:
+        (data.support_whatsapp || "").trim(),
+
+      instagramUrl:
+        (data.instagram_url || "").trim()
+    };
   } catch (error) {
-    console.error("Erro ao carregar WhatsApp de suporte:", error);
-    return "";
+    console.error(
+      "Erro ao carregar contatos de suporte:",
+      error
+    );
+
+    return {
+      supportWhatsapp: "",
+      instagramUrl: ""
+    };
   }
 }
 
@@ -273,6 +290,39 @@ function buildWhatsappLink(rawNumber) {
   const encodedMessage = encodeURIComponent(message);
 
   return `https://wa.me/${digits}?text=${encodedMessage}`;
+}
+
+function buildInstagramLink(rawValue) {
+  let value = String(rawValue || "").trim();
+
+  if (!value) return "";
+
+  // Permite informar @usuario
+  if (value.startsWith("@")) {
+    value = value.substring(1).trim();
+    return value
+      ? `https://www.instagram.com/${encodeURIComponent(value)}/`
+      : "";
+  }
+
+  // Permite informar apenas o nome do usuário
+  if (/^[A-Za-z0-9._]+$/.test(value)) {
+    return `https://www.instagram.com/${encodeURIComponent(value)}/`;
+  }
+
+  // Permite informar instagram.com/usuario
+  if (/^(www\.)?instagram\.com\//i.test(value)) {
+    return `https://${value}`;
+  }
+
+  // Permite informar o endereço completo
+  if (
+    /^https?:\/\/(www\.)?instagram\.com\//i.test(value)
+  ) {
+    return value;
+  }
+
+  return "";
 }
 
 function isAppInstalled() {
@@ -349,8 +399,20 @@ async function renderSharedTopbar() {
 
   if (!topMenu || !bottomMenu || !userInfo || !leftActions) return;
 
-  const supportWhatsapp = await getSupportWhatsapp();
-  const whatsappLink = buildWhatsappLink(supportWhatsapp);
+  const supportContacts =
+    await getSupportContacts();
+
+  const supportWhatsapp =
+    supportContacts.supportWhatsapp;
+
+  const instagramUrl =
+    supportContacts.instagramUrl;
+
+  const whatsappLink =
+    buildWhatsappLink(supportWhatsapp);
+	
+  const instagramLink =
+    buildInstagramLink(instagramUrl);	
   
   const whatsappIcon = whatsappLink
     ? `
@@ -369,6 +431,25 @@ async function renderSharedTopbar() {
       </a>
     `
     : "";
+	
+	const instagramIcon = instagramLink
+	  ? `
+		<a
+		  href="${instagramLink}"
+		  class="topbar-instagram-link"
+		  target="_blank"
+		  rel="noopener noreferrer"
+		  aria-label="Acessar Instagram"
+		  title="Acessar nosso Instagram"
+		>
+		  <svg viewBox="0 0 24 24" aria-hidden="true">
+			<path
+			  d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7zm5 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm5.5-3.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5z"
+			></path>
+		  </svg>
+		</a>
+	  `
+	  : "";
 
   let userBlock = "";
   let guestMessage = "";
@@ -377,9 +458,10 @@ async function renderSharedTopbar() {
   const installButton = createInstallButton();
   
   leftActions.innerHTML = `
-	  ${installButton}
-	  ${whatsappIcon}
-	`;
+    ${installButton}
+    ${whatsappIcon}
+    ${instagramIcon}
+`  ;
 
   if (savedUser) {
     const planLabel = savedUser.plan_label || getPlanLabel(savedUser.plan);

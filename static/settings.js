@@ -2,6 +2,8 @@ const savedUser = JSON.parse(localStorage.getItem("catalogo_user") || "null");
 const saveSettingsBtn = document.getElementById("saveSettingsBtn");
 const settingsStatus = document.getElementById("settingsStatus");
 const supportWhatsapp = document.getElementById("supportWhatsapp");
+const instagramUrl =
+  document.getElementById("instagramUrl");
 const newUserVipEnabled =
   document.getElementById("newUserVipEnabled");
 
@@ -95,6 +97,10 @@ async function loadSettings() {
 	if (supportWhatsapp) {
       supportWhatsapp.value = data.support_whatsapp || "";
     }
+	if (instagramUrl) {
+	  instagramUrl.value =
+		data.instagram_url || "";
+	}
 	
 	const promotions = data.promotions || {};
 
@@ -139,6 +145,11 @@ async function saveSettings() {
         supportWhatsapp
           ? supportWhatsapp.value.trim()
           : "",
+		  
+		instagram_url:
+		  instagramUrl
+			? instagramUrl.value.trim()
+			: "",  
 
       promotions: {
         new_user_vip_enabled:

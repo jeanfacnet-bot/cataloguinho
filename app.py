@@ -534,6 +534,10 @@ class AppSetting(db.Model):
     premium_can_use_location = db.Column(db.Boolean, nullable=False, default=True)
     
     support_whatsapp = db.Column(db.String(30), nullable=True)
+    instagram_url = db.Column(
+        db.String(500),
+        nullable=True
+    )
     
     # =========================
     # PROMOÇÕES VIP
@@ -8346,7 +8350,12 @@ def public_support_whatsapp():
     settings = get_app_settings()
 
     return jsonify({
-        "support_whatsapp": settings.support_whatsapp or ""
+        "support_whatsapp": (
+            settings.support_whatsapp or ""
+        ),
+        "instagram_url": (
+            settings.instagram_url or ""
+        )
     }), 200
     
 @app.route("/manifest.webmanifest")
@@ -8436,7 +8445,8 @@ def get_admin_settings():
 
     return jsonify({
         "support_whatsapp": settings.support_whatsapp or "",
-        
+        "instagram_url": settings.instagram_url or "",
+
         "promotions": {
             "new_user_vip_enabled": (
                 settings.new_user_vip_promotion_enabled
@@ -8521,9 +8531,17 @@ def update_admin_settings():
     settings = get_app_settings()
 
     try:
-        settings.support_whatsapp = (data.get("support_whatsapp") or "").strip()
-        
-        settings.free_ads_limit = int(data["free"]["ads_limit"])
+        settings.support_whatsapp = (
+            data.get("support_whatsapp") or ""
+        ).strip()
+
+        settings.instagram_url = (
+            data.get("instagram_url") or ""
+        ).strip()
+
+        settings.free_ads_limit = int(
+            data["free"]["ads_limit"]
+        )
         settings.free_keywords_limit = int(data["free"]["keywords_limit"])
         settings.free_can_use_images = bool(data["free"]["can_use_images"])
         settings.free_can_use_videos = bool(data["free"]["can_use_videos"])
