@@ -7452,6 +7452,30 @@ def admin_update_trip_payment(registration_id):
             registration.registration_status
         )
     }) 
+    
+@app.route(
+    "/admin/passeios/inscricoes/<int:registration_id>/excluir",
+    methods=["DELETE"]
+)
+@admin_required_page
+def admin_delete_trip_registration(registration_id):
+
+    registration = (
+        TripRegistration.query
+        .get_or_404(registration_id)
+    )
+
+    student_name = registration.student_name
+
+    db.session.delete(registration)
+    db.session.commit()
+
+    return jsonify({
+        "message": (
+            f"Inscrição de {student_name} "
+            "excluída definitivamente."
+        )
+    }), 200    
 
 @app.route(
     "/admin/passeios/inscricoes/<int:registration_id>/cancelar",

@@ -17,6 +17,179 @@
     >
 
     <style>
+	
+		let registrationOriginalOrder = [];
+		let registrationSortColumn = null;
+		let registrationSortDirection = 0;
+
+
+		function saveRegistrationOriginalOrder() {
+
+			const tbody = document.querySelector(
+				".table-box table tbody"
+			);
+
+			if (!tbody) {
+				return;
+			}
+
+			registrationOriginalOrder =
+				Array.from(tbody.querySelectorAll("tr"));
+		}
+
+
+		function sortRegistrations(
+			columnIndex,
+			type,
+			button
+		) {
+
+			const tbody = document.querySelector(
+				".table-box table tbody"
+			);
+
+			if (!tbody) {
+				return;
+			}
+
+			if (registrationOriginalOrder.length === 0) {
+				saveRegistrationOriginalOrder();
+			}
+
+
+			// =========================
+			// DEFINE O PRÓXIMO ESTADO
+			// =========================
+
+			if (registrationSortColumn !== columnIndex) {
+
+				registrationSortColumn = columnIndex;
+				registrationSortDirection = 1;
+
+			} else {
+
+				registrationSortDirection++;
+
+				if (registrationSortDirection > 2) {
+					registrationSortDirection = 0;
+				}
+			}
+
+
+			// =========================
+			// RESETA TODAS AS SETAS
+			// =========================
+
+			document
+				.querySelectorAll(".sort-arrow")
+				.forEach((arrow) => {
+					arrow.textContent = "↕";
+				});
+
+
+			// =========================
+			// VOLTAR À ORDEM ORIGINAL
+			// =========================
+
+			if (registrationSortDirection === 0) {
+
+				registrationOriginalOrder.forEach(
+					(row) => {
+						tbody.appendChild(row);
+					}
+				);
+
+				registrationSortColumn = null;
+
+				return;
+			}
+
+
+			// =========================
+			// ORDENAÇÃO
+			// =========================
+
+			const rows =
+				Array.from(tbody.querySelectorAll("tr"));
+
+			rows.sort((rowA, rowB) => {
+
+				const cellA =
+					rowA.children[columnIndex];
+
+				const cellB =
+					rowB.children[columnIndex];
+
+				if (!cellA || !cellB) {
+					return 0;
+				}
+
+				let valueA =
+					cellA.textContent.trim();
+
+				let valueB =
+					cellB.textContent.trim();
+
+
+				// IDADE
+				if (type === "number") {
+
+					valueA =
+						parseFloat(valueA) || 0;
+
+					valueB =
+						parseFloat(valueB) || 0;
+
+					return registrationSortDirection === 1
+						? valueA - valueB
+						: valueB - valueA;
+				}
+
+
+				// TEXTO
+				const comparison =
+					valueA.localeCompare(
+						valueB,
+						"pt-BR",
+						{
+							sensitivity: "base",
+							numeric: true
+						}
+					);
+
+				return registrationSortDirection === 1
+					? comparison
+					: -comparison;
+			});
+
+
+			rows.forEach((row) => {
+				tbody.appendChild(row);
+			});
+
+
+			// =========================
+			// ALTERA A SETA
+			// =========================
+
+			const arrow =
+				button.querySelector(".sort-arrow");
+
+			if (arrow) {
+
+				arrow.textContent =
+					registrationSortDirection === 1
+						? "↑"
+						: "↓";
+			}
+		}
+
+
+		document.addEventListener(
+			"DOMContentLoaded",
+			saveRegistrationOriginalOrder
+		);
+	
         body {
             margin: 0;
             background: #f4f7fb;
@@ -129,6 +302,37 @@
             background: #f8fafc;
             color: #334155;
         }
+		
+		.sort-btn {
+			background: transparent;
+			border: none;
+			padding: 0;
+			margin: 0;
+			color: #334155;
+			font: inherit;
+			font-weight: 700;
+			cursor: pointer;
+
+			display: inline-flex;
+			align-items: center;
+			gap: 5px;
+		}
+
+		.sort-btn:hover {
+			color: #1d4ed8;
+		}
+
+		.sort-arrow {
+			display: inline-block;
+			min-width: 14px;
+			font-size: 15px;
+			font-weight: 900;
+			color: #64748b;
+		}
+
+		.sort-btn:hover .sort-arrow {
+			color: #1d4ed8;
+		}
 
         .status {
             display: inline-block;
@@ -390,16 +594,79 @@
                 <thead>
 
                     <tr>
-                        <th>Aluno</th>
-                        <th>Responsável</th>
-                        <th>Idade</th>
-                        <th>Pelotão</th>
-                        <th>Turno</th>
-                        <th>WhatsApp</th>
-                        <th>Pagamento</th>
-                        <th>Comprovante</th>
-                        <th>Ação</th>
-                    </tr>
+						<th>
+							<button
+								type="button"
+								class="sort-btn"
+								onclick="sortRegistrations(0, 'text', this)"
+							>
+								Aluno <span class="sort-arrow">↕</span>
+							</button>
+						</th>
+
+						<th>
+							<button
+								type="button"
+								class="sort-btn"
+								onclick="sortRegistrations(1, 'text', this)"
+							>
+								Responsável <span class="sort-arrow">↕</span>
+							</button>
+						</th>
+
+						<th>
+							<button
+								type="button"
+								class="sort-btn"
+								onclick="sortRegistrations(2, 'number', this)"
+							>
+								Idade <span class="sort-arrow">↕</span>
+							</button>
+						</th>
+
+						<th>
+							<button
+								type="button"
+								class="sort-btn"
+								onclick="sortRegistrations(3, 'text', this)"
+							>
+								Pelotão <span class="sort-arrow">↕</span>
+							</button>
+						</th>
+
+						<th>
+							<button
+								type="button"
+								class="sort-btn"
+								onclick="sortRegistrations(4, 'text', this)"
+							>
+								Turno <span class="sort-arrow">↕</span>
+							</button>
+						</th>
+
+						<th>
+							<button
+								type="button"
+								class="sort-btn"
+								onclick="sortRegistrations(5, 'text', this)"
+							>
+								WhatsApp <span class="sort-arrow">↕</span>
+							</button>
+						</th>
+
+						<th>
+							<button
+								type="button"
+								class="sort-btn"
+								onclick="sortRegistrations(6, 'text', this)"
+							>
+								Pagamento <span class="sort-arrow">↕</span>
+							</button>
+						</th>
+
+						<th>Comprovante</th>
+						<th>Ação</th>
+					</tr>
 
                 </thead>
 
@@ -653,7 +920,27 @@
 
 								{% endif %}
 
+
+								<br>
+
+								<!-- EXCLUSÃO DEFINITIVA -->
+
+								<button
+									type="button"
+									class="payment-btn"
+									style="
+										background: #7f1d1d;
+										color: white;
+										margin-top: 10px;
+									"
+									onclick="deleteRegistration({{ item.id }})"
+								>
+									🗑 Excluir definitivamente
+								</button>
+
 							</td>
+							
+							
 
                         </tr>
 
@@ -714,6 +1001,72 @@
 
             window.location.reload();
         }
+		
+		async function deleteRegistration(
+			registrationId
+		) {
+
+			const confirmed = confirm(
+				"ATENÇÃO!\n\n" +
+				"Esta ação excluirá definitivamente a inscrição.\n\n" +
+				"Depois de excluída, ela não poderá ser reativada.\n\n" +
+				"Deseja realmente continuar?"
+			);
+
+			if (!confirmed) {
+				return;
+			}
+
+			try {
+
+				const response = await fetch(
+					`/admin/passeios/inscricoes/${registrationId}/excluir`,
+					{
+						method: "DELETE"
+					}
+				);
+
+				const text = await response.text();
+
+				let data = {};
+
+				try {
+					data = text
+						? JSON.parse(text)
+						: {};
+				} catch (error) {
+					console.error(
+						"Resposta do servidor:",
+						text
+					);
+				}
+
+				if (!response.ok) {
+
+					alert(
+						data.message ||
+						`Erro ao excluir inscrição (${response.status}).`
+					);
+
+					return;
+				}
+
+				alert(
+					data.message ||
+					"Inscrição excluída definitivamente."
+				);
+
+				window.location.reload();
+
+			} catch (error) {
+
+				console.error(error);
+
+				alert(
+					"Erro de comunicação ao excluir a inscrição."
+				);
+			}
+		}
 		
 		async function cancelRegistration(
 			registrationId
