@@ -17,179 +17,7 @@
     >
 
     <style>
-	
-		let registrationOriginalOrder = [];
-		let registrationSortColumn = null;
-		let registrationSortDirection = 0;
-
-
-		function saveRegistrationOriginalOrder() {
-
-			const tbody = document.querySelector(
-				".table-box table tbody"
-			);
-
-			if (!tbody) {
-				return;
-			}
-
-			registrationOriginalOrder =
-				Array.from(tbody.querySelectorAll("tr"));
-		}
-
-
-		function sortRegistrations(
-			columnIndex,
-			type,
-			button
-		) {
-
-			const tbody = document.querySelector(
-				".table-box table tbody"
-			);
-
-			if (!tbody) {
-				return;
-			}
-
-			if (registrationOriginalOrder.length === 0) {
-				saveRegistrationOriginalOrder();
-			}
-
-
-			// =========================
-			// DEFINE O PRÓXIMO ESTADO
-			// =========================
-
-			if (registrationSortColumn !== columnIndex) {
-
-				registrationSortColumn = columnIndex;
-				registrationSortDirection = 1;
-
-			} else {
-
-				registrationSortDirection++;
-
-				if (registrationSortDirection > 2) {
-					registrationSortDirection = 0;
-				}
-			}
-
-
-			// =========================
-			// RESETA TODAS AS SETAS
-			// =========================
-
-			document
-				.querySelectorAll(".sort-arrow")
-				.forEach((arrow) => {
-					arrow.textContent = "↕";
-				});
-
-
-			// =========================
-			// VOLTAR À ORDEM ORIGINAL
-			// =========================
-
-			if (registrationSortDirection === 0) {
-
-				registrationOriginalOrder.forEach(
-					(row) => {
-						tbody.appendChild(row);
-					}
-				);
-
-				registrationSortColumn = null;
-
-				return;
-			}
-
-
-			// =========================
-			// ORDENAÇÃO
-			// =========================
-
-			const rows =
-				Array.from(tbody.querySelectorAll("tr"));
-
-			rows.sort((rowA, rowB) => {
-
-				const cellA =
-					rowA.children[columnIndex];
-
-				const cellB =
-					rowB.children[columnIndex];
-
-				if (!cellA || !cellB) {
-					return 0;
-				}
-
-				let valueA =
-					cellA.textContent.trim();
-
-				let valueB =
-					cellB.textContent.trim();
-
-
-				// IDADE
-				if (type === "number") {
-
-					valueA =
-						parseFloat(valueA) || 0;
-
-					valueB =
-						parseFloat(valueB) || 0;
-
-					return registrationSortDirection === 1
-						? valueA - valueB
-						: valueB - valueA;
-				}
-
-
-				// TEXTO
-				const comparison =
-					valueA.localeCompare(
-						valueB,
-						"pt-BR",
-						{
-							sensitivity: "base",
-							numeric: true
-						}
-					);
-
-				return registrationSortDirection === 1
-					? comparison
-					: -comparison;
-			});
-
-
-			rows.forEach((row) => {
-				tbody.appendChild(row);
-			});
-
-
-			// =========================
-			// ALTERA A SETA
-			// =========================
-
-			const arrow =
-				button.querySelector(".sort-arrow");
-
-			if (arrow) {
-
-				arrow.textContent =
-					registrationSortDirection === 1
-						? "↑"
-						: "↓";
-			}
-		}
-
-
-		document.addEventListener(
-			"DOMContentLoaded",
-			saveRegistrationOriginalOrder
-		);
-	
+				
         body {
             margin: 0;
             background: #f4f7fb;
@@ -965,6 +793,166 @@
     </main>
 
     <script>
+	
+		let registrationOriginalOrder = [];
+		let registrationSortColumn = null;
+		let registrationSortDirection = 0;
+
+
+		function saveRegistrationOriginalOrder() {
+
+			const tbody = document.querySelector(
+				".table-box table tbody"
+			);
+
+			if (!tbody) {
+				return;
+			}
+
+			registrationOriginalOrder =
+				Array.from(tbody.querySelectorAll("tr"));
+		}
+
+
+		function sortRegistrations(
+			columnIndex,
+			type,
+			button
+		) {
+
+			const tbody = document.querySelector(
+				".table-box table tbody"
+			);
+
+			if (!tbody) {
+				return;
+			}
+
+			if (registrationOriginalOrder.length === 0) {
+				saveRegistrationOriginalOrder();
+			}
+
+
+			// DEFINE O PRÓXIMO ESTADO
+			if (registrationSortColumn !== columnIndex) {
+
+				registrationSortColumn = columnIndex;
+				registrationSortDirection = 1;
+
+			} else {
+
+				registrationSortDirection++;
+
+				if (registrationSortDirection > 2) {
+					registrationSortDirection = 0;
+				}
+			}
+
+
+			// RESETA TODAS AS SETAS
+			document
+				.querySelectorAll(".sort-arrow")
+				.forEach((arrow) => {
+					arrow.textContent = "↕";
+				});
+
+
+			// VOLTA PARA A ORDEM ORIGINAL
+			if (registrationSortDirection === 0) {
+
+				registrationOriginalOrder.forEach(
+					(row) => {
+						tbody.appendChild(row);
+					}
+				);
+
+				registrationSortColumn = null;
+
+				return;
+			}
+
+
+			// PEGA AS LINHAS ATUAIS
+			const rows =
+				Array.from(tbody.querySelectorAll("tr"));
+
+
+			// ORDENA
+			rows.sort((rowA, rowB) => {
+
+				const cellA =
+					rowA.children[columnIndex];
+
+				const cellB =
+					rowB.children[columnIndex];
+
+				if (!cellA || !cellB) {
+					return 0;
+				}
+
+				let valueA =
+					cellA.textContent.trim();
+
+				let valueB =
+					cellB.textContent.trim();
+
+
+				// ORDENAÇÃO NUMÉRICA
+				if (type === "number") {
+
+					valueA =
+						parseFloat(valueA) || 0;
+
+					valueB =
+						parseFloat(valueB) || 0;
+
+					return registrationSortDirection === 1
+						? valueA - valueB
+						: valueB - valueA;
+				}
+
+
+				// ORDENAÇÃO DE TEXTO
+				const comparison =
+					valueA.localeCompare(
+						valueB,
+						"pt-BR",
+						{
+							sensitivity: "base",
+							numeric: true
+						}
+					);
+
+				return registrationSortDirection === 1
+					? comparison
+					: -comparison;
+			});
+
+
+			// RECOLOCA AS LINHAS NA TABELA
+			rows.forEach((row) => {
+				tbody.appendChild(row);
+			});
+
+
+			// ALTERA A SETA DA COLUNA ATUAL
+			const arrow =
+				button.querySelector(".sort-arrow");
+
+			if (arrow) {
+
+				arrow.textContent =
+					registrationSortDirection === 1
+						? "↑"
+						: "↓";
+			}
+		}
+
+
+		document.addEventListener(
+			"DOMContentLoaded",
+			saveRegistrationOriginalOrder
+		);
 
         async function changePayment(
             registrationId,
