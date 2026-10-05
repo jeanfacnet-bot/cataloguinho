@@ -44,6 +44,14 @@
         {% if trip.departure_time %}<div class="fact"><span>Saída</span><strong>{{ trip.departure_time.strftime('%H:%M') }}</strong></div>{% endif %}
         {% if trip.return_time %}<div class="fact"><span>Retorno previsto</span><strong>{{ trip.return_time.strftime('%H:%M') }}</strong></div>{% endif %}
         <div class="fact"><span>Valor</span><strong>R$ {{ "%.2f"|format(trip.price) }}</strong></div>
+		{% if trip.registration_deadline %}
+		<div class="fact">
+			<span>Inscrições até</span>
+			<strong>
+				{{ trip.registration_deadline.strftime('%d/%m/%Y às %H:%M') }}
+			</strong>
+		</div>
+		{% endif %}
       </div>
     </section>
 
@@ -65,6 +73,23 @@
         <section class="card" id="inscricao">
           <h2>Inscrição do aluno</h2>
           <p class="sub">Preencha os dados abaixo. O pelotão será definido automaticamente pela idade.</p>
+		  {% if trip.registration_deadline %}
+			<div style="
+				margin-bottom: 20px;
+				padding: 14px 16px;
+				background: #eff6ff;
+				border: 1px solid #93c5fd;
+				border-radius: 12px;
+				color: #1e3a8a;
+				font-weight: 700;
+				line-height: 1.5;
+			">
+				📅 Inscrições abertas até
+				<strong>
+					{{ trip.registration_deadline.strftime('%d/%m/%Y às %H:%M') }}
+				</strong>
+			</div>
+			{% endif %}
           <form id="registrationForm" enctype="multipart/form-data">
             <div class="form-grid">
               <div class="group full"><label>Nome do aluno</label><input type="text" name="student_name" required></div>

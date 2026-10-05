@@ -29,6 +29,7 @@ import uuid
 import subprocess
 import requests
 import time
+from zoneinfo import ZoneInfo
 from threading import Lock
 from urllib.request import urlopen, Request
 from urllib.parse import (
@@ -1894,7 +1895,12 @@ def hash_reset_token(raw_token):
     return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
     
 def utc_now():
-    return datetime.now(UTC).replace(tzinfo=None)  
+    return datetime.now(UTC).replace(tzinfo=None) 
+
+def brasilia_now():
+    return datetime.now(
+        ZoneInfo("America/Sao_Paulo")
+    ).replace(tzinfo=None)    
     
 
 
@@ -6928,7 +6934,7 @@ def public_trip_page(slug):
 
     if (
         trip.registration_deadline
-        and trip.registration_deadline < utc_now()
+        and trip.registration_deadline < brasilia_now()
     ):
         registrations_open = False
 
@@ -6985,7 +6991,7 @@ def register_trip_student(slug):
 
     if (
         trip.registration_deadline
-        and trip.registration_deadline < utc_now()
+        and trip.registration_deadline < brasilia_now()
     ):
         return jsonify({
             "message": "As inscrições para este passeio foram encerradas."
