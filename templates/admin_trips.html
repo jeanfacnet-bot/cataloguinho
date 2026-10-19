@@ -186,9 +186,26 @@
 
     <section class="trip-form">
 
-      <h2>Novo passeio</h2>
+	  <h2 id="tripFormTitle">Novo passeio</h2>
 
-      <form id="tripForm">
+	  <button
+		type="button"
+		onclick="newTrip()"
+		style="
+		  margin-bottom: 20px;
+		  padding: 10px 16px;
+		  background: #16a34a;
+		  color: white;
+		  border: none;
+		  border-radius: 8px;
+		  font-weight: 700;
+		  cursor: pointer;
+		"
+	  >
+		+ Novo passeio
+	  </button>
+
+	  <form id="tripForm">
 		<input
 		  type="hidden"
 		  id="editingTripId"
@@ -336,6 +353,60 @@
           </div>
 
         </div>
+		
+		<div class="form-group full" style="
+			margin-top: 24px;
+			padding: 20px;
+			background: #f8fafc;
+			border: 1px solid #cbd5e1;
+			border-radius: 12px;
+		">
+			<h3 style="margin-top: 0;">
+				Configuração dos campos de inscrição
+			</h3>
+
+			<p style="color: #64748b;">
+				Marque os campos que serão obrigatórios
+				para os responsáveis realizarem a inscrição.
+			</p>
+
+			<div style="
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+				gap: 14px;
+			">
+
+				{% for field_name, field_label in [
+					("student_name", "Nome do aluno"),
+					("guardian_name", "Nome do responsável"),
+					("age", "Idade"),
+					("platoon", "Pelotão"),
+					("shift", "Turno"),
+					("transport_route", "Rota de transporte"),
+					("guardian_whatsapp", "WhatsApp do responsável"),
+					("payment_receipt", "Comprovante de pagamento")
+				] %}
+
+				<label style="
+					display: flex;
+					align-items: center;
+					gap: 8px;
+					font-weight: 500;
+					cursor: pointer;
+				">
+					<input
+						type="checkbox"
+						name="required_fields"
+						value="{{ field_name }}"
+						checked
+					>
+					{{ field_label }}
+				</label>
+
+				{% endfor %}
+
+			</div>
+		</div>
 
         <button
           type="submit"
@@ -527,7 +598,33 @@
 	</script>
   
   <script>
-		function editTrip(tripId) {
+    function newTrip() {
+
+        tripForm.reset();
+
+        document.getElementById("editingTripId").value = "";
+
+        document.getElementById("tripFormTitle").textContent =
+            "Novo passeio";
+
+        document.querySelectorAll(
+            '#tripForm input[name="required_fields"]'
+        ).forEach(checkbox => {
+            checkbox.checked = true;
+        });
+
+        const saveButton =
+            tripForm.querySelector(".save-btn");
+
+        saveButton.textContent = "Criar passeio";
+
+        window.scrollTo({
+            top: tripForm.offsetTop - 30,
+            behavior: "smooth"
+        });
+    }
+
+    function editTrip(tripId) {
 
 			const tripData = {
 				{% for trip in trips %}
@@ -544,18 +641,35 @@
 						pix_key_type: {{ (trip.pix_key_type or "") | tojson }},
 						pix_key: {{ (trip.pix_key or "") | tojson }},
 						pix_receiver_name: {{ (trip.pix_receiver_name or "") | tojson }},
-						pix_receiver_city: {{ (trip.pix_receiver_city or "") | tojson }}
+						pix_receiver_city: {{ (trip.pix_receiver_city or "")|tojson }},
+						required_fields: {{ trip.required_fields|tojson }}
 					}{% if not loop.last %},{% endif %}
 				{% endfor %}
 			};
 
 			const trip = tripData[String(tripId)];
-
 			if (!trip) {
 				alert("Passeio não encontrado.");
 				return;
 			}
+			
+			const requiredFields = trip.required_fields ?? [
+				"student_name",
+				"guardian_name",
+				"age",
+				"platoon",
+				"shift",
+				"transport_route",
+				"guardian_whatsapp"
+			];
 
+			document.querySelectorAll(
+				'#tripForm input[name="required_fields"]'
+			).forEach(checkbox => {
+				checkbox.checked = requiredFields.includes(checkbox.value);
+			});
+
+			
 			document.getElementById("editingTripId").value =
 				tripId;
 

@@ -803,6 +803,11 @@ class TripEvent(db.Model):
         lazy=True,
         cascade="all, delete-orphan"
     )
+    
+    required_fields = db.Column(
+        db.JSON,
+        nullable=True
+    )
 
 
 class TripRegistration(db.Model):
@@ -820,37 +825,19 @@ class TripRegistration(db.Model):
         index=True
     )
 
-    student_name = db.Column(
-        db.String(200),
-        nullable=False
-    )
-
-    guardian_name = db.Column(
-        db.String(200),
-        nullable=False
-    )
-
-    age = db.Column(
-        db.Integer,
-        nullable=False
-    )
-
-    platoon = db.Column(
-        db.String(30),
-        nullable=False,
+    student_name = db.Column(db.String(200), nullable=True)
+    guardian_name = db.Column(db.String(200), nullable=True)
+    age = db.Column(db.Integer, nullable=True)
+    platoon = db.Column(db.String(30), nullable=True, index=True)
+    shift = db.Column(db.String(20), nullable=True, index=True)
+    
+    transport_route = db.Column(
+        db.String(50),
+        nullable=True,
         index=True
     )
 
-    shift = db.Column(
-        db.String(20),
-        nullable=False,
-        index=True
-    )
-
-    guardian_whatsapp = db.Column(
-        db.String(30),
-        nullable=False
-    )
+    guardian_whatsapp = db.Column(db.String(30), nullable=True)
 
     payment_receipt = db.Column(
         db.String(500),
@@ -5218,6 +5205,23 @@ def admin_create_trip():
         request.form.get("pix_receiver_city")
         or ""
     ).strip()
+    
+    allowed_required_fields = {
+        "student_name",
+        "guardian_name",
+        "age",
+        "platoon",
+        "shift",
+        "transport_route",
+        "guardian_whatsapp",
+        "payment_receipt"
+    }
+
+    required_fields = [
+        field
+        for field in request.form.getlist("required_fields")
+        if field in allowed_required_fields
+    ]
 
     if not title:
         return jsonify({
@@ -5314,6 +5318,7 @@ def admin_create_trip():
         departure_time=departure_time,
         return_time=return_time,
         price=price,
+        required_fields=required_fields,
         registration_deadline=(
             registration_deadline
         ),
@@ -5490,6 +5495,23 @@ def admin_edit_trip(trip_id):
         or ""
     ).strip()
 
+    allowed_required_fields = {
+        "student_name",
+        "guardian_name",
+        "age",
+        "platoon",
+        "shift",
+        "transport_route",
+        "guardian_whatsapp",
+        "payment_receipt"
+    }
+
+    required_fields = [
+        field
+        for field in request.form.getlist("required_fields")
+        if field in allowed_required_fields
+    ]
+
     if not title:
         return jsonify({
             "message":
@@ -5611,6 +5633,8 @@ def admin_edit_trip(trip_id):
         trip.pix_receiver_city = (
             pix_receiver_city or None
         )
+
+        trip.required_fields = required_fields
 
         db.session.commit()
 
@@ -6997,7 +7021,22 @@ def register_trip_student(slug):
             "message": "As inscrições para este passeio foram encerradas."
         }), 400
 
-    
+    default_required_fields = [
+        "student_name",
+        "guardian_name",
+        "age",
+        "platoon",
+        "shift",
+        "transport_route",
+        "guardian_whatsapp"
+    ]
+
+    required_fields = (
+        trip.required_fields
+        if trip.required_fields is not None
+        else default_required_fields
+    )
+
     student_name = (
         request.form.get("student_name")
         or ""
@@ -7017,6 +7056,28 @@ def register_trip_student(slug):
         request.form.get("shift")
         or ""
     ).strip()
+    
+    transport_route = (
+        request.form.get("transport_route")
+        or ""
+    ).strip()
+
+    valid_transport_routes = {
+        "P_SUL_POR_DO_SOL",
+        "P_NORTE_SOL_NASCENTE",
+        "SETOR_O_EXPANSAO",
+        "MEIOS_PROPRIOS"
+    }
+
+    if "transport_route" in required_fields and not transport_route:
+        return jsonify({
+            "message": "Selecione uma rota de transporte."
+        }), 400
+
+    if transport_route and transport_route not in valid_transport_routes:
+        return jsonify({
+            "message": "Selecione uma rota de transporte válida."
+        }), 400
 
     guardian_whatsapp = (
         request.form.get("guardian_whatsapp")
@@ -7027,38 +7088,66 @@ def register_trip_student(slug):
         "payment_receipt"
     )
 
-    if not student_name:
+    if "student_name" in required_fields and not student_name:
         return jsonify({
             "message": "Informe o nome do aluno."
         }), 400
 
-    if not guardian_name:
+    if "guardian_name" in required_fields and not guardian_name:
         return jsonify({
             "message": "Informe o nome do responsável."
         }), 400
 
-    try:
-        age = int(age_raw)
-    except (TypeError, ValueError):
+    age = None
+    platoon = None
+
+    if age_raw:
+        try:
+            age = int(age_raw)
+        except (TypeError, ValueError):
+            return jsonify({
+                "message": "Informe uma idade válida."
+            }), 400
+
+        platoon = get_platoon_by_age(age)
+
+        if not platoon:
+            return jsonify({
+                "message": "A idade permitida é de 7 a 15 anos."
+            }), 400
+
+    elif (
+        "age" in required_fields
+        or "platoon" in required_fields
+    ):
         return jsonify({
-            "message": "Informe uma idade válida."
+            "message": "Informe a idade do aluno para definir o pelotão."
         }), 400
 
-    platoon = get_platoon_by_age(age)
-
-    if not platoon:
-        return jsonify({
-            "message": "A idade permitida é de 7 a 15 anos."
-        }), 400
-
-    if shift not in ("MATUTINO", "VESPERTINO"):
+    if "shift" in required_fields and not shift:
         return jsonify({
             "message": "Selecione o turno."
         }), 400
 
-    if not guardian_whatsapp:
+    if shift and shift not in ("MATUTINO", "VESPERTINO"):
+        return jsonify({
+            "message": "Selecione um turno válido."
+        }), 400
+
+    if "guardian_whatsapp" in required_fields and not guardian_whatsapp:
         return jsonify({
             "message": "Informe o WhatsApp do responsável."
+        }), 400
+
+    if (
+        "payment_receipt" in required_fields
+        and (
+            not receipt_file
+            or not receipt_file.filename
+        )
+    ):
+        return jsonify({
+            "message": "Envie o comprovante de pagamento."
         }), 400
 
     receipt_path = None
@@ -7082,12 +7171,13 @@ def register_trip_student(slug):
 
     registration = TripRegistration(
         trip_id=trip.id,
-        student_name=student_name,
-        guardian_name=guardian_name,
+        student_name=student_name or None,
+        guardian_name=guardian_name or None,
         age=age,
         platoon=platoon,
-        shift=shift,
-        guardian_whatsapp=guardian_whatsapp,
+        shift=shift or None,
+        transport_route=transport_route or None,
+        guardian_whatsapp=guardian_whatsapp or None,
         payment_receipt=receipt_path,
         payment_status="PENDENTE",
         registration_status="AGUARDANDO_PAGAMENTO"
@@ -7300,6 +7390,7 @@ def admin_export_trip_excel(trip_id):
         "Idade",
         "Pelotão",
         "Turno",
+        "Rota de transporte",
         "WhatsApp",
         "Pagamento",
         "Situação da Inscrição",
@@ -7329,6 +7420,18 @@ def admin_export_trip_excel(trip_id):
             shift_label = "Matutino"
         else:
             shift_label = "Vespertino"
+            
+        transport_route_labels = {
+            "P_SUL_POR_DO_SOL": "P Sul / Pôr do Sol",
+            "P_NORTE_SOL_NASCENTE": "P Norte / Sol Nascente",
+            "SETOR_O_EXPANSAO": "Setor O / Expansão",
+            "MEIOS_PROPRIOS": "Meios Próprios"
+        }
+
+        transport_route_label = transport_route_labels.get(
+            item.transport_route,
+            "Não informada"
+        )    
 
         if item.payment_status == "PAGO":
             payment_label = "Pago"
@@ -7359,6 +7462,7 @@ def admin_export_trip_excel(trip_id):
             item.age,
             item.platoon,
             shift_label,
+            transport_route_label,
             item.guardian_whatsapp,
             payment_label,
             registration_label,
@@ -7371,10 +7475,11 @@ def admin_export_trip_excel(trip_id):
         "C": 10,
         "D": 18,
         "E": 15,
-        "F": 20,
-        "G": 15,
-        "H": 24,
-        "I": 20
+        "F": 28,
+        "G": 20,
+        "H": 15,
+        "I": 24,
+        "J": 20
     }
 
     for column, width in column_widths.items():

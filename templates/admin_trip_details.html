@@ -471,12 +471,23 @@
 								Turno <span class="sort-arrow">↕</span>
 							</button>
 						</th>
-
+						
 						<th>
 							<button
 								type="button"
 								class="sort-btn"
 								onclick="sortRegistrations(5, 'text', this)"
+							>
+								Rota de transporte
+								<span class="sort-arrow">↕</span>
+							</button>
+						</th>
+
+						<th>
+							<button
+								type="button"
+								class="sort-btn"
+								onclick="sortRegistrations(6, 'text', this)"
 							>
 								WhatsApp <span class="sort-arrow">↕</span>
 							</button>
@@ -486,7 +497,7 @@
 							<button
 								type="button"
 								class="sort-btn"
-								onclick="sortRegistrations(6, 'text', this)"
+								onclick="sortRegistrations(7, 'text', this)"
 							>
 								Pagamento <span class="sort-arrow">↕</span>
 							</button>
@@ -527,6 +538,20 @@
                                     Vespertino
                                 {% endif %}
                             </td>
+							
+							<td>
+								{% if item.transport_route == "P_SUL_POR_DO_SOL" %}
+									P Sul / Pôr do Sol
+								{% elif item.transport_route == "P_NORTE_SOL_NASCENTE" %}
+									P Norte / Sol Nascente
+								{% elif item.transport_route == "SETOR_O_EXPANSAO" %}
+									Setor O / Expansão
+								{% elif item.transport_route == "MEIOS_PROPRIOS" %}
+									Meios Próprios
+								{% else %}
+									Não informada
+								{% endif %}
+							</td>
 
                             <td>
 							  <a
@@ -776,9 +801,9 @@
 
                         <tr>
 
-                            <td colspan="9">
-                                Nenhuma inscrição encontrada.
-                            </td>
+                            <td colspan="10">
+								Nenhuma inscrição encontrada.
+							</td>
 
                         </tr>
 
