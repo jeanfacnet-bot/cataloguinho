@@ -105,6 +105,35 @@ body { background:var(--sum-bg); }
 
     {% include "partials/topbar.html" %}
     {% include "partials/admin_sidebar.html" %}
+	<script>
+	(function () {
+		let adminLayoutUser = null;
+
+		try {
+			adminLayoutUser = JSON.parse(
+				localStorage.getItem("catalogo_user") || "null"
+			);
+		} catch (error) {
+			console.warn("Dados inválidos do usuário:", error);
+		}
+
+		const adminSidebar = document.getElementById("adminSidebar");
+
+		const isAdmin = adminLayoutUser && (
+			adminLayoutUser.is_admin === true ||
+			adminLayoutUser.role === "admin"
+		);
+
+		if (isAdmin && adminSidebar) {
+			document.body.classList.add("admin-has-sidebar");
+
+			// Exibe o menu lateral normalmente no computador.
+			if (window.innerWidth > 900) {
+				adminSidebar.style.display = "flex";
+			}
+		}
+	})();
+	</script>
 
     <main class="scoresheet-main" style="
         max-width: 1100px;
@@ -2094,6 +2123,6 @@ body { background:var(--sum-bg); }
 
 	});
 	</script>
-
+<script src="{{ static_asset('common_layout.js') }}"></script>
 </body>
 </html>

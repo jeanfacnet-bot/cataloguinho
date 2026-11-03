@@ -12,3 +12,21 @@
   <a href="/admin/olimpiadas"  class="{% if active_page == 'olympics' %}active{% endif %}">  🏆 Olimpíadas Bombeiro Mirim</a>
   
 </aside>
+
+<!-- Fundo escuro ao abrir o menu no celular -->
+<div
+    id="adminSidebarOverlay"
+    class="admin-sidebar-overlay"
+    aria-hidden="true">
+</div>
+
+<!-- Botão flutuante do menu administrativo -->
+<button
+    type="button"
+    id="adminSidebarToggle"
+    class="admin-floating-toggle"
+    aria-label="Abrir menu administrativo"
+    aria-controls="adminSidebar"
+    aria-expanded="false">
+    ☰
+</button>
