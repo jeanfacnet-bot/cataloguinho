@@ -10,6 +10,95 @@
 
     <link rel="stylesheet"
           href="{{ static_asset('style.css') }}">
+
+<style>
+/* Súmula 2026 — interface responsiva, sem alterar IDs nem integração */
+:root { --sum-bg:#f3f6fb; --sum-ink:#15233b; --sum-muted:#617089; --sum-line:#dce4f0; --sum-blue:#1d4ed8; --sum-radius:18px; }
+body { background:var(--sum-bg); }
+.scoresheet-main { box-sizing:border-box; width:min(100%,1100px); max-width:1100px; margin:24px auto 72px !important; padding:16px !important; color:var(--sum-ink); font-family:system-ui,-apple-system,'Segoe UI',sans-serif; }
+.scoresheet-main *, .scoresheet-main *::before, .scoresheet-main *::after {box-sizing:border-box;}
+.scoresheet-heading {margin:0 0 6px; font-size:clamp(1.5rem,4vw,2.1rem);letter-spacing:-.035em;line-height:1.2;}
+.scoresheet-subtitle {color:var(--sum-muted);margin:0 0 18px;font-size:.94rem;}
+#olympicScoresheetContent {background:transparent !important;padding:0 !important;margin-top:0 !important;border-radius:0 !important;}
+.scoresheet-main h2,.scoresheet-main h3,.scoresheet-main h4 {color:var(--sum-ink);line-height:1.3;}
+.scoresheet-main h3 {font-size:1.14rem;margin:0 0 14px;}
+.scoresheet-main h4 {font-size:1rem;margin:0 0 12px;}
+.scoresheet-overview {background:#fff;border:1px solid var(--sum-line);border-radius:var(--sum-radius);padding:22px;box-shadow:0 8px 28px rgba(22,42,80,.05);margin-bottom:18px;}
+.scoresheet-overview > h2 {margin:0 0 16px;font-size:1.05rem;color:var(--sum-muted);}
+.scoresheet-meta {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px;}
+.scoresheet-meta > p {margin:0 !important;padding:12px;background:#f5f8fd;border-radius:12px;font-size:.92rem;min-width:0;overflow-wrap:anywhere;}
+.scoresheet-meta strong {display:block;color:var(--sum-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.045em;margin-bottom:4px;}
+.scoresheet-matchup {display:grid;grid-template-columns:minmax(0,1fr) 42px minmax(0,1fr);align-items:stretch;gap:10px;}
+.scoresheet-team {border:1px solid var(--sum-line);border-radius:14px;padding:15px;background:#f9fbff;min-width:0;}
+.scoresheet-team-label {display:block;color:var(--sum-muted);font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+.scoresheet-team-name {display:block;font-size:1.3rem;font-weight:850;overflow-wrap:anywhere;}
+.scoresheet-team-coach {display:block;color:var(--sum-muted);font-size:.84rem;margin-top:5px;overflow-wrap:anywhere;}
+.scoresheet-versus {align-self:center;text-align:center;font-weight:900;color:#94a3b8;}
+.scoresheet-main #olympicMatchParticipants,.scoresheet-main #olympicAttemptsSection,.scoresheet-main .scoresheet-panel {background:#fff;border:1px solid var(--sum-line) !important;border-radius:var(--sum-radius) !important;padding:22px !important;margin:0 0 18px !important;box-shadow:0 8px 28px rgba(22,42,80,.04);}
+.scoresheet-section-heading {display:flex;align-items:center;gap:10px;margin:0 0 12px;}
+.scoresheet-step {background:#eaf1ff;color:#1e40af;font-size:.8rem;font-weight:800;border-radius:100px;min-width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;}
+.scoresheet-main #olympicMatchParticipants > p {color:var(--sum-muted);font-size:.92rem;margin:0 0 18px;}
+.scoresheet-participant-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+.scoresheet-main #olympicParticipantsTeamA,.scoresheet-main #olympicParticipantsTeamB {margin:0 !important;padding:16px;background:#f8faff;border:1px solid var(--sum-line);border-radius:14px;min-width:0;}
+.scoresheet-main label {display:block;font-weight:650;font-size:.9rem;margin:10px 0 6px;}
+.scoresheet-main select,.scoresheet-main input[type=number] {min-height:46px;max-width:100%;border:1px solid #c5d1e2;border-radius:10px;background:#fff;color:var(--sum-ink);font:inherit;font-size:16px;padding:10px 12px;}
+.scoresheet-main select:focus-visible,.scoresheet-main input:focus-visible,.scoresheet-main button:focus-visible {outline:3px solid #93c5fd;outline-offset:2px;}
+.scoresheet-main #olympicSelectAthleteA,.scoresheet-main #olympicSelectAthleteB {width:100% !important;margin:0 0 10px !important;padding:10px 12px !important;}
+.scoresheet-main button {font-family:inherit;min-height:44px;transition:filter .15s,transform .1s;}
+.scoresheet-main button:not(:disabled):active {transform:scale(.985);}
+.scoresheet-main button:disabled {opacity:.55;cursor:not-allowed !important;}
+.scoresheet-main #btnAddOlympicAthleteA,.scoresheet-main #btnAddOlympicAthleteB {display:block;width:100%;border-radius:10px !important;font-weight:750;padding:12px !important;margin:0 !important;}
+.scoresheet-main #olympicSelectedAthletesA,.scoresheet-main #olympicSelectedAthletesB {display:grid;gap:8px;margin-top:14px !important;}
+.scoresheet-main #olympicSelectedAthletesA > div,.scoresheet-main #olympicSelectedAthletesB > div {display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px !important;margin:0 !important;background:#fff !important;border:1px solid var(--sum-line);border-radius:10px !important;min-width:0;}
+.scoresheet-main #olympicSelectedAthletesA > div span,.scoresheet-main #olympicSelectedAthletesB > div span {min-width:0;overflow-wrap:anywhere;font-size:.9rem;font-weight:600;}
+.scoresheet-main #olympicSelectedAthletesA > div button,.scoresheet-main #olympicSelectedAthletesB > div button {margin-left:0 !important;flex-shrink:0;border-radius:8px !important;font-size:.8rem;padding:7px 9px !important;min-height:38px;}
+.scoresheet-main .scoresheet-result-panel {background:#fff;border:1px solid var(--sum-line);border-radius:var(--sum-radius);padding:22px;margin:0 0 18px;box-shadow:0 8px 28px rgba(22,42,80,.04);}
+.scoresheet-main .scoresheet-result-panel > h4 {font-size:1.16rem;margin:0 0 12px;}
+.scoresheet-main .scoresheet-scoreboard {display:grid !important;grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr);align-items:center;gap:8px !important;margin:18px 0 0 !important;flex-wrap:nowrap !important;}
+.scoresheet-main .scoresheet-scoreboard > div {min-width:0;}
+.scoresheet-main .scoresheet-scoreboard > div > strong {display:block;overflow-wrap:anywhere;font-size:.88rem;min-height:40px;}
+.scoresheet-main .scoresheet-scoreboard input {width:min(100%,120px) !important;font-size:2rem !important;font-weight:850;text-align:center;padding:8px 4px !important;min-height:70px;background:#f8faff;}
+.scoresheet-main .scoresheet-scoreboard input[readonly] {background:#eaf1ff;color:#1e40af;}
+.scoresheet-main .scoresheet-scoreboard > strong {font-size:1.3rem !important;color:#94a3b8;}
+.scoresheet-main .scoresheet-attempt-team {background:#f8faff;border:1px solid var(--sum-line) !important;border-radius:14px !important;padding:16px !important;margin:14px 0 !important;}
+.scoresheet-main .olympic-attempt-row {background:#fff;border:1px solid var(--sum-line);border-radius:12px;padding:14px;margin:10px 0 !important;}
+.scoresheet-main .olympic-attempt-row > strong {display:block;text-align:left;font-size:.95rem;overflow-wrap:anywhere;}
+.scoresheet-main .olympic-five-attempts,.scoresheet-main .olympic-three-attempts {display:grid !important;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px !important;}
+.scoresheet-main .olympic-five-attempts > div,.scoresheet-main .olympic-three-attempts > div {padding:10px 8px !important;border-radius:10px !important;background:#f8faff;}
+.scoresheet-main .olympic-five-attempts > div strong,.scoresheet-main .olympic-three-attempts > div strong {font-size:.78rem;}
+.scoresheet-main .olympic-attempt-result {width:100%;padding:8px 4px !important;font-size:.9rem;}
+.scoresheet-main .olympic-attempt-summary {font-size:.84rem;color:#475569;text-align:left;}
+.scoresheet-main .scoresheet-goals-panel {background:#fff;border:1px solid var(--sum-line);border-radius:var(--sum-radius);padding:20px;margin:0 0 16px !important;}
+.scoresheet-main .scoresheet-goals-panel > div {padding:10px;border:1px solid var(--sum-line);border-radius:10px;background:#f8faff;margin-bottom:8px !important;}
+.scoresheet-main .scoresheet-goals-panel label {display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0;overflow-wrap:anywhere;}
+.scoresheet-main .scoresheet-goals-panel input {width:78px !important;flex:0 0 78px;margin:0 !important;text-align:center;font-weight:750;}
+.scoresheet-main .scoresheet-discipline {background:#fff;border:1px solid var(--sum-line) !important;border-radius:var(--sum-radius) !important;padding:20px !important;margin:0 0 18px !important;}
+.scoresheet-main .scoresheet-discipline > div {gap:12px !important;}
+.scoresheet-main .scoresheet-discipline > div > div {padding:14px;border:1px solid var(--sum-line);border-radius:12px;background:#f8faff;min-width:0;}
+.scoresheet-main .scoresheet-discipline input {display:block;width:100%;margin-bottom:12px;}
+.scoresheet-actions {position:sticky;bottom:0;z-index:20;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;padding:12px 14px;background:rgba(255,255,255,.97);border:1px solid var(--sum-line);border-radius:16px;box-shadow:0 -8px 32px rgba(15,23,42,.11);margin-top:18px;backdrop-filter:blur(10px);}
+.scoresheet-actions button {flex:1 1 190px;margin:0 !important;padding:13px 14px !important;border-radius:12px !important;font-weight:800;}
+.scoresheet-actions #olympicScoresheetSaveMessage {flex-basis:100%;margin:0 !important;font-weight:650;}
+.scoresheet-main hr {border:0;border-top:1px solid var(--sum-line);margin:20px 0;}
+@media(max-width:720px) {
+ .scoresheet-main {width:100%;margin:10px auto 86px !important;padding:10px !important;}
+ .scoresheet-heading {font-size:1.5rem;}
+ .scoresheet-overview,.scoresheet-main #olympicMatchParticipants,.scoresheet-main #olympicAttemptsSection,.scoresheet-main .scoresheet-result-panel,.scoresheet-main .scoresheet-goals-panel,.scoresheet-main .scoresheet-discipline {padding:15px !important;border-radius:15px !important;}
+ .scoresheet-meta {grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;}
+ .scoresheet-meta > p {padding:10px;font-size:.82rem;}
+ .scoresheet-team {padding:11px 9px;}
+ .scoresheet-team-name {font-size:1.05rem;}
+ .scoresheet-team-coach {font-size:.75rem;}
+ .scoresheet-matchup {grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr);gap:5px;}
+ .scoresheet-participant-grid {grid-template-columns:1fr;gap:10px;}
+ .scoresheet-main #olympicParticipantsTeamA,.scoresheet-main #olympicParticipantsTeamB {padding:13px;}
+ .scoresheet-main .scoresheet-scoreboard input {font-size:1.8rem !important;min-height:64px;}
+ .scoresheet-main .olympic-five-attempts,.scoresheet-main .olympic-three-attempts {grid-template-columns:repeat(2,minmax(0,1fr));}
+ .scoresheet-actions {position:sticky;bottom:0;border-radius:12px 12px 0 0;padding:10px;margin-left:-10px;margin-right:-10px;gap:8px;}
+ .scoresheet-actions button {flex:1 1 120px;font-size:.88rem !important;min-height:50px;}
+}
+@media(max-width:380px) { .scoresheet-main .olympic-five-attempts,.scoresheet-main .olympic-three-attempts {grid-template-columns:1fr 1fr;} .scoresheet-actions button {font-size:.8rem !important;padding:10px 5px !important;} }
+</style>
 </head>
 
 <body>
@@ -17,17 +106,15 @@
     {% include "partials/topbar.html" %}
     {% include "partials/admin_sidebar.html" %}
 
-    <main style="
+    <main class="scoresheet-main" style="
         max-width: 1100px;
         margin: 30px auto;
         padding: 20px;
     ">
 
-        <h1>📋 Súmula do Confronto</h1>
+        <h1 class="scoresheet-heading">📋 Súmula do confronto</h1>
 
-        <p>
-            Olimpíadas Internas do Bombeiro Mirim de Ceilândia
-        </p>
+        <p class="scoresheet-subtitle">Olimpíadas Internas do Bombeiro Mirim de Ceilândia</p>
 
         <div id="olympicScoresheetContent"
              style="
@@ -37,77 +124,27 @@
                 margin-top: 20px;
              ">
 
-            <h2>⚽ Informações do confronto</h2>
-
-			<p>
-				<strong>Confronto nº:</strong>
-				{{ match.id }}
-			</p>
-
-			<p>
-				<strong>Data:</strong>
-				{{ match.match_date.strftime('%d/%m/%Y') if match.match_date else 'Não informada' }}
-			</p>
-
-			<p>
-				<strong>Horário:</strong>
-				{{ match.match_time.strftime('%H:%M') if match.match_time else 'Não informado' }}
-			</p>
-
-			<p>
-				<strong>Fase:</strong>
-				{{ match.phase }}
-			</p>
-			
-			<p>
-				<strong>Situação da súmula:</strong>
-
-				<span
-					id="olympicScoresheetStatus"
-					style="
-						font-weight: bold;
-						{% if match.status == 'FINALIZADO' %}
-							color: #15803d;
-						{% elif match.status == 'RASCUNHO' %}
-							color: #d97706;
-						{% else %}
-							color: #64748b;
-						{% endif %}
-					"
-				>
-					{% if match.status == 'FINALIZADO' %}
-						✅ FINALIZADO
-					{% elif match.status == 'RASCUNHO' %}
-						📝 RASCUNHO
-					{% elif match.status == 'CANCELADO' %}
-						❌ CANCELADO
-					{% else %}
-						📅 AGENDADO
-					{% endif %}
-				</span>
-			</p>
-			
-			<p>
-				<strong>Modalidade:</strong>
-				{{ match.modality.name }}
-			</p>
-
-			<p>
-				<strong>Equipe A:</strong>
-				{{ match.team_a.color }} —
-				Técnico: {{ match.team_a.coach }}
-			</p>
-
-			<p>
-				<strong>Equipe B:</strong>
-				{{ match.team_b.color }} —
-				Técnico: {{ match.team_b.coach }}
-			</p>
-
-			<hr style="margin: 20px 0;">
-
-			<h3>🏆 Súmula digital</h3>
-
+            <section class="scoresheet-overview" aria-label="Informações do confronto">
+                <h2>Informações do confronto</h2>
+                <div class="scoresheet-meta">
+                    <p><strong>Confronto</strong> Nº {{ match.id }}</p>
+                    <p><strong>Data</strong> {{ match.match_date.strftime('%d/%m/%Y') if match.match_date else 'Não informada' }}</p>
+                    <p><strong>Horário</strong> {{ match.match_time.strftime('%H:%M') if match.match_time else 'Não informado' }}</p>
+                    <p><strong>Fase</strong> {{ match.phase }}</p>
+                    <p><strong>Modalidade</strong> {{ match.modality.name }}</p>
+                    <p><strong>Situação</strong><span id="olympicScoresheetStatus">
+                    {% if match.status == 'FINALIZADO' %}✅ FINALIZADO
+                    {% elif match.status == 'RASCUNHO' %}📝 RASCUNHO
+                    {% elif match.status == 'CANCELADO' %}❌ CANCELADO
+                    {% else %}📅 AGENDADO{% endif %}
+                    </span></p>
+                </div>
+                <div class="scoresheet-matchup">
+                    <div class="scoresheet-team"><span class="scoresheet-team-label">Equipe A</span><span class="scoresheet-team-name">{{ match.team_a.color }}</span><span class="scoresheet-team-coach">Técnico: {{ match.team_a.coach }}</span></div>
+                    <span class="scoresheet-versus">×</span>
+                    <div class="scoresheet-team"><span class="scoresheet-team-label">Equipe B</span><span class="scoresheet-team-name">{{ match.team_b.color }}</span><span class="scoresheet-team-coach">Técnico: {{ match.team_b.coach }}</span></div>
+                </div>
+            </section>
             <!-- PARTICIPANTES DO CONFRONTO -->
             <section
                 id="olympicMatchParticipants"
@@ -118,7 +155,7 @@
                     border-radius: 10px;
                 "
             >
-                <h3>👥 Participantes do confronto</h3>
+                <h3 class="scoresheet-section-heading"><span class="scoresheet-step">1</span> 👥 Participantes do confronto</h3>
 
                 <p>
                     Selecione os atletas que participarão deste
@@ -126,6 +163,7 @@
                     confirmada somente após a finalização da súmula.
                 </p>
 
+                <div class="scoresheet-participant-grid">
                 <div
 					id="olympicParticipantsTeamA"
 					style="margin-bottom: 20px;"
@@ -242,6 +280,7 @@
 						style="margin-top: 15px;"
 					></div>
 				</div>
+                </div>
             </section>
 
             {% set modalidade = match.modality.name|lower|trim %}
@@ -254,6 +293,8 @@
 			   or 'corrida' in modalidade
 			   or 'revezamento' in modalidade %}
 
+                <section class="scoresheet-result-panel">
+                <h3 class="scoresheet-section-heading"><span class="scoresheet-step">2</span> Resultado do confronto</h3>
 				{% if 'basquete' in modalidade %}
 					<h4>🏀 Arremessos convertidos</h4>
 				{% elif 'pênalti' in modalidade or 'penalti' in modalidade %}
@@ -276,7 +317,7 @@
 					<h4>⚽ Resultado da partida</h4>
 				{% endif %}
 
-				<div style="
+				<div class="scoresheet-scoreboard" style="
 					display: flex;
 					align-items: center;
 					justify-content: center;
@@ -340,7 +381,7 @@
 					</div>
 
 				</div>
-				
+                </section>
 			<div style="margin-top: 30px; text-align: center;">
 			
 			{% if 'basquete' in modalidade
@@ -362,7 +403,7 @@
 						('B', athletes_team_b, match.team_b)
 					] %}
 
-						<div style="margin: 20px 0; padding: 15px;
+						<div class="scoresheet-attempt-team" style="margin: 20px 0; padding: 15px;
 									border: 1px solid #cbd5e1;
 									border-radius: 8px;">
 
@@ -473,7 +514,7 @@
 
 			{% if modalidade in ['futsal', 'golzinho'] %}
 
-				<div style="margin-top: 25px; margin-bottom: 20px;">
+				<div class="scoresheet-goals-panel" style="margin-top: 25px; margin-bottom: 20px;">
 				
 					
 					
@@ -507,7 +548,7 @@
 					{% endif %}
 				</div>
 				
-				<div style="margin-top: 25px; margin-bottom: 20px;">
+				<div class="scoresheet-goals-panel" style="margin-top: 25px; margin-bottom: 20px;">
 					<h3>
 						⚽ Gols por atleta —
 						{{ match.team_b.color }}
@@ -538,7 +579,7 @@
 					{% endif %}
 				</div>
 				
-				<div style="margin: 25px 0; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+				<div class="scoresheet-discipline" style="margin: 25px 0; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
 						<h3>🟨🟥 Cartões e faltas</h3>
 
 						<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 20px;">
@@ -747,6 +788,7 @@
 				</div>
 				{% endif %}
 			
+                <div class="scoresheet-actions">
 				<button
 					type="button"
 					id="btnSaveOlympicScoresheetDraft"
