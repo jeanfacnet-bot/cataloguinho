@@ -272,6 +272,15 @@
 					page-break-inside: avoid;
 
 				}
+				@media print {
+
+					#btnExportOlympicResultsExcel,
+					#btnExportOlympicAthletesExcel,
+					#btnExportOlympicDailyExcel {
+						display: none !important;
+					}
+
+				}
 
 			}
 			/* ==========================================
@@ -427,7 +436,308 @@
 				}
 			}
 			
+			
+				/* =====================================
+				   NOVO PAINEL ADMINISTRATIVO
+				===================================== */
+
+				.olympics-admin {
+					--ol-primary: #1d4ed8;
+					--ol-dark: #0f172a;
+					--ol-border: #e2e8f0;
+					--ol-muted: #64748b;
+					--ol-radius: 14px;
+				}
+
+				.olympics-header {
+					padding: 32px;
+					background: linear-gradient(120deg, #0f172a, #1e40af);
+					border-radius: 18px;
+					box-shadow: 0 8px 24px rgba(15, 23, 42, .12);
+				}
+
+				.olympics-navigation {
+					background: white;
+					padding: 22px;
+					border: 1px solid var(--ol-border);
+					border-radius: 16px;
+					margin-bottom: 24px;
+				}
+
+				.olympics-navigation-title h2 {
+					margin: 0 0 6px;
+					color: var(--ol-dark);
+					font-size: 21px;
+				}
+
+				.olympics-navigation-title p {
+					margin: 0 0 20px;
+					color: var(--ol-muted);
+				}
+
+				.olympics-navigation-buttons {
+					display: flex;
+					flex-wrap: wrap;
+					gap: 10px;
+				}
+
+				.olympics-admin .olympics-nav-btn {
+					background: #f1f5f9;
+					color: #334155;
+					border: 1px solid #e2e8f0;
+					padding: 12px 18px;
+					border-radius: 10px;
+					cursor: pointer;
+					opacity: 1;
+					font-weight: 600;
+					transition: background .2s, color .2s, transform .2s;
+				}
+
+				.olympics-admin .olympics-nav-btn:hover {
+					background: #dbeafe;
+					color: #1d4ed8;
+					transform: translateY(-2px);
+				}
+
+				.olympics-admin .olympics-nav-btn.active {
+					background: #1d4ed8;
+					color: white;
+					border-color: #1d4ed8;
+				}
+
+				.olympics-grid {
+					grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+					gap: 18px;
+					align-items: stretch;
+				}
+
+				.olympics-card {
+					border-radius: var(--ol-radius);
+					box-shadow: 0 3px 12px rgba(15, 23, 42, .05);
+					transition: box-shadow .2s, transform .2s;
+					min-width: 0;
+				}
+
+				.olympics-grid > .olympics-card {
+					display: flex;
+					flex-direction: column;
+				}
+
+				.olympics-grid > .olympics-card:hover {
+					box-shadow: 0 10px 28px rgba(15, 23, 42, .09);
+				}
+
+				.olympics-card h2 {
+					color: #0f172a;
+					font-size: 19px;
+				}
+
+				.olympics-card p {
+					line-height: 1.6;
+				}
+
+				.olympics-grid > .olympics-card > button {
+					margin-top: auto;
+					align-self: flex-start;
+				}
+
+				.olympics-admin input:not([type="checkbox"]):not([type="radio"]),
+				.olympics-admin select,
+				.olympics-admin textarea {
+					box-sizing: border-box;
+					max-width: 100%;
+					border: 1px solid #cbd5e1;
+					border-radius: 9px;
+					background: white;
+					color: #0f172a;
+				}
+
+				.olympics-admin input:focus,
+				.olympics-admin select:focus,
+				.olympics-admin textarea:focus {
+					outline: 2px solid #93c5fd;
+					outline-offset: 1px;
+					border-color: #2563eb;
+				}
+
+				.olympics-admin button:not(:disabled) {
+					transition: filter .2s, transform .2s;
+				}
+
+				.olympics-admin button:not(:disabled):hover {
+					filter: brightness(.94);
+				}
+
+				.olympics-admin button:focus-visible {
+					outline: 3px solid #93c5fd;
+					outline-offset: 3px;
+				}
+
+				.olympics-admin table {
+					border-collapse: collapse;
+				}
+
+				.olympics-admin th {
+					background: #eff6ff;
+					color: #1e3a8a;
+				}
+
+				.olympics-admin th,
+				.olympics-admin td {
+					padding: 10px 12px;
+					border-bottom: 1px solid #e2e8f0;
+				}
+
+				.olympics-admin tbody tr:hover {
+					background: #f8fafc;
+				}
+
+				.olympics-admin section:not([style*="display: none"]) {
+					scroll-margin-top: 20px;
+				}
+
+				@media (max-width: 768px) {
+					.olympics-admin {
+						padding: 16px 12px 40px;
+					}
+
+					.olympics-header {
+						padding: 22px;
+					}
+
+					.olympics-navigation {
+						padding: 16px;
+					}
+
+					.olympics-navigation-buttons {
+						display: grid;
+						grid-template-columns: repeat(2, minmax(0, 1fr));
+					}
+
+					.olympics-admin .olympics-nav-btn {
+						padding: 12px 8px;
+						font-size: 13px;
+					}
+
+					.olympics-grid {
+						grid-template-columns: 1fr;
+					}
+
+					.olympics-card {
+						padding: 18px;
+					}
+				}
+
+				@media print {
+					.olympics-navigation {
+						display: none !important;
+					}
+				}
+				
+				
+				<script>
+				document.addEventListener("DOMContentLoaded", function () {
+
+					const categories = {
+						cadastros: [
+							"btnManageEditions",
+							"btnManageTeams",
+							"btnManageAthletes",
+							"btnManageNewBrigadinos",
+							"btnManageModalities",
+							"btnManageRegistrations"
+						],
+						competicoes: [
+							"btnManageMatches",
+							"btnManageOlympicScoresheets"
+						],
+						resultados: [
+							"btnManageOlympicClassification",
+							"btnManageOlympicOverallStandings"
+						],
+						relatorios: [
+							"btnManageOlympicReports"
+						]
+					};
+
+					const navigation = document.querySelector(
+						".olympics-navigation"
+					);
+
+					const mainGrid = document.querySelector(
+						".olympics-admin > .olympics-grid"
+					);
+
+					if (!navigation || !mainGrid) return;
+
+					const cards = new Map();
+
+					// Identifica os cartões sem alterar os seus IDs
+					Object.entries(categories).forEach(([category, ids]) => {
+						ids.forEach(id => {
+							const button = document.getElementById(id);
+							const card = button?.closest(".olympics-card");
+
+							if (card && mainGrid.contains(card)) {
+								cards.set(card, category);
+							}
+						});
+					});
+
+					const buttons = navigation.querySelectorAll(
+						"[data-olympics-category]"
+					);
+
+					buttons.forEach(button => {
+						button.addEventListener("click", function () {
+
+							const selected = this.dataset.olympicsCategory;
+
+							buttons.forEach(btn => {
+								const active = btn === this;
+
+								btn.classList.toggle("active", active);
+								btn.setAttribute(
+									"aria-pressed",
+									String(active)
+								);
+							});
+
+							cards.forEach((category, card) => {
+								card.hidden = (
+									selected !== "todos" &&
+									category !== selected
+								);
+							});
+
+							// Mantém visíveis as seções operacionais
+							// que já estiverem abertas.
+						});
+					});
+
+					// Inicializa a acessibilidade do menu
+					buttons.forEach(btn => {
+						btn.setAttribute(
+							"aria-pressed",
+							String(btn.classList.contains("active"))
+						);
+					});
+
+				});
+				</script>
+
+				<style>
+				.olympics-grid > .olympics-card[hidden],
+				.olympics-grid .olympics-card[hidden] {
+					display: none !important;
+				}
+				</style>
+
+
+			
     </style>
+	<!-- Biblioteca para exportação Excel -->
+	<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>	
 </head>
 
 <body>
@@ -467,6 +777,41 @@
 
 		</div>
 
+		
+		<!-- NAVEGAÇÃO DO PAINEL DAS OLIMPÍADAS -->
+		<nav class="olympics-navigation" aria-label="Áreas de gerenciamento">
+			<div class="olympics-navigation-title">
+				<h2>Central de gerenciamento</h2>
+				<p>Escolha uma área para acessar suas ferramentas.</p>
+			</div>
+
+			<div class="olympics-navigation-buttons">
+				<button type="button" class="olympics-nav-btn active"
+						data-olympics-category="todos">
+					🏠 Visão geral
+				</button>
+
+				<button type="button" class="olympics-nav-btn"
+						data-olympics-category="cadastros">
+					👥 Cadastros
+				</button>
+
+				<button type="button" class="olympics-nav-btn"
+						data-olympics-category="competicoes">
+					⚽ Competições
+				</button>
+
+				<button type="button" class="olympics-nav-btn"
+						data-olympics-category="resultados">
+					🏆 Resultados
+				</button>
+
+				<button type="button" class="olympics-nav-btn"
+						data-olympics-category="relatorios">
+					📊 Relatórios
+				</button>
+			</div>
+		</nav>
 
         <div class="olympics-grid">
 
@@ -876,6 +1221,24 @@
 				>
 					🖨️ Imprimir resultados
 				</button>
+				
+				<button
+					type="button"
+					id="btnExportOlympicResultsExcel"
+					onclick="exportOlympicReportExcel(
+						'olympicReportsResults',
+						'resultados_confrontos'
+					)"
+					style="
+						cursor: pointer;
+						opacity: 1;
+						margin-left: 10px;
+						margin-bottom: 20px;
+						background: #15803d;
+					"
+				>
+					📗 Exportar para Excel
+				</button>
 
 				<div id="olympicReportsResults">
 					<p>
@@ -939,6 +1302,23 @@
 						"
 					>
 						🖨️ Imprimir equipes e atletas
+					</button>
+					
+					<button
+						type="button"
+						id="btnExportOlympicAthletesExcel"
+						onclick="exportOlympicReportExcel(
+							'olympicTeamsAthletesReportResults',
+							'equipes_atletas'
+						)"
+						style="
+							cursor: pointer;
+							opacity: 1;
+							background: #15803d;
+							margin-left: 10px;
+						"
+					>
+						📗 Exportar para Excel
 					</button>
 
 					<div
@@ -1021,6 +1401,23 @@
 						"
 					>
 						🖨️ Imprimir tabela do dia
+					</button>
+					
+					<button
+						type="button"
+						id="btnExportOlympicDailyExcel"
+						onclick="exportOlympicReportExcel(
+							'olympicDailyMatchesReportResults',
+							'confrontos_do_dia'
+						)"
+						style="
+							cursor: pointer;
+							opacity: 1;
+							background: #15803d;
+							margin-left: 10px;
+						"
+					>
+						📗 Exportar para Excel
 					</button>
 
 					<div
@@ -8713,6 +9110,87 @@
 
 
     <script src="{{ static_asset('common_layout.js') }}"></script>
+
+
+	
+	<script>
+	function exportOlympicReportExcel(containerId, fileName) {
+
+		const container = document.getElementById(containerId);
+
+		if (!container) {
+			alert("Área do relatório não encontrada.");
+			return;
+		}
+
+		const tables = container.querySelectorAll("table");
+
+		if (tables.length === 0) {
+			alert("Consulte o relatório antes de exportar.");
+			return;
+		}
+
+		if (typeof XLSX === "undefined") {
+			alert("Biblioteca Excel não carregada. Verifique sua conexão.");
+			return;
+		}
+
+		const workbook = XLSX.utils.book_new();
+
+		tables.forEach((table, index) => {
+
+			const worksheet = XLSX.utils.table_to_sheet(table, {
+				raw: true
+			});
+
+			// Ajusta automaticamente a largura das colunas
+			const rows = XLSX.utils.sheet_to_json(worksheet, {
+				header: 1
+			});
+
+			const maxColumns = Math.max(
+				0,
+				...rows.map(row => row.length)
+			);
+
+			worksheet["!cols"] = Array.from(
+				{ length: maxColumns },
+				(_, colIndex) => {
+
+					const maxLength = Math.max(
+						12,
+						...rows.map(row =>
+							String(row[colIndex] ?? "").length
+						)
+					);
+
+					return {
+						wch: Math.min(maxLength + 3, 60)
+					};
+				}
+			);
+
+			// Uma aba para cada tabela
+			const sheetName = `Tabela ${index + 1}`;
+
+			XLSX.utils.book_append_sheet(
+				workbook,
+				worksheet,
+				sheetName
+			);
+
+		});
+
+		const date = new Date()
+			.toLocaleDateString("sv-SE");
+
+		XLSX.writeFile(
+			workbook,
+			`${fileName}_${date}.xlsx`
+		);
+
+	}
+	</script>
 
 </body>
 </html>
