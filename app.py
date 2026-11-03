@@ -1868,6 +1868,13 @@ class OlympicCalendarSettings(db.Model):
     # Horários do turno vespertino
     afternoon_start = db.Column(db.Time, nullable=True)
     afternoon_end = db.Column(db.Time, nullable=True)
+    
+    # Horários sem jogos — lanche / intervalo
+    morning_break_start = db.Column(db.Time, nullable=True)
+    morning_break_end = db.Column(db.Time, nullable=True)
+
+    afternoon_break_start = db.Column(db.Time, nullable=True)
+    afternoon_break_end = db.Column(db.Time, nullable=True)
 
     # Intervalo do lanche - matutino
     morning_break_start = db.Column(db.Time, nullable=True)
@@ -11232,6 +11239,20 @@ def admin_save_olympic_scoresheet_draft(match_id):
         
     # Permite tentativas somente dos atletas selecionados
     # como participantes deste confronto.
+    participant_ids = data.get("participant_ids", [])
+
+    if (
+        not isinstance(participant_ids, list)
+        or any(
+            type(athlete_id) is not int or athlete_id <= 0
+            for athlete_id in participant_ids
+        )
+    ):
+        return jsonify({
+            "success": False,
+            "message": "Lista de participantes inválida."
+        }), 400
+
     participant_id_set = set(participant_ids)
     
     # Confirma que os atletas das tentativas pertencem
@@ -11272,7 +11293,7 @@ def admin_save_olympic_scoresheet_draft(match_id):
             )
         }), 400
 
-    participant_ids = data.get("participant_ids", [])
+    
     
     # Identifica a modalidade de Pênaltis com segurança.
     is_penalty_modality = (
