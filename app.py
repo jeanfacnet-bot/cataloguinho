@@ -12031,26 +12031,23 @@ def admin_finalize_olympic_scoresheet(match_id):
                 )
             }), 400
             
-        # Confere as regras de participação no Golzinho.
+        # Golzinho: modalidade mista, permitida de 7 a 11 anos.
         if match.modality.name.strip().lower() == "golzinho":
             athlete_age = participant.athlete.age
-            athlete_sex = participant.athlete.sex
 
             if (
                 type(athlete_age) is not int
-                or athlete_age > 11
                 or athlete_age < 7
-                or str(athlete_sex or "").strip().upper()
-                not in ("M", "MASCULINO")
+                or athlete_age > 11
             ):
                 return jsonify({
                     "success": False,
                     "message": (
                         "Não é possível finalizar a súmula. "
-                        "O Golzinho permite apenas participantes "
-                        "masculinos de 7 a 11 anos."
+                        "O Golzinho permite participantes "
+                        "de 7 a 11 anos, independentemente do sexo."
                     )
-                }), 400    
+                }), 400
 
         if participant.athlete.team_id == match.team_a_id:
             team_a_has_participants = True
