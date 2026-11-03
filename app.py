@@ -17,7 +17,7 @@ from openpyxl.utils import get_column_letter
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import case, or_, func
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, UTC, date
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from PIL import Image, ImageOps
@@ -687,7 +687,2086 @@ class Report(db.Model):
     action_days = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     reviewed_at = db.Column(db.DateTime, nullable=True)
-    reviewed_by_admin_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)  
+    reviewed_by_admin_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+
+# ==========================================
+# OLIMPÍADAS BOMBEIRO MIRIM
+# ==========================================
+
+class OlympicEdition(db.Model):
+    __tablename__ = "olympic_editions"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    name = db.Column(
+        db.String(200),
+        nullable=False
+    )
+
+    year = db.Column(
+        db.Integer,
+        nullable=False
+    )
+
+    start_date = db.Column(
+        db.Date,
+        nullable=True
+    )
+
+    end_date = db.Column(
+        db.Date,
+        nullable=True
+    )
+
+    description = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    is_active = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )    
+    
+
+# ==========================================
+# OLIMPÍADAS - EQUIPES
+# ==========================================
+
+class OlympicTeam(db.Model):
+    __tablename__ = "olympic_teams"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    edition_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_editions.id"),
+        nullable=False
+    )
+
+    name = db.Column(
+        db.String(100),
+        nullable=False
+    )
+
+    color = db.Column(
+        db.String(50),
+        nullable=False
+    )
+
+    coach = db.Column(
+        db.String(150),
+        nullable=False
+    )
+
+    shift = db.Column(
+        db.String(20),
+        nullable=False
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+    edition = db.relationship(
+        "OlympicEdition",
+        backref=db.backref(
+            "teams",
+            lazy=True
+        )
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "edition_id",
+            "color",
+            "shift",
+            name="uq_olympic_team_edition_color_shift"
+        ),
+    )
+    
+
+# ==========================================
+# OLIMPÍADAS - ATLETAS
+# ==========================================
+
+class OlympicAthlete(db.Model):
+
+    __tablename__ = "olympic_athletes"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    edition_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_editions.id"),
+        nullable=False
+    )
+
+    team_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_teams.id"),
+        nullable=True
+    )
+    
+    # Turno do brigadino
+    # Permite identificar o turno mesmo sem equipe
+    shift = db.Column(
+        db.String(20),
+        nullable=True
+    )
+
+    name = db.Column(
+        db.String(150),
+        nullable=False
+    )
+
+    birth_date = db.Column(
+        db.Date,
+        nullable=True
+    )
+    
+    age = db.Column(
+        db.Integer,
+        nullable=True
+    )
+
+    sex = db.Column(
+        db.String(10),
+        nullable=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+    edition = db.relationship(
+        "OlympicEdition",
+        backref=db.backref("athletes", lazy=True)
+    )
+
+    team = db.relationship(
+        "OlympicTeam",
+        backref=db.backref("athletes", lazy=True)
+    )
+
+
+class OlympicModality(db.Model):
+    __tablename__ = "olympic_modalities"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    edition_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_editions.id"),
+        nullable=False
+    )
+
+    name = db.Column(
+        db.String(100),
+        nullable=False
+    )
+
+    description = db.Column(db.Text, nullable=True)
+
+    match_duration_minutes = db.Column(
+        db.Integer,
+        nullable=True
+    )
+    
+    
+    max_matches_per_team_per_day = db.Column(
+        db.Integer,
+        nullable=False,
+        default=1
+    )
+    
+    max_matches_per_modality_per_day = db.Column(
+        db.Integer,
+        nullable=True
+    )
+  
+
+    is_active = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+    edition = db.relationship(
+        "OlympicEdition",
+        backref=db.backref("modalities", lazy=True)
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "edition_id",
+            "name",
+            name="uq_olympic_modality_edition_name"
+        ),
+    )
+
+
+class OlympicModalityRegistration(db.Model):
+    __tablename__ = "olympic_modality_registrations"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    edition_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_editions.id"),
+        nullable=False
+    )
+
+    modality_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_modalities.id"),
+        nullable=False
+    )
+
+    athlete_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_athletes.id"),
+        nullable=False
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        server_default=db.func.current_timestamp()
+    )
+
+    # Relacionamentos com os registros existentes
+    edition = db.relationship(
+        "OlympicEdition",
+        backref=db.backref(
+            "modality_registrations",
+            lazy=True
+        )
+    )
+
+    modality = db.relationship(
+        "OlympicModality",
+        backref=db.backref(
+            "registrations",
+            lazy=True
+        )
+    )
+
+    athlete = db.relationship(
+        "OlympicAthlete",
+        backref=db.backref(
+            "modality_registrations",
+            lazy=True
+        )
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "modality_id",
+            "athlete_id",
+            name="uq_olympic_modality_registration"
+        ),
+    )
+
+
+
+# ==========================================
+# OLIMPÍADAS - CONFRONTOS E PARTIDAS
+# ==========================================
+
+class OlympicMatch(db.Model):
+    __tablename__ = "olympic_matches"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    edition_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_editions.id"),
+        nullable=False
+    )
+
+    modality_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_modalities.id"),
+        nullable=False
+    )
+
+    team_a_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_teams.id"),
+        nullable=False
+    )
+
+    team_b_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_teams.id"),
+        nullable=False
+    )
+
+    match_date = db.Column(
+        db.Date,
+        nullable=False
+    )
+
+    match_time = db.Column(
+        db.Time,
+        nullable=False
+    )
+
+    shift = db.Column(
+        db.String(20),
+        nullable=False
+    )
+
+    phase = db.Column(
+        db.String(30),
+        nullable=False,
+        default="CLASSIFICATORIA"
+    )
+
+    status = db.Column(
+        db.String(20),
+        nullable=False,
+        default="AGENDADO"
+    )
+
+    score_a = db.Column(
+        db.Integer,
+        nullable=True
+    )
+
+    score_b = db.Column(
+        db.Integer,
+        nullable=True
+    )
+    
+    red_cards_a = db.Column(
+        db.Integer,
+        nullable=True
+    )
+    
+    red_cards_b = db.Column(
+        db.Integer,
+        nullable=True
+    )
+
+    yellow_cards_a = db.Column(
+        db.Integer,
+        nullable=True
+    )
+    
+    yellow_cards_b = db.Column(
+        db.Integer,
+        nullable=True
+    )
+    
+    fouls_a = db.Column(
+        db.Integer,
+        nullable=True
+    )
+
+    fouls_b = db.Column(
+        db.Integer,
+        nullable=True
+    )
+
+    notes = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+    edition = db.relationship(
+        "OlympicEdition",
+        backref=db.backref("matches", lazy=True)
+    )
+
+    modality = db.relationship(
+        "OlympicModality",
+        backref=db.backref("matches", lazy=True)
+    )
+
+    team_a = db.relationship(
+        "OlympicTeam",
+        foreign_keys=[team_a_id]
+    )
+
+    team_b = db.relationship(
+        "OlympicTeam",
+        foreign_keys=[team_b_id]
+    )
+
+    __table_args__ = (
+        db.CheckConstraint(
+            "team_a_id <> team_b_id",
+            name="ck_olympic_match_different_teams"
+        ),
+        db.CheckConstraint(
+            "score_a IS NULL OR score_a >= 0",
+            name="ck_olympic_match_score_a"
+        ),
+        db.CheckConstraint(
+            "score_b IS NULL OR score_b >= 0",
+            name="ck_olympic_match_score_b"
+        ),
+    )
+    
+# ==========================================
+# OLIMPÍADAS - CLASSIFICAÇÃO AUTOMÁTICA
+# ==========================================
+
+def get_olympic_classification_matches(
+    edition_id,
+    modality_id,
+    shift
+):
+    """
+    Busca somente os confrontos finalizados
+    da fase classificatória, separados por
+    edição, modalidade e turno.
+
+    Não altera dados no banco.
+    """
+
+    matches = (
+        OlympicMatch.query
+        .filter_by(
+            edition_id=edition_id,
+            modality_id=modality_id,
+            shift=shift.upper(),
+            phase="CLASSIFICATORIA",
+            status="FINALIZADO"
+        )
+        .order_by(OlympicMatch.id)
+        .all()
+    )
+
+    return matches  
+
+
+def calculate_olympic_classification(
+    edition_id,
+    modality_id,
+    shift
+):
+    """
+    Calcula a classificação por turno e modalidade.
+
+    Desempates:
+    1. Pontos
+    2. Saldo de gols
+    3. Menos cartões vermelhos
+    4. Menos cartões amarelos
+    5. Menos faltas
+    """
+
+    normalized_shift = (shift or "").strip().upper()
+    
+    modality = db.session.get(OlympicModality, modality_id)
+
+    modality_name = (
+        modality.name.strip().lower()
+        if modality else ""
+    )
+
+    uses_goal_difference = (
+        modality_name in ("futsal", "golzinho")
+    )
+
+    teams = (
+        OlympicTeam.query
+        .filter(
+            OlympicTeam.edition_id == edition_id,
+            db.func.upper(OlympicTeam.shift) == normalized_shift
+        )
+        .order_by(OlympicTeam.id)
+        .all()
+    )
+
+    classification = {}
+
+    for team in teams:
+        classification[team.id] = {
+            "team_id": team.id,
+            "team_name": team.name,
+            "coach": team.coach,
+            "played": 0,
+            "wins": 0,
+            "draws": 0,
+            "losses": 0,
+            "points": 0,
+            "goals_for": 0,
+            "goals_against": 0,
+            "goal_difference": 0,
+            "red_cards": 0,
+            "yellow_cards": 0,
+            "fouls": 0
+        }
+
+    matches = get_olympic_classification_matches(
+        edition_id,
+        modality_id,
+        normalized_shift
+    )
+
+    for match in matches:
+
+        if (
+            match.team_a_id not in classification
+            or match.team_b_id not in classification
+            or match.score_a is None
+            or match.score_b is None
+        ):
+            continue
+
+        team_a = classification[match.team_a_id]
+        team_b = classification[match.team_b_id]
+
+        team_a["played"] += 1
+        team_b["played"] += 1
+
+        if uses_goal_difference:
+            team_a["goals_for"] += match.score_a
+            team_a["goals_against"] += match.score_b
+
+            team_b["goals_for"] += match.score_b
+            team_b["goals_against"] += match.score_a
+
+        team_a["red_cards"] += match.red_cards_a or 0
+        team_b["red_cards"] += match.red_cards_b or 0
+
+        team_a["yellow_cards"] += match.yellow_cards_a or 0
+        team_b["yellow_cards"] += match.yellow_cards_b or 0
+
+        team_a["fouls"] += match.fouls_a or 0
+        team_b["fouls"] += match.fouls_b or 0
+
+        if match.score_a > match.score_b:
+            team_a["wins"] += 1
+            team_a["points"] += 3
+            team_b["losses"] += 1
+
+        elif match.score_b > match.score_a:
+            team_b["wins"] += 1
+            team_b["points"] += 3
+            team_a["losses"] += 1
+
+        else:
+            team_a["draws"] += 1
+            team_b["draws"] += 1
+            team_a["points"] += 1
+            team_b["points"] += 1
+
+    for team in classification.values():
+        team["goal_difference"] = (
+            team["goals_for"] - team["goals_against"]
+        )
+
+    if uses_goal_difference:
+        ordered_classification = sorted(
+            classification.values(),
+            key=lambda team: (
+                -team["points"],
+                -team["goal_difference"],
+                team["red_cards"],
+                team["yellow_cards"],
+                team["fouls"],
+                team["team_id"]
+            )
+        )
+    else:
+        ordered_classification = sorted(
+            classification.values(),
+            key=lambda team: (
+                -team["points"],
+                -team["wins"],
+                team["team_id"]
+            )
+        )
+
+    for position, team in enumerate(
+        ordered_classification,
+        start=1
+    ):
+        team["position"] = position
+
+    return ordered_classification
+    
+        
+
+
+# ==========================================
+# OLIMPÍADAS - CLASSIFICAÇÃO GERAL
+# ==========================================
+
+def calculate_olympic_overall_standings(edition_id):
+    teams = OlympicTeam.query.filter_by(
+        edition_id=edition_id
+    ).order_by(OlympicTeam.id).all()
+
+    modalities = OlympicModality.query.filter_by(
+        edition_id=edition_id,
+        is_active=True
+    ).order_by(OlympicModality.name).all()
+
+    standings = {}
+
+    for team in teams:
+        standings[team.id] = {
+            "team_id": team.id,
+            "color": team.color,
+            "coach": team.coach,
+            "shift": team.shift,
+            "shift_titles": 0,
+            "intershift_titles": 0,
+            "total_titles": 0,
+            "bonus_points": 0,
+            "won_modalities": []
+        }
+
+    modality_results = []
+    pending = []
+
+    for modality in modalities:
+        champions = {}
+
+        for shift in ("MATUTINO", "VESPERTINO"):
+            matches = OlympicMatch.query.filter(
+                OlympicMatch.edition_id == edition_id,
+                OlympicMatch.modality_id == modality.id,
+                OlympicMatch.phase == "CLASSIFICATORIA",
+                db.func.upper(OlympicMatch.shift) == shift
+            ).all()
+
+            # Sem jogos ou com jogos pendentes:
+            # ainda não existe campeã confirmada.
+            if not matches or any(
+                match.status != "FINALIZADO"
+                or match.score_a is None
+                or match.score_b is None
+                for match in matches
+            ):
+                pending.append({
+                    "modality": modality.name,
+                    "shift": shift,
+                    "reason": "Classificatória não encerrada"
+                })
+                continue
+
+            classification = calculate_olympic_classification(
+                edition_id,
+                modality.id,
+                shift
+            )
+
+            if not classification:
+                continue
+
+            first = classification[0]
+
+            # Verifica empate conforme os critérios da modalidade.
+            modality_name = modality.name.strip().lower()
+
+            if modality_name in ("futsal", "golzinho"):
+                def ranking_key(item):
+                    return (
+                        item["points"],
+                        item["goal_difference"],
+                        -item["red_cards"],
+                        -item["yellow_cards"],
+                        -item["fouls"]
+                    )
+            else:
+                def ranking_key(item):
+                    return (
+                        item["points"],
+                        item["wins"]
+                    )
+
+            tied = [
+                item for item in classification
+                if ranking_key(item) == ranking_key(first)
+            ]
+
+            if len(tied) > 1:
+                pending.append({
+                    "modality": modality.name,
+                    "shift": shift,
+                    "reason": "Desempate regulamentar necessário"
+                })
+                continue
+
+            winner_id = first["team_id"]
+            champions[shift] = winner_id
+
+            standings[winner_id]["shift_titles"] += 1
+            standings[winner_id]["won_modalities"].append(
+                f"{modality.name} — {shift.title()}"
+            )
+
+            modality_results.append({
+                "modality": modality.name,
+                "stage": "Campeã do turno",
+                "shift": shift,
+                "winner": (
+                    f'{standings[winner_id]["color"]} — '
+                    f'{standings[winner_id]["coach"]}'
+                )
+            })
+
+        # A final interturnos só pode ter resultado
+        # reconhecido depois de ambas as campeãs
+        # dos turnos estarem confirmadas.
+        if len(champions) != 2:
+            continue
+
+        finals = OlympicMatch.query.filter(
+            OlympicMatch.edition_id == edition_id,
+            OlympicMatch.modality_id == modality.id,
+            OlympicMatch.phase == "FINAL_ENTRE_TURNOS"
+        ).all()
+
+        if len(finals) != 1:
+            pending.append({
+                "modality": modality.name,
+                "shift": "INTERTURNOS",
+                "reason": "Final interturnos não definida"
+            })
+            continue
+
+        final = finals[0]
+
+        if (
+            final.status != "FINALIZADO"
+            or final.score_a is None
+            or final.score_b is None
+        ):
+            pending.append({
+                "modality": modality.name,
+                "shift": "INTERTURNOS",
+                "reason": "Final interturnos pendente"
+            })
+            continue
+
+        expected_teams = set(champions.values())
+        actual_teams = {
+            final.team_a_id,
+            final.team_b_id
+        }
+
+        if expected_teams != actual_teams:
+            pending.append({
+                "modality": modality.name,
+                "shift": "INTERTURNOS",
+                "reason": "Final não corresponde às campeãs dos turnos"
+            })
+            continue
+
+        if final.score_a == final.score_b:
+            pending.append({
+                "modality": modality.name,
+                "shift": "INTERTURNOS",
+                "reason": "Final exige desempate"
+            })
+            continue
+
+        winner_id = (
+            final.team_a_id
+            if final.score_a > final.score_b
+            else final.team_b_id
+        )
+
+        standings[winner_id]["intershift_titles"] += 1
+        standings[winner_id]["bonus_points"] += 3
+        standings[winner_id]["won_modalities"].append(
+            f"{modality.name} — Interturnos"
+        )
+
+        modality_results.append({
+            "modality": modality.name,
+            "stage": "Campeã interturnos",
+            "shift": "INTERTURNOS",
+            "winner": (
+                f'{standings[winner_id]["color"]} — '
+                f'{standings[winner_id]["coach"]}'
+            )
+        })
+
+    for team in standings.values():
+        team["total_titles"] = (
+            team["shift_titles"]
+            + team["intershift_titles"]
+        )
+
+    ordered = sorted(
+        standings.values(),
+        key=lambda team: (
+            -team["total_titles"],
+            team["team_id"]
+        )
+    )
+
+    for team in ordered:
+        team["position"] = (
+            1 + sum(
+                other["total_titles"] > team["total_titles"]
+                for other in ordered
+            )
+        )
+
+    champion = None
+
+    if not pending and ordered:
+        highest = ordered[0]["total_titles"]
+
+        leaders = [
+            team for team in ordered
+            if team["total_titles"] == highest
+        ]
+
+        if highest > 0 and len(leaders) == 1:
+            champion = leaders[0]
+
+    return {
+        "teams": ordered,
+        "confirmed": modality_results,
+        "pending": pending,
+        "champion": champion,
+        "complete": len(pending) == 0
+    }
+  
+# ==========================================
+# OLIMPÍADAS - CONSULTAR CLASSIFICAÇÃO GERAL
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/classificacao-geral/<int:edition_id>",
+    methods=["GET"]
+)
+def admin_olympic_overall_standings(edition_id):
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if not edition:
+        return jsonify({
+            "success": False,
+            "message": "Edição das Olimpíadas não encontrada."
+        }), 404
+
+    standings = calculate_olympic_overall_standings(edition_id)
+
+    return jsonify({
+        "success": True,
+        "edition_id": edition_id,
+        "edition_name": edition.name,
+        "standings": standings
+    })
+    
+# ==========================================
+# OLIMPÍADAS - CONSULTAR CLASSIFICAÇÃO
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/classificacao/<int:edition_id>/<int:modality_id>/<shift>",
+    methods=["GET"]
+)
+
+def admin_olympic_classification(
+    edition_id,
+    modality_id,
+    shift
+):
+
+    classification = calculate_olympic_classification(
+        edition_id,
+        modality_id,
+        shift
+    )
+
+    return jsonify({
+        "edition_id": edition_id,
+        "modality_id": modality_id,
+        "shift": shift,
+        "classification": classification
+    })
+    
+# ==========================================
+# OLIMPÍADAS - PÁGINA DA CLASSIFICAÇÃO
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/classificacao/<int:edition_id>/<int:modality_id>/<shift>/pagina",
+    methods=["GET"]
+)
+
+def admin_olympic_classification_page(
+    edition_id,
+    modality_id,
+    shift
+):
+
+    classification = calculate_olympic_classification(
+        edition_id,
+        modality_id,
+        shift
+    )
+
+    modality = db.session.get(
+        OlympicModality,
+        modality_id
+    )
+
+    return render_template(
+        "admin_olympic_classification.html",
+        edition_id=edition_id,
+        modality_id=modality_id,
+        modality_name=modality.name if modality else "Modalidade",
+        shift=shift,
+        classification=classification
+    )
+
+# ==========================================
+# OLIMPÍADAS - PARTICIPANTES POR CONFRONTO
+# ==========================================
+
+class OlympicMatchParticipant(db.Model):
+    __tablename__ = "olympic_match_participants"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    match_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_matches.id"),
+        nullable=False,
+        index=True
+    )
+
+    athlete_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_athletes.id"),
+        nullable=False,
+        index=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+    match = db.relationship("OlympicMatch")
+    athlete = db.relationship("OlympicAthlete")
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "match_id",
+            "athlete_id",
+            name="uq_olympic_match_participant"
+        ),
+    )    
+
+# ==========================================
+# OLIMPÍADAS - GOLS POR ATLETA
+# ==========================================
+
+class OlympicMatchGoal(db.Model):
+    __tablename__ = "olympic_match_goals"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    match_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_matches.id"),
+        nullable=False,
+        index=True
+    )
+
+    athlete_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_athletes.id"),
+        nullable=False,
+        index=True
+    )
+
+    goals = db.Column(
+        db.Integer,
+        nullable=False,
+        default=0
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+    match = db.relationship(
+        "OlympicMatch",
+        backref=db.backref(
+            "athlete_goals",
+            lazy=True,
+            cascade="all, delete-orphan"
+        )
+    )
+
+    athlete = db.relationship(
+        "OlympicAthlete"
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "match_id",
+            "athlete_id",
+            name="uq_olympic_match_goal_athlete"
+        ),
+        db.CheckConstraint(
+            "goals >= 0",
+            name="ck_olympic_match_goals_nonnegative"
+        ),
+    )
+    
+# ==========================================
+# OLIMPÍADAS - TENTATIVAS POR ATLETA
+# BASQUETE E PÊNALTIS
+# ==========================================
+
+class OlympicMatchAttempt(db.Model):
+    __tablename__ = "olympic_match_attempts"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    match_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_matches.id"),
+        nullable=False,
+        index=True
+    )
+
+    athlete_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_athletes.id"),
+        nullable=False,
+        index=True
+    )
+
+    attempt_number = db.Column(
+        db.Integer,
+        nullable=False
+    )
+
+    successful = db.Column(
+        db.Boolean,
+        nullable=False
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+    match = db.relationship(
+        "OlympicMatch",
+        backref=db.backref(
+            "athlete_attempts",
+            lazy=True,
+            cascade="all, delete-orphan"
+        )
+    )
+
+    athlete = db.relationship(
+        "OlympicAthlete"
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "match_id",
+            "athlete_id",
+            "attempt_number",
+            name="uq_olympic_match_athlete_attempt"
+        ),
+        db.CheckConstraint(
+            "attempt_number BETWEEN 1 AND 5",
+            name="ck_olympic_match_attempt_number"
+        ),
+    )    
+
+# ==========================================
+# OLIMPÍADAS - CONFIGURAÇÕES DO CALENDÁRIO
+# ==========================================
+
+class OlympicCalendarSettings(db.Model):
+    __tablename__ = "olympic_calendar_settings"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    edition_id = db.Column(
+        db.Integer,
+        db.ForeignKey("olympic_editions.id"),
+        nullable=False,
+        unique=True
+    )
+
+    # Intervalo entre confrontos
+    interval_minutes = db.Column(
+        db.Integer,
+        nullable=False,
+        default=5
+    )
+
+    rest_minutes = db.Column(db.Integer, nullable=False, default=10)
+
+    game_weekdays = db.Column(
+        db.JSON,
+        nullable=False,
+        default=lambda: [0, 2]
+    )
+
+    allow_simultaneous_matches = db.Column(db.Boolean, nullable=False, default=False)
+
+    # Horários do turno matutino
+    morning_start = db.Column(db.Time, nullable=True)
+    morning_end = db.Column(db.Time, nullable=True)
+
+    # Horários do turno vespertino
+    afternoon_start = db.Column(db.Time, nullable=True)
+    afternoon_end = db.Column(db.Time, nullable=True)
+
+    # Intervalo do lanche - matutino
+    morning_break_start = db.Column(db.Time, nullable=True)
+    morning_break_end = db.Column(db.Time, nullable=True)
+
+    # Intervalo do lanche - vespertino
+    afternoon_break_start = db.Column(db.Time, nullable=True)
+    afternoon_break_end = db.Column(db.Time, nullable=True)
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+    edition = db.relationship(
+        "OlympicEdition",
+        backref=db.backref(
+            "calendar_settings",
+            uselist=False
+        )
+    )
+
+    __table_args__ = (
+        db.CheckConstraint(
+            "interval_minutes >= 0",
+            name="ck_olympic_calendar_interval"
+        ),
+        db.CheckConstraint(
+            "rest_minutes >= 0",
+            name="ck_olympic_calendar_rest"
+        ),
+    )
+
+
+def generate_olympic_round_robin_pairs(teams):
+    """
+    Gera confrontos de turno único:
+    cada equipe enfrenta todas as outras uma vez.
+    Não grava dados no banco.
+    """
+    pairs = []
+
+    ordered_teams = sorted(
+        teams,
+        key=lambda team: team.id
+    )
+
+    for i in range(len(ordered_teams)):
+        for j in range(i + 1, len(ordered_teams)):
+            pairs.append((
+                ordered_teams[i],
+                ordered_teams[j]
+            ))
+
+    return pairs
+
+
+def generate_olympic_pairs_by_shift(teams):
+    """
+    Separa as equipes por turno e gera
+    confrontos de turno único em cada grupo.
+    Não grava dados no banco.
+    """
+    teams_by_shift = {}
+
+    for team in teams:
+        shift = (team.shift or "").strip().upper()
+
+        if not shift:
+            continue
+
+        teams_by_shift.setdefault(shift, []).append(team)
+
+    matches_by_shift = {}
+
+    for shift, shift_teams in teams_by_shift.items():
+        matches_by_shift[shift] = (
+            generate_olympic_round_robin_pairs(shift_teams)
+        )
+
+    return matches_by_shift
+
+
+def get_olympic_calendar_participants(edition_id):
+    """
+    Busca todas as equipes e modalidades ativas
+    de uma edição e prepara os confrontos por turno.
+
+    Não grava dados no banco.
+    """
+
+    teams = (
+        OlympicTeam.query
+        .filter_by(edition_id=edition_id)
+        .order_by(OlympicTeam.id)
+        .all()
+    )
+
+    modalities = (
+        OlympicModality.query
+        .filter_by(
+            edition_id=edition_id,
+            is_active=True
+        )
+        .order_by(OlympicModality.id)
+        .all()
+    )
+
+    pairs_by_shift = generate_olympic_pairs_by_shift(teams)
+
+    return {
+        "teams": teams,
+        "modalities": modalities,
+        "pairs_by_shift": pairs_by_shift
+    }
+
+
+def get_olympic_available_dates(start_date, end_date, game_weekdays):
+    """
+    Retorna as datas disponíveis para os confrontos,
+    respeitando os dias da semana configurados.
+
+    Segunda-feira = 0
+    Domingo = 6
+
+    Não grava dados no banco.
+    """
+
+    if start_date > end_date:
+        raise ValueError(
+            "A data final não pode ser anterior à data inicial."
+        )
+
+    allowed_weekdays = set(game_weekdays or [])
+
+    if not allowed_weekdays:
+        raise ValueError(
+            "Selecione pelo menos um dia da semana."
+        )
+
+    available_dates = []
+    current_date = start_date
+
+    while current_date <= end_date:
+
+        if current_date.weekday() in allowed_weekdays:
+            available_dates.append(current_date)
+
+        current_date += timedelta(days=1)
+
+    return available_dates
+
+
+def get_olympic_available_times(
+    shift_start,
+    shift_end,
+    match_duration_minutes,
+    interval_minutes
+):
+    """
+    Calcula os horários disponíveis em um turno.
+
+    Cada confronto precisa terminar até o horário
+    final do turno.
+
+    Não grava dados no banco.
+    """
+
+    if match_duration_minutes <= 0:
+        raise ValueError(
+            "A duração do confronto deve ser maior que zero."
+        )
+
+    if interval_minutes < 0:
+        raise ValueError(
+            "O intervalo não pode ser negativo."
+        )
+
+    start_datetime = datetime.combine(
+        date.today(),
+        shift_start
+    )
+
+    end_datetime = datetime.combine(
+        date.today(),
+        shift_end
+    )
+
+    available_times = []
+
+    current_datetime = start_datetime
+
+    while (
+        current_datetime + timedelta(
+            minutes=match_duration_minutes
+        ) <= end_datetime
+    ):
+        available_times.append(
+            current_datetime.time()
+        )
+
+        current_datetime += timedelta(
+            minutes=match_duration_minutes + interval_minutes
+        )
+
+    return available_times
+
+
+def olympic_team_has_enough_rest(
+    team_id,
+    proposed_start,
+    proposed_duration_minutes,
+    scheduled_matches,
+    rest_minutes
+):
+    """
+    Verifica se uma equipe terá descanso suficiente
+    entre o confronto proposto e os já agendados.
+
+    proposed_start: datetime
+    scheduled_matches: lista de dicionários contendo
+        team_a_id, team_b_id, start e duration_minutes
+
+    Não grava dados no banco.
+    """
+
+    if proposed_duration_minutes <= 0 or rest_minutes < 0:
+        raise ValueError("Duração ou descanso inválido.")
+
+    proposed_end = proposed_start + timedelta(
+        minutes=proposed_duration_minutes
+    )
+
+    for match in scheduled_matches:
+
+        if team_id not in (
+            match["team_a_id"],
+            match["team_b_id"]
+        ):
+            continue
+
+        existing_start = match["start"]
+
+        existing_end = existing_start + timedelta(
+            minutes=match["duration_minutes"]
+        )
+
+        if (
+            proposed_start < existing_end + timedelta(minutes=rest_minutes)
+            and proposed_end + timedelta(minutes=rest_minutes) > existing_start
+        ):
+            return False
+
+    return True
+
+
+def olympic_team_within_daily_limit(
+    team_id,
+    modality_id,
+    proposed_date,
+    scheduled_matches,
+    max_matches_per_team_per_day
+):
+    """
+    Verifica se a equipe ainda pode disputar
+    outro confronto da mesma modalidade no dia.
+
+    scheduled_matches: lista de dicionários com:
+        team_a_id, team_b_id, modality_id, start
+
+    Não grava dados no banco.
+    """
+
+    if max_matches_per_team_per_day <= 0:
+        raise ValueError(
+            "O limite diário por equipe deve ser maior que zero."
+        )
+
+    matches_today = 0
+
+    for match in scheduled_matches:
+
+        if match["modality_id"] != modality_id:
+            continue
+
+        if match["start"].date() != proposed_date:
+            continue
+
+        if team_id in (
+            match["team_a_id"],
+            match["team_b_id"]
+        ):
+            matches_today += 1
+
+    return matches_today < max_matches_per_team_per_day
+
+
+def olympic_modality_within_daily_limit(
+    modality_id,
+    proposed_date,
+    scheduled_matches,
+    max_matches_per_modality_per_day
+):
+    """
+    Verifica o limite total de confrontos
+    de uma modalidade em determinado dia.
+
+    Considera os dois turnos em conjunto.
+
+    Um limite None significa sem restrição.
+    Não grava dados no banco.
+    """
+
+    if max_matches_per_modality_per_day is None:
+        return True
+
+    if max_matches_per_modality_per_day <= 0:
+        raise ValueError(
+            "O limite diário da modalidade deve ser maior que zero."
+        )
+
+    matches_today = 0
+
+    for match in scheduled_matches:
+
+        if match["modality_id"] != modality_id:
+            continue
+
+        if match["start"].date() == proposed_date:
+            matches_today += 1
+
+    return matches_today < max_matches_per_modality_per_day
+
+
+def olympic_time_slot_is_available(
+    proposed_start,
+    proposed_duration_minutes,
+    scheduled_matches,
+    interval_minutes,
+    allow_simultaneous_matches
+):
+    """
+    Verifica conflitos de horário entre confrontos.
+
+    Quando confrontos simultâneos estão desativados,
+    respeita também o intervalo mínimo entre jogos.
+
+    Não grava dados no banco.
+    """
+
+    if proposed_duration_minutes <= 0 or interval_minutes < 0:
+        raise ValueError("Duração ou intervalo inválido.")
+
+    if allow_simultaneous_matches:
+        return True
+
+    proposed_end = proposed_start + timedelta(
+        minutes=proposed_duration_minutes
+    )
+
+    for match in scheduled_matches:
+
+        existing_start = match["start"]
+
+        # Confrontos de datas diferentes não entram em conflito.
+        if existing_start.date() != proposed_start.date():
+            continue
+
+        existing_end = existing_start + timedelta(
+            minutes=match["duration_minutes"]
+        )
+
+        interval = timedelta(minutes=interval_minutes)
+
+        if (
+            proposed_start < existing_end + interval
+            and proposed_end + interval > existing_start
+        ):
+            return False
+
+    return True
+
+
+def prepare_olympic_classification_matches(edition_id):
+    """
+    Prepara os confrontos classificatórios de turno único
+    para todas as modalidades ativas.
+
+    Não define datas nem horários.
+    Não grava dados no banco.
+    """
+
+    participants = get_olympic_calendar_participants(edition_id)
+
+    modalities = participants["modalities"]
+    pairs_by_shift = participants["pairs_by_shift"]
+
+    prepared_matches = []
+
+    for modality in modalities:
+        for shift, pairs in pairs_by_shift.items():
+            for team_a, team_b in pairs:
+                prepared_matches.append({
+                    "edition_id": edition_id,
+                    "modality_id": modality.id,
+                    "team_a_id": team_a.id,
+                    "team_b_id": team_b.id,
+                    "shift": shift,
+                    "phase": "CLASSIFICATORIA",
+                    "duration_minutes": modality.match_duration_minutes,
+                    "max_matches_per_team_per_day":
+                        modality.max_matches_per_team_per_day,
+                    "max_matches_per_modality_per_day":
+                        modality.max_matches_per_modality_per_day
+                })
+
+    return prepared_matches
+
+
+def get_olympic_shift_window(settings, shift):
+    """
+    Retorna os horários de início e fim de um turno.
+
+    Aceita as identificações MATUTINO e VESPERTINO,
+    além de MANHA e TARDE.
+
+    Não altera dados no banco.
+    """
+
+    normalized_shift = (shift or "").strip().upper()
+
+    if normalized_shift in ("MATUTINO", "MANHA", "MANHÃ"):
+        shift_start = settings.morning_start
+        shift_end = settings.morning_end
+
+    elif normalized_shift in ("VESPERTINO", "TARDE"):
+        shift_start = settings.afternoon_start
+        shift_end = settings.afternoon_end
+
+    else:
+        raise ValueError(
+            f"Turno não reconhecido: {shift}"
+        )
+
+    if shift_start is None or shift_end is None:
+        raise ValueError(
+            f"Os horários do turno {shift} não estão configurados."
+        )
+
+    if shift_start >= shift_end:
+        raise ValueError(
+            f"O horário inicial do turno {shift} "
+            "deve ser anterior ao horário final."
+        )
+
+    return shift_start, shift_end
+
+
+def get_olympic_match_duration(match):
+    """
+    Obtém e valida a duração de um confronto preparado.
+
+    Não grava dados no banco.
+    """
+
+    duration = match.get("duration_minutes")
+
+    if duration is None:
+        raise ValueError(
+            f"A modalidade de ID {match['modality_id']} "
+            "não possui duração configurada."
+        )
+
+    try:
+        duration = int(duration)
+    except (TypeError, ValueError):
+        raise ValueError(
+            f"Duração inválida para a modalidade "
+            f"de ID {match['modality_id']}."
+        )
+
+    if duration <= 0:
+        raise ValueError(
+            f"A duração da modalidade de ID "
+            f"{match['modality_id']} deve ser maior que zero."
+        )
+
+    return duration
+
+def count_olympic_team_daily_matches(
+    team_id,
+    game_date,
+    scheduled_matches
+):
+    """
+    Conta todos os confrontos de uma equipe
+    em determinada data, independentemente
+    da modalidade.
+
+    Considera confrontos existentes e aqueles
+    adicionados à prévia do calendário.
+    """
+
+    return sum(
+        1
+        for match in scheduled_matches
+        if match["start"].date() == game_date
+        and team_id in (
+            match["team_a_id"],
+            match["team_b_id"]
+        )
+    )
+
+def find_olympic_match_slot(
+    match,
+    available_dates,
+    settings,
+    scheduled_matches,
+    break_times=None
+):
+    """
+    Encontra uma data e um horário válidos para o confronto.
+
+    Retorna um datetime ou None se não houver vaga.
+    Não grava dados no banco.
+    """
+
+    duration = get_olympic_match_duration(match)
+
+    shift_start, shift_end = get_olympic_shift_window(
+        settings,
+        match["shift"]
+    )
+
+    interval_minutes = settings.interval_minutes
+    rest_minutes = settings.rest_minutes
+
+    # Prioriza datas com menor quantidade de jogos
+    # para as duas equipes envolvidas no confronto.
+
+    def daily_balance_score(game_date):
+
+        team_a_games = count_olympic_team_daily_matches(
+            match["team_a_id"],
+            game_date,
+            scheduled_matches
+        )
+
+        team_b_games = count_olympic_team_daily_matches(
+            match["team_b_id"],
+            game_date,
+            scheduled_matches
+        )
+
+        return (
+            max(team_a_games, team_b_games),
+            team_a_games + team_b_games
+        )
+
+    balanced_dates = sorted(
+        available_dates,
+        key=daily_balance_score
+    )
+
+    for game_date in balanced_dates:
+
+        if not olympic_modality_within_daily_limit(
+            match["modality_id"],
+            game_date,
+            scheduled_matches,
+            match["max_matches_per_modality_per_day"]
+        ):
+            continue
+
+        if not all(
+            olympic_team_within_daily_limit(
+                team_id,
+                match["modality_id"],
+                game_date,
+                scheduled_matches,
+                match["max_matches_per_team_per_day"]
+            )
+            for team_id in (
+                match["team_a_id"],
+                match["team_b_id"]
+            )
+        ):
+            continue
+
+        current = datetime.combine(game_date, shift_start)
+        window_end = datetime.combine(game_date, shift_end)
+
+        # Intervalo sem jogos definido para este turno
+        # Normaliza o turno para localizar o intervalo de lanche
+        normalized_shift = (match["shift"] or "").strip().upper()
+
+        if normalized_shift in ("MANHA", "MANHÃ"):
+            normalized_shift = "MATUTINO"
+
+        elif normalized_shift == "TARDE":
+            normalized_shift = "VESPERTINO"
+
+        shift_break = (break_times or {}).get(normalized_shift)
+
+        break_start = None
+        break_end = None
+
+        if shift_break:
+            break_start = datetime.combine(
+                game_date,
+                shift_break[0]
+            )
+            break_end = datetime.combine(
+                game_date,
+                shift_break[1]
+            )
+
+        while current + timedelta(minutes=duration) <= window_end:
+
+            # Não permite confrontos durante o intervalo
+            if (
+                break_start is not None
+                and current < break_end
+                and current + timedelta(minutes=duration) > break_start
+            ):
+                current = break_end
+                continue
+
+            if olympic_time_slot_is_available(
+                current,
+                duration,
+                scheduled_matches,
+                interval_minutes,
+                settings.allow_simultaneous_matches
+            ):
+
+                if all(
+                    olympic_team_has_enough_rest(
+                        team_id,
+                        current,
+                        duration,
+                        scheduled_matches,
+                        rest_minutes
+                    )
+                    for team_id in (
+                        match["team_a_id"],
+                        match["team_b_id"]
+                    )
+                ):
+                    return current
+
+            current += timedelta(minutes=1)
+
+    return None
+
+
+
+def build_olympic_calendar(
+    prepared_matches,
+    available_dates,
+    settings,
+    existing_matches=None,
+    break_times=None
+):
+    """
+    Distribui novos confrontos nas datas disponíveis.
+
+    Considera os confrontos existentes para evitar
+    conflitos de horários, descanso e limites diários.
+
+    Não grava dados no banco.
+    """
+
+    scheduled_matches = list(existing_matches or [])
+    new_scheduled_matches = []
+    unscheduled_matches = []
+
+    for match in prepared_matches:
+
+        start = find_olympic_match_slot(
+            match,
+            available_dates,
+            settings,
+            scheduled_matches,
+            break_times=break_times
+        )
+
+        if start is None:
+            unscheduled_matches.append(match.copy())
+            continue
+
+        scheduled_match = match.copy()
+
+        scheduled_match["start"] = start
+        scheduled_match["duration_minutes"] = (
+            get_olympic_match_duration(match)
+        )
+
+        scheduled_matches.append(scheduled_match)
+        new_scheduled_matches.append(scheduled_match)
+
+    return {
+        "scheduled_matches": new_scheduled_matches,
+        "unscheduled_matches": unscheduled_matches
+    }
+
+
+
+def get_existing_olympic_match_keys(edition_id):
+    """
+    Identifica os confrontos classificatórios já
+    cadastrados na edição.
+
+    A ordem das equipes não altera a identificação.
+    Não modifica dados no banco.
+    """
+
+    
+    existing_matches = OlympicMatch.query.filter(
+        OlympicMatch.edition_id == edition_id,
+        OlympicMatch.phase == "CLASSIFICATORIA",
+        OlympicMatch.status != "CANCELADO"
+    ).all()
+
+
+    existing_keys = set()
+
+    for match in existing_matches:
+        team_ids = tuple(sorted((
+            match.team_a_id,
+            match.team_b_id
+        )))
+
+        existing_keys.add((
+            match.modality_id,
+            team_ids
+        ))
+
+    return existing_keys
+
+
+def filter_new_olympic_matches(
+    edition_id,
+    prepared_matches
+):
+    """
+    Remove da lista os confrontos classificatórios
+    que já estão cadastrados no banco de dados.
+
+    Preserva os confrontos existentes.
+    Não grava nem altera dados no banco.
+    """
+
+    existing_keys = get_existing_olympic_match_keys(
+        edition_id
+    )
+
+    new_matches = []
+    skipped_matches = []
+
+    for match in prepared_matches:
+
+        team_ids = tuple(sorted((
+            match["team_a_id"],
+            match["team_b_id"]
+        )))
+
+        match_key = (
+            match["modality_id"],
+            team_ids
+        )
+
+        if match_key in existing_keys:
+            skipped_matches.append(match.copy())
+            continue
+
+        new_matches.append(match.copy())
+
+        # Evita duplicações dentro da própria lista.
+        existing_keys.add(match_key)
+
+    return {
+        "new_matches": new_matches,
+        "skipped_matches": skipped_matches
+    }
+
+
+def get_existing_olympic_scheduled_matches(edition_id):
+    """
+    Carrega os confrontos existentes para que o gerador
+    respeite seus horários, descanso e limites diários.
+
+    Não modifica dados no banco.
+    """
+
+    existing_matches = OlympicMatch.query.filter_by(
+        edition_id=edition_id
+    ).all()
+
+    scheduled_matches = []
+
+    for match in existing_matches:
+
+        if match.status == "CANCELADO":
+            continue
+
+        if match.match_date is None or match.match_time is None:
+            continue
+
+        duration = match.modality.match_duration_minutes
+
+        if duration is None or duration <= 0:
+            raise ValueError(
+                f"O confronto de ID {match.id} possui "
+                "uma modalidade sem duração válida."
+            )
+
+        scheduled_matches.append({
+            "match_id": match.id,
+            "modality_id": match.modality_id,
+            "team_a_id": match.team_a_id,
+            "team_b_id": match.team_b_id,
+            "shift": match.shift,
+            "start": datetime.combine(
+                match.match_date,
+                match.match_time
+            ),
+            "duration_minutes": duration,
+            "existing": True
+        })
+
+    return scheduled_matches
+
+
+def generate_olympic_calendar_preview(
+    edition_id,
+    start_date,
+    end_date,
+    break_times=None
+):
+    """
+    Monta uma prévia completa do calendário olímpico.
+
+    Respeita as configurações da edição e os
+    confrontos já cadastrados.
+
+    Não grava nem altera dados no banco.
+    """
+
+    settings = OlympicCalendarSettings.query.filter_by(
+        edition_id=edition_id
+    ).first()
+
+    if settings is None:
+        raise ValueError(
+            "Configure o calendário antes de gerar os confrontos."
+        )
+
+    available_dates = get_olympic_available_dates(
+        start_date,
+        end_date,
+        settings.game_weekdays
+    )
+
+    if not available_dates:
+        raise ValueError(
+            "Não existem dias permitidos no período informado."
+        )
+
+    prepared_matches = prepare_olympic_classification_matches(
+        edition_id
+    )
+
+    filtered = filter_new_olympic_matches(
+        edition_id,
+        prepared_matches
+    )
+
+    existing_matches = get_existing_olympic_scheduled_matches(
+        edition_id
+    )
+
+    result = build_olympic_calendar(
+        filtered["new_matches"],
+        available_dates,
+        settings,
+        existing_matches,
+        break_times=break_times
+    )
+
+    return {
+        "scheduled_matches": result["scheduled_matches"],
+        "unscheduled_matches": result["unscheduled_matches"],
+        "skipped_matches": filtered["skipped_matches"],
+        "existing_matches_count": len(existing_matches)
+    }
+
+
 
 # =========================
 # PASSEIOS / EVENTOS
@@ -2525,6 +4604,14 @@ def register_site_visit():
 def register_search_metric():
     try:
         data = request.get_json(silent=True) or {}
+        # Tentativas individuais de Basquete e Pênaltis.
+        athlete_attempts_data = data.get("athlete_attempts", [])
+
+        if not isinstance(athlete_attempts_data, list):
+            return jsonify({
+                "success": False,
+                "message": "Formato inválido dos arremessos individuais."
+            }), 400
 
         search_term = str(
             data.get("term") or ""
@@ -2892,8 +4979,444 @@ def admin_required_page(view_func):
         return view_func(*args, **kwargs)
     return wrapper
     
+@app.route(
+    "/admin/olimpiadas/geral/<int:edition_id>",
+    methods=["GET"]
+)
+@admin_required_page
+def admin_olympic_overall_page(edition_id):
+    edition = db.session.get(
+        OlympicEdition,
+        edition_id
+    )
+
+    if edition is None:
+        return "Edição não encontrada", 404
+
+    result = calculate_olympic_overall_standings(
+        edition_id
+    )
+
+    return render_template(
+        "admin_olympic_overall.html",
+        edition=edition,
+        result=result
+    )
 
 
+# ==========================================
+# OLIMPÍADAS - ANDAMENTO DAS CLASSIFICATÓRIAS
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/andamento/<int:edition_id>",
+    methods=["GET"]
+)
+@admin_required_page
+def admin_olympic_classification_progress(edition_id):
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if edition is None:
+        return jsonify({
+            "success": False,
+            "message": "Edição não encontrada."
+        }), 404
+
+    modalities = (
+        OlympicModality.query
+        .filter_by(edition_id=edition_id, is_active=True)
+        .order_by(OlympicModality.name)
+        .all()
+    )
+
+    progress = []
+
+    for modality in modalities:
+        shifts = []
+
+        for shift in ("MATUTINO", "VESPERTINO"):
+
+            matches = OlympicMatch.query.filter(
+                OlympicMatch.edition_id == edition_id,
+                OlympicMatch.modality_id == modality.id,
+                OlympicMatch.phase == "CLASSIFICATORIA",
+                db.func.upper(OlympicMatch.shift) == shift
+            ).all()
+
+            finished = sum(
+                1 for match in matches
+                if match.status == "FINALIZADO"
+                and match.score_a is not None
+                and match.score_b is not None
+            )
+
+            total = len(matches)
+            pending = total - finished
+
+            classification = calculate_olympic_classification(
+                edition_id,
+                modality.id,
+                shift
+            )
+
+            leader = None
+            tie = False
+
+            if classification and finished > 0:
+                first = classification[0]
+
+                def ranking_key(item):
+                    return (
+                        item["points"],
+                        item["goal_difference"],
+                        -item["red_cards"],
+                        -item["yellow_cards"],
+                        -item["fouls"]
+                    )
+
+                tie = sum(
+                    ranking_key(item) == ranking_key(first)
+                    for item in classification
+                ) > 1
+
+                leader = {
+                    "team": first["team_name"],
+                    "coach": first["coach"],
+                    "points": first["points"]
+                }
+
+            completed = (
+                total > 0
+                and pending == 0
+                and not tie
+                and leader is not None
+            )
+
+            shifts.append({
+                "shift": shift,
+                "total": total,
+                "finished": finished,
+                "pending": pending,
+                "leader": leader,
+                "tie": tie,
+                "completed": completed
+            })
+
+        progress.append({
+            "modality": modality.name,
+            "shifts": shifts
+        })
+
+    return jsonify({
+        "success": True,
+        "edition_id": edition_id,
+        "progress": progress
+    })
+
+
+# ==========================================
+# OLIMPÍADAS - GERAR FINAIS INTERTURNOS
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/gerar-finais/<int:edition_id>",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_generate_olympic_intershift_finals(edition_id):
+    
+    preview_only = request.args.get("preview") == "1"
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if not edition:
+        return jsonify({
+            "success": False,
+            "message": "Edição não encontrada."
+        }), 404
+
+    if not edition.is_active:
+        return jsonify({
+            "success": False,
+            "message": "A edição está inativa."
+        }), 400
+
+    final_date = date(2026, 11, 28)
+
+    if (
+        (edition.start_date and final_date < edition.start_date)
+        or (edition.end_date and final_date > edition.end_date)
+    ):
+        return jsonify({
+            "success": False,
+            "message": "A data das finais está fora do período da edição."
+        }), 400
+
+    settings = OlympicCalendarSettings.query.filter_by(
+        edition_id=edition_id
+    ).first()
+
+    if not settings:
+        return jsonify({
+            "success": False,
+            "message": "Configure primeiro o calendário."
+        }), 400
+
+    modalities = OlympicModality.query.filter_by(
+        edition_id=edition_id,
+        is_active=True
+    ).order_by(OlympicModality.id).all()
+
+    start_window = datetime.combine(
+        final_date,
+        datetime.strptime("08:30", "%H:%M").time()
+    )
+
+    end_window = datetime.combine(
+        final_date,
+        datetime.strptime("11:30", "%H:%M").time()
+    )
+
+    scheduled = get_existing_olympic_scheduled_matches(
+        edition_id
+    )
+
+    created = []
+    pending = []
+    already_exists = []
+
+    for modality in modalities:
+
+        existing = OlympicMatch.query.filter_by(
+            edition_id=edition_id,
+            modality_id=modality.id,
+            phase="FINAL_ENTRE_TURNOS"
+        ).first()
+
+        if existing:
+            already_exists.append(modality.name)
+            continue
+
+        champions = {}
+        reason = None
+
+        for shift in ("MATUTINO", "VESPERTINO"):
+
+            matches = OlympicMatch.query.filter(
+                OlympicMatch.edition_id == edition_id,
+                OlympicMatch.modality_id == modality.id,
+                OlympicMatch.phase == "CLASSIFICATORIA",
+                db.func.upper(OlympicMatch.shift) == shift
+            ).all()
+            
+            
+            # Confirma que os 10 confrontos do turno
+            # estão cadastrados, sem duplicações.
+
+            shift_teams = OlympicTeam.query.filter(
+                OlympicTeam.edition_id == edition_id,
+                db.func.upper(OlympicTeam.shift) == shift
+            ).all()
+
+            expected_count = (
+                len(shift_teams) * (len(shift_teams) - 1) // 2
+            )
+
+            unique_pairs = {
+                tuple(sorted((m.team_a_id, m.team_b_id)))
+                for m in matches
+            }
+            
+            valid_team_ids = {
+                team.id for team in shift_teams
+            }
+
+            valid_pairs = all(
+                m.team_a_id in valid_team_ids
+                and m.team_b_id in valid_team_ids
+                for m in matches
+            )
+
+            if (
+                len(shift_teams) != 5
+                or len(matches) != expected_count
+                or len(unique_pairs) != expected_count
+                or not valid_pairs
+            ):
+                reason = (
+                    f"Calendário do {shift.lower()} incompleto "
+                    "ou com confrontos duplicados"
+                )
+                break
+
+
+            if not matches or any(
+                m.status != "FINALIZADO"
+                or m.score_a is None
+                or m.score_b is None
+                for m in matches
+            ):
+                reason = f"Classificatória do {shift.lower()} pendente"
+                break
+
+            ranking = calculate_olympic_classification(
+                edition_id,
+                modality.id,
+                shift
+            )
+
+            if not ranking:
+                reason = f"Sem classificação no {shift.lower()}"
+                break
+
+            modality_name = modality.name.strip().lower()
+
+            if modality_name in ("futsal", "golzinho"):
+                def ranking_key(item):
+                    return (
+                        item["points"],
+                        item["goal_difference"],
+                        -item["red_cards"],
+                        -item["yellow_cards"],
+                        -item["fouls"]
+                    )
+            else:
+                def ranking_key(item):
+                    return (
+                        item["points"],
+                        item["wins"]
+                    )
+
+            if sum(
+                ranking_key(item) == ranking_key(ranking[0])
+                for item in ranking
+            ) != 1:
+                reason = f"Desempate pendente no {shift.lower()}"
+                break
+
+            champions[shift] = ranking[0]["team_id"]
+
+        if reason:
+            pending.append({
+                "modality": modality.name,
+                "reason": reason
+            })
+            continue
+
+        try:
+            duration = get_olympic_match_duration({
+                "modality_id": modality.id,
+                "duration_minutes": modality.match_duration_minutes
+            })
+        except ValueError as error:
+            pending.append({
+                "modality": modality.name,
+                "reason": str(error)
+            })
+            continue
+
+        team_a_id = champions["MATUTINO"]
+        team_b_id = champions["VESPERTINO"]
+
+        candidate = start_window
+        selected = None
+
+        while candidate + timedelta(minutes=duration) <= end_window:
+
+            available = olympic_time_slot_is_available(
+                candidate,
+                duration,
+                scheduled,
+                settings.interval_minutes,
+                settings.allow_simultaneous_matches
+            )
+
+            rested = all(
+                olympic_team_has_enough_rest(
+                    team_id,
+                    candidate,
+                    duration,
+                    scheduled,
+                    settings.rest_minutes
+                )
+                for team_id in (team_a_id, team_b_id)
+            )
+
+            if available and rested:
+                selected = candidate
+                break
+
+            candidate += timedelta(minutes=5)
+
+        if selected is None:
+            pending.append({
+                "modality": modality.name,
+                "reason": "Sem horário disponível entre 08h30 e 11h30"
+            })
+            continue
+
+        match = OlympicMatch(
+            edition_id=edition_id,
+            modality_id=modality.id,
+            team_a_id=team_a_id,
+            team_b_id=team_b_id,
+            match_date=final_date,
+            match_time=selected.time(),
+            shift="INTERTURNOS",
+            phase="FINAL_ENTRE_TURNOS",
+            status="AGENDADO"
+        )
+
+        db.session.add(match)
+
+        scheduled.append({
+            "team_a_id": team_a_id,
+            "team_b_id": team_b_id,
+            "modality_id": modality.id,
+            "start": selected,
+            "duration_minutes": duration
+        })
+
+        team_a = db.session.get(OlympicTeam, team_a_id)
+        team_b = db.session.get(OlympicTeam, team_b_id)
+
+        created.append({
+            "modality": modality.name,
+            "time": selected.strftime("%H:%M"),
+            "team_a": f"{team_a.color} — {team_a.coach}",
+            "team_b": f"{team_b.color} — {team_b.coach}"
+        })
+
+    
+    if preview_only:
+        db.session.rollback()
+    else:
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Erro ao salvar as finais. "
+                    "Nenhum novo confronto foi confirmado."
+                )
+            }), 500
+
+
+    return jsonify({
+        "success": True,
+        "preview": preview_only,
+        "created": created,
+        "pending": pending,
+        "already_exists": already_exists,
+        "message": (
+            f"{len(created)} final(is) pronta(s) para geração."
+            if preview_only
+            else f"{len(created)} final(is) cadastrada(s)."
+        )
+    })
 
 
 def plan_priority_case():
@@ -3632,6 +6155,363 @@ DF_NEIGHBORHOODS = {
         "Centro Metropolitano"
     ]
 }
+
+
+@app.route(
+    "/admin/olimpiadas/edicoes/<int:edition_id>/calendario/previa",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_olympic_calendar_preview(edition_id):
+
+    """
+    Gera uma prévia do calendário sem salvar confrontos.
+    """
+
+    try:
+        data = request.get_json(silent=True) or {}
+
+        start_date_text = data.get("start_date")
+        end_date_text = data.get("end_date")
+        
+        # Horários sem jogos, exclusivos da geração automática
+        break_times = {}
+
+        for shift, prefix in (
+            ("MATUTINO", "morning"),
+            ("VESPERTINO", "afternoon")
+        ):
+            start_text = data.get(f"{prefix}_break_start") or ""
+            end_text = data.get(f"{prefix}_break_end") or ""
+
+            if bool(start_text) != bool(end_text):
+                raise ValueError(
+                    f"Informe o início e o fim do intervalo "
+                    f"do turno {shift.lower()}."
+                )
+
+            if start_text:
+                break_start = datetime.strptime(
+                    start_text, "%H:%M"
+                ).time()
+
+                break_end = datetime.strptime(
+                    end_text, "%H:%M"
+                ).time()
+
+                if break_end <= break_start:
+                    raise ValueError(
+                        f"O término do intervalo do turno "
+                        f"{shift.lower()} deve ser posterior ao início."
+                    )
+
+                break_times[shift] = (
+                    break_start,
+                    break_end
+                )
+
+        if not start_date_text or not end_date_text:
+            return jsonify({
+                "ok": False,
+                "error": "Informe as datas inicial e final."
+            }), 400
+
+        start_date = date.fromisoformat(start_date_text)
+        end_date = date.fromisoformat(end_date_text)
+
+        if end_date < start_date:
+            return jsonify({
+                "ok": False,
+                "error": "A data final não pode ser anterior à inicial."
+            }), 400
+
+        edition = db.session.get(OlympicEdition, edition_id)
+
+        if edition is None:
+            return jsonify({
+                "ok": False,
+                "error": "Edição das Olimpíadas não encontrada."
+            }), 404
+
+        result = generate_olympic_calendar_preview(
+            edition_id,
+            start_date,
+            end_date,
+            break_times=break_times
+        )
+        
+        modalities_by_id = {
+            modality.id: modality
+            for modality in OlympicModality.query.filter_by(
+                edition_id=edition_id
+            ).all()
+        }
+
+        teams_by_id = {
+            team.id: team
+            for team in OlympicTeam.query.filter_by(
+                edition_id=edition_id
+            ).all()
+        }
+
+
+        scheduled = []
+
+        for match in result["scheduled_matches"]:
+            scheduled.append({
+                
+                "modality_id": match["modality_id"],
+                "modality_name": modalities_by_id[
+                    match["modality_id"]
+                ].name,
+                "team_a_id": match["team_a_id"],
+                "team_a_name": teams_by_id[
+                    match["team_a_id"]
+                ].name,
+                "team_a_coach": teams_by_id[
+                    match["team_a_id"]
+                ].coach,
+                "team_b_id": match["team_b_id"],
+                "team_b_name": teams_by_id[
+                    match["team_b_id"]
+                ].name,
+                "team_b_coach": teams_by_id[
+                    match["team_b_id"]
+                ].coach,
+
+                "shift": match["shift"],
+                "date": match["start"].date().isoformat(),
+                "time": match["start"].strftime("%H:%M"),
+                "duration_minutes": match["duration_minutes"]
+            })
+
+        return jsonify({
+            "ok": True,
+            "scheduled_matches": scheduled,
+            "unscheduled_matches": result["unscheduled_matches"],
+            "scheduled_count": len(scheduled),
+            "unscheduled_count": len(
+                result["unscheduled_matches"]
+            ),
+            "skipped_count": len(
+                result["skipped_matches"]
+            ),
+            "existing_matches_count": result[
+                "existing_matches_count"
+            ]
+        })
+
+    except (ValueError, TypeError) as exc:
+        return jsonify({
+            "ok": False,
+            "error": str(exc)
+        }), 400
+        
+
+@app.route(
+    "/admin/olimpiadas/edicoes/<int:edition_id>/calendario/confirmar",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_olympic_calendar_confirm(edition_id):
+    """
+    Confirma e salva os confrontos do calendário automático.
+
+    Recalcula os horários respeitando os intervalos
+    de lanche informados para cada turno.
+    """
+
+    data = request.get_json(silent=True) or {}
+
+    start_date_text = data.get("start_date")
+    end_date_text = data.get("end_date")
+    
+    # Intervalos de lanche exclusivos do calendário automático
+    break_times = {}
+
+    try:
+        for shift, prefix in (
+            ("MATUTINO", "morning"),
+            ("VESPERTINO", "afternoon")
+        ):
+            start_text = data.get(f"{prefix}_break_start") or ""
+            end_text = data.get(f"{prefix}_break_end") or ""
+
+            if bool(start_text) != bool(end_text):
+                raise ValueError(
+                    f"Informe o início e o fim do intervalo "
+                    f"do turno {shift.lower()}."
+                )
+
+            if start_text:
+                break_start = datetime.strptime(
+                    start_text, "%H:%M"
+                ).time()
+
+                break_end = datetime.strptime(
+                    end_text, "%H:%M"
+                ).time()
+
+                if break_end <= break_start:
+                    raise ValueError(
+                        f"O término do intervalo do turno "
+                        f"{shift.lower()} deve ser posterior ao início."
+                    )
+
+                break_times[shift] = (
+                    break_start,
+                    break_end
+                )
+
+    except (ValueError, TypeError) as exc:
+        return jsonify({
+            "ok": False,
+            "error": str(exc)
+        }), 400
+
+    if not start_date_text or not end_date_text:
+        return jsonify({
+            "ok": False,
+            "error": "Informe as datas inicial e final."
+        }), 400
+
+    try:
+        start_date = date.fromisoformat(start_date_text)
+        end_date = date.fromisoformat(end_date_text)
+
+    except (ValueError, TypeError):
+        return jsonify({
+            "ok": False,
+            "error": "Formato de data inválido."
+        }), 400
+
+    if end_date < start_date:
+        return jsonify({
+            "ok": False,
+            "error": "A data final não pode ser anterior à inicial."
+        }), 400
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if edition is None:
+        return jsonify({
+            "ok": False,
+            "error": "Edição das Olimpíadas não encontrada."
+        }), 404
+
+    
+    
+    try:
+        # Bloqueia confirmações simultâneas da mesma edição.
+        # O bloqueio permanece ativo até commit ou rollback.
+        db.session.execute(
+            db.text(
+                "SELECT pg_advisory_xact_lock(:lock_namespace, :edition_id)"
+            ),
+            {
+                "lock_namespace": 20261101,
+                "edition_id": edition_id
+            }
+        )
+
+        
+        # Descarta dados carregados anteriormente na sessão,
+        # para consultar novamente os registros existentes.
+        db.session.expire_all()
+
+        # Recalcula os confrontos respeitando os horários de lanche.
+        calendar = generate_olympic_calendar_preview(
+            edition_id,
+            start_date,
+            end_date,
+            break_times=break_times
+        )
+
+
+    
+    except (ValueError, TypeError) as error:
+        db.session.rollback()
+
+        return jsonify({
+            "ok": False,
+            "error": str(error)
+        }), 400
+   
+    
+    except Exception:
+        db.session.rollback()
+
+        app.logger.exception(
+            "Erro ao preparar calendário da edição %s",
+            edition_id
+        )
+
+        return jsonify({
+            "ok": False,
+            "error": "Erro interno ao preparar o calendário."
+        }), 500
+
+
+
+    scheduled_matches = calendar["scheduled_matches"]
+    unscheduled_matches = calendar["unscheduled_matches"]
+    
+    
+    
+    if not scheduled_matches:
+        db.session.rollback()
+
+        return jsonify({
+            "ok": False,
+            "error": "Não existem novos confrontos para salvar."
+        }), 400
+
+
+    try:
+        for match in scheduled_matches:
+            match_start = match["start"]
+
+            new_match = OlympicMatch(
+                edition_id=edition_id,
+                modality_id=match["modality_id"],
+                team_a_id=match["team_a_id"],
+                team_b_id=match["team_b_id"],
+                match_date=match_start.date(),
+                match_time=match_start.time(),
+                shift=match["shift"],
+                phase="CLASSIFICATORIA",
+                status="AGENDADO"
+            )
+
+            db.session.add(new_match)
+
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+        app.logger.exception(
+            "Erro ao salvar calendário da edição %s",
+            edition_id
+        )
+
+        return jsonify({
+            "ok": False,
+            "error": "Erro ao salvar os confrontos no banco de dados."
+        }), 500
+
+
+    
+    return jsonify({
+        "ok": True,
+        "message": (
+            f"Calendário salvo com sucesso! "
+            f"{len(scheduled_matches)} confrontos cadastrados. "
+            f"{len(unscheduled_matches)} confrontos sem horário disponível."
+        ),
+        "saved_count": len(scheduled_matches),
+        "unscheduled_count": len(unscheduled_matches)
+    })
+       
 
 # =========================
 # SITEMAP SEO
@@ -5110,7 +7990,4491 @@ def admin_delete_location(location_id):
     db.session.delete(location)
     db.session.commit()
 
-    return jsonify({"message": "Localidade excluída com sucesso"}) 
+    return jsonify({"message": "Localidade excluída com sucesso"})
+
+# ==========================================
+# OLIMPÍADAS BOMBEIRO MIRIM - ADMINISTRAÇÃO
+# ==========================================
+
+@app.route("/admin/olimpiadas")
+@admin_required_page
+def admin_olympics_page():
+
+    return render_template(
+        "admin_olympics.html",
+        active_page="olympics"
+    )    
+
+
+@app.route("/admin/olimpiadas/edicoes/criar", methods=["POST"])
+@admin_required_page
+def admin_create_olympic_edition():
+
+    data = request.get_json(silent=True) or {}
+
+    name = str(data.get("name") or "").strip()
+    year_raw = data.get("year")
+    description = str(data.get("description") or "").strip()
+
+    if not name:
+        return jsonify({
+            "message": "Informe o nome da edição."
+        }), 400
+
+    try:
+        year = int(year_raw)
+    except (TypeError, ValueError):
+        return jsonify({
+            "message": "Informe um ano válido."
+        }), 400
+
+    if year < 2000 or year > 2100:
+        return jsonify({
+            "message": "Informe um ano entre 2000 e 2100."
+        }), 400
+
+    edition = OlympicEdition(
+        name=name,
+        year=year,
+        description=description or None,
+        is_active=True
+    )
+
+    try:
+        db.session.add(edition)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("Erro ao cadastrar edição das Olimpíadas")
+        return jsonify({
+            "message": "Não foi possível cadastrar a edição."
+        }), 500
+
+    return jsonify({
+        "message": "Edição cadastrada com sucesso!",
+        "edition": {
+            "id": edition.id,
+            "name": edition.name,
+            "year": edition.year,
+            "description": edition.description,
+            "is_active": edition.is_active
+        }
+    }), 201
+    
+
+# ==========================================
+# OLIMPÍADAS - LISTAR EDIÇÕES
+# ==========================================
+
+@app.route("/admin/olimpiadas/edicoes", methods=["GET"])
+@admin_required_page
+def admin_list_olympic_editions():
+
+    editions = (
+        OlympicEdition.query
+        .order_by(
+            OlympicEdition.year.desc(),
+            OlympicEdition.id.desc()
+        )
+        .all()
+    )
+
+    return jsonify({
+        "editions": [
+            {
+                "id": edition.id,
+                "name": edition.name,
+                "year": edition.year,
+                "start_date": (
+                    edition.start_date.isoformat()
+                    if edition.start_date else None
+                ),
+                "end_date": (
+                    edition.end_date.isoformat()
+                    if edition.end_date else None
+                ),
+                "description": edition.description,
+                "is_active": edition.is_active
+            }
+            for edition in editions
+        ]
+    }), 200
+    
+
+# ==========================================
+# OLIMPÍADAS - EDITAR EDIÇÃO
+# ==========================================
+
+@app.route("/admin/olimpiadas/edicoes/<int:edition_id>/editar", methods=["PUT"])
+@admin_required_page
+def admin_update_olympic_edition(edition_id):
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if not edition:
+        return jsonify({
+            "message": "Edição não encontrada."
+        }), 404
+
+    data = request.get_json(silent=True) or {}
+
+    name = str(data.get("name") or "").strip()
+    description = str(data.get("description") or "").strip()
+
+    try:
+        year = int(data.get("year"))
+    except (TypeError, ValueError):
+        return jsonify({
+            "message": "Informe um ano válido."
+        }), 400
+
+    if not name:
+        return jsonify({
+            "message": "Informe o nome da edição."
+        }), 400
+
+    if year < 2000 or year > 2100:
+        return jsonify({
+            "message": "Informe um ano entre 2000 e 2100."
+        }), 400
+
+    edition.name = name
+    edition.year = year
+    edition.description = description or None
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("Erro ao atualizar edição das Olimpíadas")
+
+        return jsonify({
+            "message": "Não foi possível atualizar a edição."
+        }), 500
+
+    return jsonify({
+        "message": "Edição atualizada com sucesso!",
+        "edition": {
+            "id": edition.id,
+            "name": edition.name,
+            "year": edition.year,
+            "description": edition.description,
+            "is_active": edition.is_active
+        }
+    }), 200
+    
+
+# ==========================================
+# OLIMPÍADAS - ATIVAR / DESATIVAR EDIÇÃO
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/edicoes/<int:edition_id>/situacao",
+    methods=["PUT"]
+)
+@admin_required_page
+def admin_toggle_olympic_edition(edition_id):
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if not edition:
+        return jsonify({
+            "message": "Edição não encontrada."
+        }), 404
+
+    edition.is_active = not edition.is_active
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        app.logger.exception(
+            "Erro ao alterar situação da edição das Olimpíadas"
+        )
+        return jsonify({
+            "message": "Não foi possível alterar a situação da edição."
+        }), 500
+
+    return jsonify({
+        "message": (
+            "Edição ativada com sucesso!"
+            if edition.is_active
+            else "Edição desativada com sucesso!"
+        ),
+        "id": edition.id,
+        "is_active": edition.is_active
+    }), 200
+    
+
+# ==========================================
+# OLIMPÍADAS - CADASTRAR EQUIPE
+# ==========================================
+
+@app.route("/admin/olimpiadas/equipes/criar", methods=["POST"])
+@admin_required_page
+def admin_create_olympic_team():
+
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({
+            "message": "Envie os dados da equipe em formato JSON."
+        }), 400
+
+    try:
+        edition_id = int(data.get("edition_id"))
+    except (TypeError, ValueError):
+        return jsonify({
+            "message": "Selecione uma edição válida."
+        }), 400
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if not edition:
+        return jsonify({
+            "message": "Edição não encontrada."
+        }), 404
+
+    if not edition.is_active:
+        return jsonify({
+            "message": "Não é possível cadastrar equipes em uma edição inativa."
+        }), 400
+
+    name = str(data.get("name") or "").strip()
+    color = str(data.get("color") or "").strip()
+    coach = str(data.get("coach") or "").strip()
+    shift = str(data.get("shift") or "").strip().lower()
+
+    if not name or not color or not coach:
+        return jsonify({
+            "message": "Informe o nome, a cor e o técnico da equipe."
+        }), 400
+
+    if shift not in ("matutino", "vespertino"):
+        return jsonify({
+            "message": "O turno deve ser matutino ou vespertino."
+        }), 400
+
+    if len(name) > 100 or len(color) > 50 or len(coach) > 150:
+        return jsonify({
+            "message": "Um ou mais campos excedem o tamanho permitido."
+        }), 400
+
+    existing_team = OlympicTeam.query.filter_by(
+        edition_id=edition_id,
+        color=color,
+        shift=shift
+    ).first()
+
+    if existing_team:
+        return jsonify({
+            "message": "Já existe uma equipe com essa cor e turno nesta edição."
+        }), 409
+
+    team = OlympicTeam(
+        edition_id=edition_id,
+        name=name,
+        color=color,
+        coach=coach,
+        shift=shift
+    )
+
+    try:
+        db.session.add(team)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("Erro ao cadastrar equipe das Olimpíadas")
+
+        return jsonify({
+            "message": "Não foi possível cadastrar a equipe."
+        }), 500
+
+    return jsonify({
+        "message": "Equipe cadastrada com sucesso!",
+        "team": {
+            "id": team.id,
+            "edition_id": team.edition_id,
+            "name": team.name,
+            "color": team.color,
+            "coach": team.coach,
+            "shift": team.shift
+        }
+    }), 201
+    
+
+# ==========================================
+# OLIMPÍADAS - LISTAR EQUIPES POR EDIÇÃO
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/edicoes/<int:edition_id>/equipes",
+    methods=["GET"]
+)
+@admin_required_page
+def admin_list_olympic_teams(edition_id):
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if not edition:
+        return jsonify({
+            "message": "Edição não encontrada."
+        }), 404
+
+    teams = (
+        OlympicTeam.query
+        .filter_by(edition_id=edition_id)
+        .order_by(
+            OlympicTeam.shift.asc(),
+            OlympicTeam.color.asc(),
+            OlympicTeam.id.asc()
+        )
+        .all()
+    )
+
+    return jsonify({
+        "edition": {
+            "id": edition.id,
+            "name": edition.name,
+            "year": edition.year,
+            "is_active": edition.is_active
+        },
+        "teams": [
+            {
+                "id": team.id,
+                "edition_id": team.edition_id,
+                "name": team.name,
+                "color": team.color,
+                "coach": team.coach,
+                "shift": team.shift
+            }
+            for team in teams
+        ]
+    }), 200
+    
+    
+
+# ==========================================
+# OLIMPÍADAS - EDITAR EQUIPE
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/equipes/<int:team_id>/editar",
+    methods=["PUT"]
+)
+@admin_required_page
+def admin_edit_olympic_team(team_id):
+
+    team = db.session.get(OlympicTeam, team_id)
+
+    if not team:
+        return jsonify({
+            "message": "Equipe não encontrada."
+        }), 404
+
+    edition = db.session.get(
+        OlympicEdition,
+        team.edition_id
+    )
+
+    if not edition or not edition.is_active:
+        return jsonify({
+            "message": "Não é possível editar equipes de uma edição inativa."
+        }), 400
+
+    data = request.get_json(silent=True) or {}
+
+    name = str(data.get("name") or "").strip()
+    color = str(data.get("color") or "").strip()
+    coach = str(data.get("coach") or "").strip()
+    shift = str(data.get("shift") or "").strip().lower()
+
+    if not all([name, color, coach, shift]):
+        return jsonify({
+            "message": "Preencha todos os campos da equipe."
+        }), 400
+
+    if shift not in ("matutino", "vespertino"):
+        return jsonify({
+            "message": "O turno deve ser matutino ou vespertino."
+        }), 400
+
+    if len(name) > 100 or len(color) > 50 or len(coach) > 150:
+        return jsonify({
+            "message": "Um ou mais campos excedem o tamanho permitido."
+        }), 400
+
+    duplicate = (
+        OlympicTeam.query
+        .filter(
+            OlympicTeam.edition_id == team.edition_id,
+            OlympicTeam.color == color,
+            OlympicTeam.shift == shift,
+            OlympicTeam.id != team.id
+        )
+        .first()
+    )
+
+    if duplicate:
+        return jsonify({
+            "message": "Já existe outra equipe com essa cor e turno nesta edição."
+        }), 409
+
+    try:
+        team.name = name
+        team.color = color
+        team.coach = coach
+        team.shift = shift
+
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+
+        return jsonify({
+            "message": "Erro ao atualizar a equipe."
+        }), 500
+
+    return jsonify({
+        "message": "Equipe atualizada com sucesso!",
+        "team": {
+            "id": team.id,
+            "edition_id": team.edition_id,
+            "name": team.name,
+            "color": team.color,
+            "coach": team.coach,
+            "shift": team.shift
+        }
+    }), 200
+    
+
+# ==========================================
+# OLIMPÍADAS - EXCLUIR EQUIPE
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/equipes/<int:team_id>/excluir",
+    methods=["DELETE"]
+)
+@admin_required_page
+def admin_delete_olympic_team(team_id):
+
+    team = db.session.get(OlympicTeam, team_id)
+
+    if not team:
+        return jsonify({
+            "message": "Equipe não encontrada."
+        }), 404
+
+    edition = db.session.get(
+        OlympicEdition,
+        team.edition_id
+    )
+
+    if not edition or not edition.is_active:
+        return jsonify({
+            "message": "Não é possível excluir equipes de uma edição inativa."
+        }), 400
+
+    try:
+        db.session.delete(team)
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+
+        return jsonify({
+            "message": (
+                "Não foi possível excluir a equipe. "
+                "Verifique se existem registros vinculados a ela."
+            )
+        }), 409
+
+    return jsonify({
+        "message": "Equipe excluída com sucesso!"
+    }), 200
+  
+# ==========================================
+# OLIMPÍADAS - EXCLUIR BRIGADINO SEM EQUIPE
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/edicoes/<int:edition_id>/novos-brigadinos/<int:athlete_id>",
+    methods=["DELETE"]
+)
+@admin_required_page
+def admin_delete_new_brigadino(edition_id, athlete_id):
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if not edition:
+        return jsonify({
+            "success": False,
+            "message": "Edição das Olimpíadas não encontrada."
+        }), 404
+
+    athlete = db.session.get(OlympicAthlete, athlete_id)
+
+    if not athlete or athlete.edition_id != edition_id:
+        return jsonify({
+            "success": False,
+            "message": "Brigadino não encontrado nesta edição."
+        }), 404
+
+    # Protege brigadinos que já pertencem a uma equipe.
+    if athlete.team_id is not None:
+        return jsonify({
+            "success": False,
+            "message": (
+                "Este brigadino já pertence a uma equipe "
+                "e não pode ser excluído pela lista de espera."
+            )
+        }), 409
+
+    try:
+        athlete_name = athlete.name
+
+        db.session.delete(athlete)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": (
+                f"Brigadino {athlete_name} excluído "
+                "da lista de espera com sucesso."
+            )
+        }), 200
+
+    except Exception:
+        db.session.rollback()
+
+        app.logger.exception(
+            "Erro ao excluir brigadino aguardando distribuição"
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Não foi possível excluir o brigadino."
+        }), 500
+  
+# ==========================================
+# OLIMPÍADAS - CONFIRMAR DISTRIBUIÇÃO
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/edicoes/<int:edition_id>/confirmar-distribuicao",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_confirm_new_brigadinos_distribution(edition_id):
+
+    data = request.get_json(silent=True) or {}
+    distribution = data.get("distribution")
+
+    if not isinstance(distribution, list) or not distribution:
+        return jsonify({
+            "success": False,
+            "message": "Nenhuma distribuição foi enviada."
+        }), 400
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if not edition:
+        return jsonify({
+            "success": False,
+            "message": "Edição não encontrada."
+        }), 404
+
+    if not edition.is_active:
+        return jsonify({
+            "success": False,
+            "message": "A edição selecionada não está ativa."
+        }), 400
+
+    # Consulta os brigadinos que ainda estão sem equipe.
+    pending = OlympicAthlete.query.filter(
+        OlympicAthlete.edition_id == edition_id,
+        OlympicAthlete.team_id.is_(None)
+    ).all()
+
+    pending_by_id = {
+        athlete.id: athlete for athlete in pending
+    }
+
+    # Todos os brigadinos pendentes devem estar na confirmação.
+    submitted_ids = [
+        item.get("athlete_id")
+        for item in distribution
+        if isinstance(item, dict)
+    ]
+
+    if (
+        len(submitted_ids) != len(distribution)
+        or len(submitted_ids) != len(set(submitted_ids))
+        or set(submitted_ids) != set(pending_by_id)
+    ):
+        return jsonify({
+            "success": False,
+            "message": (
+                "A lista de brigadinos mudou ou a distribuição "
+                "está incompleta. Gere uma nova prévia."
+            )
+        }), 409
+
+    # Consulta somente equipes da edição selecionada.
+    teams = OlympicTeam.query.filter_by(
+        edition_id=edition_id
+    ).all()
+
+    teams_by_id = {
+        team.id: team for team in teams
+    }
+
+    # Valida toda a distribuição antes de modificar qualquer atleta.
+    for item in distribution:
+
+        athlete = pending_by_id[item["athlete_id"]]
+        team = teams_by_id.get(item.get("team_id"))
+
+        if not team:
+            return jsonify({
+                "success": False,
+                "message": "Uma das equipes não pertence à edição."
+            }), 400
+
+        if (
+            str(athlete.shift).lower()
+            != str(team.shift).lower()
+        ):
+            return jsonify({
+                "success": False,
+                "message": (
+                    f"A equipe selecionada para {athlete.name} "
+                    "não pertence ao turno correto."
+                )
+            }), 400
+
+    try:
+
+        for item in distribution:
+            athlete = pending_by_id[item["athlete_id"]]
+            athlete.team_id = item["team_id"]
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "total": len(distribution),
+            "message": (
+                f"{len(distribution)} brigadino(s) "
+                "distribuído(s) com sucesso."
+            )
+        }), 200
+
+    except Exception:
+
+        db.session.rollback()
+
+        app.logger.exception(
+            "Erro ao confirmar distribuição de brigadinos"
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Erro ao salvar a distribuição."
+        }), 500    
+ 
+# ==========================================
+# OLIMPÍADAS - PRÉVIA DA DISTRIBUIÇÃO
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/edicoes/<int:edition_id>/previa-distribuicao",
+    methods=["GET"]
+)
+@admin_required_page
+def admin_preview_new_brigadinos_distribution(edition_id):
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if not edition:
+        return jsonify({
+            "success": False,
+            "message": "Edição não encontrada."
+        }), 404
+
+    # Consulta somente os brigadinos ainda sem equipe.
+    pending_athletes = (
+        OlympicAthlete.query
+        .filter(
+            OlympicAthlete.edition_id == edition_id,
+            OlympicAthlete.team_id.is_(None)
+        )
+        .all()
+    )
+
+    if not pending_athletes:
+        return jsonify({
+            "success": False,
+            "message": "Não existem brigadinos aguardando distribuição."
+        }), 400
+
+    # Consulta as equipes da edição selecionada.
+    teams = (
+        OlympicTeam.query
+        .filter_by(edition_id=edition_id)
+        .all()
+    )
+
+    teams_data = []
+
+    for team in teams:
+
+        members = (
+            OlympicAthlete.query
+            .filter_by(
+                edition_id=edition_id,
+                team_id=team.id
+            )
+            .all()
+        )
+
+        teams_data.append({
+            "id": team.id,
+            "name": team.name,
+            "color": team.color,
+            "coach": team.coach,
+            "shift": team.shift,
+            "athletes": [
+                {
+                    "id": member.id,
+                    "age": member.age,
+                    "sex": member.sex
+                }
+                for member in members
+            ]
+        })
+
+    pending_data = [
+        {
+            "id": athlete.id,
+            "name": athlete.name,
+            "age": athlete.age,
+            "sex": athlete.sex,
+            "shift": athlete.shift
+        }
+        for athlete in pending_athletes
+    ]
+
+    try:
+
+        distribution = calculate_new_brigadinos_distribution(
+            teams_data,
+            pending_data
+        )
+
+    except (ValueError, TypeError) as error:
+
+        return jsonify({
+            "success": False,
+            "message": str(error)
+        }), 400
+
+    return jsonify({
+        "success": True,
+        "edition_id": edition_id,
+        "total": len(distribution),
+        "distribution": distribution,
+        "message": "Prévia gerada. Nenhuma alteração foi salva."
+    }), 200
+ 
+# ==========================================
+# OLIMPÍADAS - ALGORITMO DE DISTRIBUIÇÃO
+# ==========================================
+
+def calculate_new_brigadinos_distribution(teams, new_athletes):
+
+    import random
+
+    # Cópia dos dados para simular a distribuição
+    # sem modificar o banco de dados.
+    team_states = []
+
+    for team in teams:
+
+        athletes = list(team["athletes"])
+
+        team_states.append({
+            "id": team["id"],
+            "name": team["name"],
+            "color": team["color"],
+            "coach": team["coach"],
+            "shift": team["shift"],
+            "athletes": athletes
+        })
+
+    # Embaralha os novos brigadinos para evitar
+    # que a ordem de cadastro determine o resultado.
+    pending = list(new_athletes)
+    random.shuffle(pending)
+
+    distribution = []
+
+    for athlete in pending:
+
+        shift = athlete["shift"]
+
+        eligible = [
+            team for team in team_states
+            if str(team["shift"]).lower() == str(shift).lower()
+        ]
+
+        if not eligible:
+            raise ValueError(
+                f"Não existem equipes disponíveis para o turno {shift}."
+            )
+
+        # PRIORIDADE 1: menor quantidade de integrantes
+        minimum_total = min(
+            len(team["athletes"]) for team in eligible
+        )
+
+        candidates = [
+            team for team in eligible
+            if len(team["athletes"]) == minimum_total
+        ]
+
+        # PRIORIDADE 2: equilíbrio de sexo
+        # Prefere a equipe com menos integrantes
+        # do mesmo sexo do novo brigadino.
+        minimum_same_sex = min(
+            sum(
+                1 for member in team["athletes"]
+                if member["sex"] == athlete["sex"]
+            )
+            for team in candidates
+        )
+
+        candidates = [
+            team for team in candidates
+            if sum(
+                1 for member in team["athletes"]
+                if member["sex"] == athlete["sex"]
+            ) == minimum_same_sex
+        ]
+
+        # PRIORIDADE 3: equilíbrio de idade
+        # Prefere a equipe com menos integrantes
+        # da mesma faixa etária.
+        def age_group(age):
+            return "7-9" if int(age) <= 9 else "10-14"
+
+        athlete_age_group = age_group(athlete["age"])
+
+        minimum_same_age_group = min(
+            sum(
+                1 for member in team["athletes"]
+                if age_group(member["age"]) == athlete_age_group
+            )
+            for team in candidates
+        )
+
+        candidates = [
+            team for team in candidates
+            if sum(
+                1 for member in team["athletes"]
+                if age_group(member["age"]) == athlete_age_group
+            ) == minimum_same_age_group
+        ]
+
+        # PRIORIDADE 4: sorteio entre equipes empatadas
+        selected_team = random.choice(candidates)
+
+        distribution.append({
+            "athlete_id": athlete["id"],
+            "athlete_name": athlete["name"],
+            "age": athlete["age"],
+            "sex": athlete["sex"],
+            "shift": athlete["shift"],
+            "team_id": selected_team["id"],
+            "team_name": selected_team["name"],
+            "team_color": selected_team["color"],
+            "team_coach": selected_team["coach"]
+        })
+
+        # Atualiza somente a simulação.
+        # O próximo brigadino já considera
+        # a quantidade atualizada de integrantes.
+        selected_team["athletes"].append({
+            "id": athlete["id"],
+            "age": athlete["age"],
+            "sex": athlete["sex"]
+        })
+
+    return distribution  
+  
+# ==========================================
+# OLIMPÍADAS - EQUIPES PARA DISTRIBUIÇÃO
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/edicoes/<int:edition_id>/equipes-distribuicao",
+    methods=["GET"]
+)
+@admin_required_page
+def admin_olympic_distribution_teams(edition_id):
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if not edition:
+        return jsonify({
+            "success": False,
+            "message": "Edição não encontrada."
+        }), 404
+
+    teams = (
+        OlympicTeam.query
+        .filter_by(edition_id=edition_id)
+        .order_by(OlympicTeam.id.asc())
+        .all()
+    )
+
+    result = []
+
+    for team in teams:
+
+        athletes = (
+            OlympicAthlete.query
+            .filter_by(
+                edition_id=edition_id,
+                team_id=team.id
+            )
+            .all()
+        )
+
+        result.append({
+            "id": team.id,
+            "name": team.name,
+            "color": team.color,
+            "coach": team.coach,
+            "shift": team.shift,
+            "total": len(athletes),
+            "athletes": [
+                {
+                    "id": athlete.id,
+                    "age": athlete.age,
+                    "sex": athlete.sex
+                }
+                for athlete in athletes
+            ]
+        })
+
+    return jsonify({
+        "success": True,
+        "teams": result
+    }), 200
+  
+# ==========================================
+# OLIMPÍADAS - LISTAR BRIGADINOS SEM EQUIPE
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/edicoes/<int:edition_id>/novos-brigadinos",
+    methods=["GET"]
+)
+@admin_required_page
+def admin_list_new_olympic_brigadinos(edition_id):
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if not edition:
+        return jsonify({
+            "success": False,
+            "message": "Edição não encontrada."
+        }), 404
+
+    athletes = (
+        OlympicAthlete.query
+        .filter(
+            OlympicAthlete.edition_id == edition_id,
+            OlympicAthlete.team_id.is_(None)
+        )
+        .order_by(OlympicAthlete.name.asc())
+        .all()
+    )
+
+    return jsonify({
+        "success": True,
+        "total": len(athletes),
+        "brigadinos": [
+            {
+                "id": athlete.id,
+                "name": athlete.name,
+                "age": athlete.age,
+                "sex": athlete.sex,
+                "shift": athlete.shift
+            }
+            for athlete in athletes
+        ]
+    }), 200    
+
+# ==========================================
+# OLIMPÍADAS - CADASTRAR NOVO BRIGADINO
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/novos-brigadinos/criar",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_create_new_olympic_brigadino():
+
+    data = request.get_json(silent=True) or {}
+
+    name = str(data.get("name") or "").strip()
+    sex = str(data.get("sex") or "").strip().upper()
+    shift = str(data.get("shift") or "").strip().lower()
+
+    try:
+        edition_id = int(data.get("edition_id"))
+        age = int(data.get("age"))
+    except (TypeError, ValueError):
+        return jsonify({
+            "success": False,
+            "message": "Edição ou idade inválida."
+        }), 400
+
+    if not name or len(name) > 150:
+        return jsonify({
+            "success": False,
+            "message": "Informe um nome válido de até 150 caracteres."
+        }), 400
+
+    if age < 7 or age > 14:
+        return jsonify({
+            "success": False,
+            "message": "A idade deve estar entre 7 e 14 anos."
+        }), 400
+
+    if sex not in ("MASCULINO", "FEMININO"):
+        return jsonify({
+            "success": False,
+            "message": "Selecione o sexo do brigadino."
+        }), 400
+
+    if shift not in ("matutino", "vespertino"):
+        return jsonify({
+            "success": False,
+            "message": "Selecione um turno válido."
+        }), 400
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if not edition:
+        return jsonify({
+            "success": False,
+            "message": "Edição não encontrada."
+        }), 404
+
+    if not edition.is_active:
+        return jsonify({
+            "success": False,
+            "message": "A edição selecionada está inativa."
+        }), 400
+        
+    # ==========================================
+    # VERIFICAR POSSÍVEL CADASTRO DUPLICADO
+    # ==========================================
+
+    normalized_name = " ".join(name.casefold().split())
+
+    existing_athletes = OlympicAthlete.query.filter_by(
+        edition_id=edition_id,
+        age=age
+    ).all()
+
+    possible_duplicates = [
+        athlete
+        for athlete in existing_athletes
+        if " ".join((athlete.name or "").casefold().split())
+        == normalized_name
+    ]
+
+    if possible_duplicates and data.get("confirm_duplicate") is not True:
+
+        duplicates = []
+
+        for athlete in possible_duplicates:
+
+            team = (
+                db.session.get(OlympicTeam, athlete.team_id)
+                if athlete.team_id is not None
+                else None
+            )
+
+            duplicates.append({
+                "id": athlete.id,
+                "name": athlete.name,
+                "age": athlete.age,
+                "team": (
+                    f"{team.color} — {team.coach}"
+                    if team else "Aguardando distribuição"
+                )
+            })
+
+        return jsonify({
+            "success": False,
+            "possible_duplicate": True,
+            "message": (
+                "Já existe um brigadino com o mesmo "
+                "nome completo e idade nesta edição."
+            ),
+            "duplicates": duplicates
+        }), 409    
+    
+
+    try:
+        athlete = OlympicAthlete(
+            edition_id=edition_id,
+            team_id=None,
+            name=name,
+            age=age,
+            sex=sex,
+            shift=shift
+        )
+
+        db.session.add(athlete)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Brigadino cadastrado e aguardando distribuição.",
+            "athlete_id": athlete.id
+        }), 201
+
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("Erro ao cadastrar novo brigadino")
+
+        return jsonify({
+            "success": False,
+            "message": "Erro interno ao cadastrar brigadino."
+        }), 500
+
+# ==========================================
+# OLIMPÍADAS - CADASTRAR ATLETA
+# ==========================================
+
+@app.route("/admin/olimpiadas/atletas/criar", methods=["POST"])
+@admin_required_page
+def admin_create_olympic_athlete():
+
+    data = request.get_json(silent=True) or {}
+
+    edition_id = data.get("edition_id")
+    team_id = data.get("team_id")
+    name = str(data.get("name") or "").strip()
+    age_str = str(data.get("age") or "").strip()
+    sex = str(data.get("sex") or "").strip().upper()
+
+    # Valida os identificadores
+    try:
+        edition_id = int(edition_id)
+        team_id = int(team_id)
+
+        if edition_id <= 0 or team_id <= 0:
+            raise ValueError()
+
+    except (TypeError, ValueError):
+        return jsonify({
+            "message": "Edição ou equipe inválida."
+        }), 400
+
+    # Verifica a edição
+    edition = db.session.get(
+        OlympicEdition,
+        edition_id
+    )
+
+    if not edition:
+        return jsonify({
+            "message": "Edição não encontrada."
+        }), 404
+
+    if not edition.is_active:
+        return jsonify({
+            "message": "Não é possível cadastrar atletas em uma edição inativa."
+        }), 400
+
+    # Verifica se a equipe pertence à edição
+    team = db.session.get(
+        OlympicTeam,
+        team_id
+    )
+
+    if not team or team.edition_id != edition_id:
+        return jsonify({
+            "message": "A equipe não pertence à edição selecionada."
+        }), 400
+
+    # Valida o nome
+    if not name:
+        return jsonify({
+            "message": "Informe o nome do atleta."
+        }), 400
+
+    if len(name) > 150:
+        return jsonify({
+            "message": "O nome do atleta excede 150 caracteres."
+        }), 400
+
+    # Valida a idade
+    if not age_str.isdigit():
+        return jsonify({
+            "message": "Informe a idade do atleta em números inteiros."
+        }), 400
+
+    age = int(age_str)
+
+    if age < 1 or age > 100:
+        return jsonify({
+            "message": "Informe uma idade válida entre 1 e 100 anos."
+        }), 400
+
+    # Valida o sexo
+    if sex not in ("MASCULINO", "FEMININO"):
+        return jsonify({
+            "message": "Selecione o sexo masculino ou feminino."
+        }), 400
+
+    # Cria o atleta
+    try:
+        athlete = OlympicAthlete(
+            edition_id=edition_id,
+            team_id=team_id,
+            name=name,
+            age=age,
+            sex=sex
+        )
+
+        db.session.add(athlete)
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+
+        return jsonify({
+            "message": "Erro ao cadastrar atleta."
+        }), 500
+
+    return jsonify({
+        "message": "Atleta cadastrado com sucesso!",
+        "athlete": {
+            "id": athlete.id,
+            "edition_id": athlete.edition_id,
+            "team_id": athlete.team_id,
+            "name": athlete.name,
+            "age": athlete.age,
+            "sex": athlete.sex
+        }
+    }), 201
+    
+
+@app.route("/admin/olimpiadas/atletas/<int:athlete_id>/editar", methods=["PUT"])
+@admin_required_page
+def admin_edit_olympic_athlete(athlete_id):
+    try:
+        data = request.get_json(silent=True) or {}
+
+        athlete = db.session.get(OlympicAthlete, athlete_id)
+
+        if not athlete:
+            return jsonify({
+                "success": False,
+                "message": "Atleta não encontrado."
+            }), 404
+
+        edition = db.session.get(
+            OlympicEdition,
+            athlete.edition_id
+        )
+
+        if not edition or not edition.is_active:
+            return jsonify({
+                "success": False,
+                "message": "A edição não está ativa."
+            }), 400
+
+        name = str(data.get("name") or "").strip()
+        team_id = data.get("team_id")
+        age_str = str(data.get("age") or "").strip()
+        sex = str(data.get("sex") or "").strip().upper()
+
+        if not name or len(name) > 150:
+            return jsonify({
+                "success": False,
+                "message": "Informe um nome válido de até 150 caracteres."
+            }), 400
+
+        try:
+            team_id = int(team_id)
+        except (TypeError, ValueError):
+            return jsonify({
+                "success": False,
+                "message": "Selecione uma equipe válida."
+            }), 400
+
+        team = db.session.get(OlympicTeam, team_id)
+
+        if not team or team.edition_id != athlete.edition_id:
+            return jsonify({
+                "success": False,
+                "message": "A equipe não pertence à edição do atleta."
+            }), 400
+
+        # Validação da idade
+        if not age_str.isdigit():
+            return jsonify({
+                "success": False,
+                "message": "Informe a idade em números inteiros."
+            }), 400
+
+        age = int(age_str)
+
+        if age < 1 or age > 100:
+            return jsonify({
+                "success": False,
+                "message": "Informe uma idade válida entre 1 e 100 anos."
+            }), 400
+
+        # Validação do sexo
+        if sex not in ("MASCULINO", "FEMININO"):
+            return jsonify({
+                "success": False,
+                "message": "Selecione o sexo masculino ou feminino."
+            }), 400
+
+        athlete.name = name
+        athlete.team_id = team_id
+        athlete.age = age
+        athlete.sex = sex
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Atleta atualizado com sucesso!",
+            "athlete": {
+                "id": athlete.id,
+                "edition_id": athlete.edition_id,
+                "team_id": athlete.team_id,
+                "name": athlete.name,
+                "age": athlete.age,
+                "sex": athlete.sex
+            }
+        }), 200
+
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("Erro ao editar atleta olímpico")
+
+        return jsonify({
+            "success": False,
+            "message": "Erro interno ao atualizar o atleta."
+        }), 500
+    
+
+
+@app.route("/admin/olimpiadas/atletas/<int:athlete_id>/excluir", methods=["DELETE"])
+@admin_required_page
+def admin_delete_olympic_athlete(athlete_id):
+    try:
+        # Localiza o atleta
+        athlete = db.session.get(OlympicAthlete, athlete_id)
+
+        if not athlete:
+            return jsonify({
+                "success": False,
+                "message": "Atleta não encontrado."
+            }), 404
+
+        # Verifica a edição à qual o atleta pertence
+        edition = db.session.get(
+            OlympicEdition,
+            athlete.edition_id
+        )
+
+        if not edition or not edition.is_active:
+            return jsonify({
+                "success": False,
+                "message": "Não é possível excluir atletas de uma edição inativa."
+            }), 400
+
+        # Guarda o nome para a mensagem de confirmação
+        athlete_name = athlete.name
+
+        # Exclui o atleta
+        db.session.delete(athlete)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": f"Atleta {athlete_name} excluído com sucesso!"
+        }), 200
+
+    except Exception:
+        db.session.rollback()
+
+        app.logger.exception(
+            "Erro ao excluir atleta olímpico"
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Não foi possível excluir o atleta. Verifique se existem registros vinculados."
+        }), 500
+
+
+
+@app.route("/admin/olimpiadas/modalidades/criar", methods=["POST"])
+@admin_required_page
+def admin_create_olympic_modality():
+    try:
+        data = request.get_json(silent=True) or {}
+        
+        
+        # Valida a duração do confronto em minutos
+        try:
+            match_duration_minutes = int(
+                data.get("match_duration_minutes")
+            )
+
+            if match_duration_minutes <= 0:
+                raise ValueError()
+
+        except (TypeError, ValueError):
+            return jsonify({
+                "success": False,
+                "message": "Informe uma duração válida, maior que zero."
+            }), 400
+            
+        
+        # Valida o limite de confrontos da modalidade por dia
+        max_matches_per_modality_per_day = data.get(
+            "max_matches_per_modality_per_day"
+        )
+
+        if max_matches_per_modality_per_day in (None, ""):
+            max_matches_per_modality_per_day = None
+        else:
+            try:
+                max_matches_per_modality_per_day = int(
+                    max_matches_per_modality_per_day
+                )
+
+                if max_matches_per_modality_per_day <= 0:
+                    raise ValueError()
+
+            except (TypeError, ValueError):
+                return jsonify({
+                    "success": False,
+                    "message": "O limite diário da modalidade deve ser maior que zero."
+                }), 400
+    
+            
+        
+        # Valida o limite diário de confrontos por equipe
+        try:
+            max_matches_per_team_per_day = int(
+                data.get("max_matches_per_team_per_day")
+            )
+
+            if max_matches_per_team_per_day <= 0:
+                raise ValueError()
+
+        except (TypeError, ValueError):
+            return jsonify({
+                "success": False,
+                "message": "Informe um limite diário válido, maior que zero."
+            }), 400
+    
+
+
+        edition_id = data.get("edition_id")
+        name = str(data.get("name") or "").strip()
+        description = str(
+            data.get("description") or ""
+        ).strip()
+
+        # Valida a edição
+        try:
+            edition_id = int(edition_id)
+        except (TypeError, ValueError):
+            return jsonify({
+                "success": False,
+                "message": "Selecione uma edição válida."
+            }), 400
+
+        edition = db.session.get(
+            OlympicEdition,
+            edition_id
+        )
+
+        if not edition:
+            return jsonify({
+                "success": False,
+                "message": "Edição não encontrada."
+            }), 404
+
+        if not edition.is_active:
+            return jsonify({
+                "success": False,
+                "message": "Não é possível cadastrar modalidades em uma edição inativa."
+            }), 400
+
+        # Valida o nome da modalidade
+        if not name or len(name) > 100:
+            return jsonify({
+                "success": False,
+                "message": "Informe um nome de modalidade válido, com até 100 caracteres."
+            }), 400
+
+        # Impede modalidades duplicadas na mesma edição
+        existing_modality = OlympicModality.query.filter(
+            OlympicModality.edition_id == edition_id,
+            db.func.lower(OlympicModality.name) == name.lower()
+        ).first()
+
+        if existing_modality:
+            return jsonify({
+                "success": False,
+                "message": "Essa modalidade já está cadastrada nesta edição."
+            }), 400
+
+        # Cria a modalidade
+        modality = OlympicModality(
+            edition_id=edition_id,
+            name=name,
+            description=description,            
+            match_duration_minutes=match_duration_minutes,
+            max_matches_per_team_per_day=max_matches_per_team_per_day,
+            max_matches_per_modality_per_day=max_matches_per_modality_per_day,
+            is_active=True
+
+        )
+
+        db.session.add(modality)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Modalidade cadastrada com sucesso!",
+            "modality": {
+                "id": modality.id,
+                "edition_id": modality.edition_id,
+                "name": modality.name,
+                "description": modality.description,
+                "is_active": modality.is_active
+            }
+        }), 201
+
+    except Exception:
+        db.session.rollback()
+
+        app.logger.exception(
+            "Erro ao cadastrar modalidade olímpica"
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Erro interno ao cadastrar modalidade."
+        }), 500
+
+
+@app.route("/admin/olimpiadas/edicoes/<int:edition_id>/modalidades", methods=["GET"])
+@admin_required_page
+def admin_list_olympic_modalities(edition_id):
+    try:
+        # Verifica se a edição existe
+        edition = db.session.get(
+            OlympicEdition,
+            edition_id
+        )
+
+        if not edition:
+            return jsonify({
+                "success": False,
+                "message": "Edição das Olimpíadas não encontrada."
+            }), 404
+
+        # Busca as modalidades pertencentes à edição
+        modalities = OlympicModality.query.filter_by(
+            edition_id=edition_id
+        ).order_by(
+            OlympicModality.name.asc(),
+            OlympicModality.id.asc()
+        ).all()
+
+        # Organiza os dados para retornar ao JavaScript
+        modalities_list = []
+
+        
+        for modality in modalities:
+            modalities_list.append({
+                "id": modality.id,
+                "edition_id": modality.edition_id,
+                "name": modality.name,                
+                "description": modality.description or "",                
+                "match_duration_minutes": modality.match_duration_minutes,
+                "max_matches_per_team_per_day": modality.max_matches_per_team_per_day,
+                "max_matches_per_modality_per_day": modality.max_matches_per_modality_per_day,
+                "is_active": modality.is_active
+
+
+            })
+
+
+        return jsonify({
+            "success": True,
+            "edition": {
+                "id": edition.id,
+                "name": edition.name,
+                "year": edition.year
+            },
+            "modalities": modalities_list
+        }), 200
+
+    except Exception:
+        app.logger.exception(
+            "Erro ao listar modalidades olímpicas"
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Erro interno ao carregar modalidades."
+        }), 500
+
+
+@app.route("/admin/olimpiadas/modalidades/<int:modality_id>/editar", methods=["PUT"])
+@admin_required_page
+def admin_edit_olympic_modality(modality_id):
+    
+    try:
+        data = request.get_json(silent=True) or {}
+
+        name = str(data.get("name") or "").strip()
+        description = str(
+            data.get("description") or ""
+        ).strip()
+
+        # Valida a duração do confronto
+        try:
+            match_duration_minutes = int(
+                data.get("match_duration_minutes")
+            )
+
+            if match_duration_minutes <= 0:
+                raise ValueError()
+
+        except (TypeError, ValueError):
+            return jsonify({
+                "success": False,
+                "message": "Informe uma duração válida, maior que zero."
+            }), 400
+            
+        
+        # Valida o limite de confrontos da modalidade por dia
+        max_matches_per_modality_per_day = data.get(
+            "max_matches_per_modality_per_day"
+        )
+
+        if max_matches_per_modality_per_day in (None, ""):
+            max_matches_per_modality_per_day = None
+        else:
+            try:
+                max_matches_per_modality_per_day = int(
+                    max_matches_per_modality_per_day
+                )
+
+                if max_matches_per_modality_per_day <= 0:
+                    raise ValueError()
+
+            except (TypeError, ValueError):
+                return jsonify({
+                    "success": False,
+                    "message": "O limite diário da modalidade deve ser maior que zero."
+                }), 400
+
+        # Valida o limite diário de confrontos por equipe
+        try:
+            max_matches_per_team_per_day = int(
+                data.get("max_matches_per_team_per_day")
+            )
+
+            if max_matches_per_team_per_day <= 0:
+                raise ValueError()
+
+        except (TypeError, ValueError):
+            return jsonify({
+                "success": False,
+                "message": "Informe um limite diário válido, maior que zero."
+            }), 400
+    
+
+        # Localiza a modalidade
+
+        modality = db.session.get(
+            OlympicModality,
+            modality_id
+        )
+
+        if not modality:
+            return jsonify({
+                "success": False,
+                "message": "Modalidade não encontrada."
+            }), 404
+
+        # Verifica a edição à qual pertence
+        edition = db.session.get(
+            OlympicEdition,
+            modality.edition_id
+        )
+
+        if not edition or not edition.is_active:
+            return jsonify({
+                "success": False,
+                "message": "Não é possível editar modalidades de uma edição inativa."
+            }), 400
+
+        # Valida o nome
+        if not name or len(name) > 100:
+            return jsonify({
+                "success": False,
+                "message": "Informe um nome válido, com até 100 caracteres."
+            }), 400
+
+        # Verifica se já existe outra modalidade com o mesmo nome
+        existing_modality = OlympicModality.query.filter(
+            OlympicModality.edition_id == modality.edition_id,
+            OlympicModality.id != modality.id,
+            db.func.lower(OlympicModality.name) == name.lower()
+        ).first()
+
+        if existing_modality:
+            return jsonify({
+                "success": False,
+                "message": "Já existe outra modalidade com esse nome nesta edição."
+            }), 400
+
+        
+        # Atualiza os dados        
+        
+        modality.name = name
+        modality.description = description
+        modality.match_duration_minutes = match_duration_minutes
+        modality.max_matches_per_team_per_day = max_matches_per_team_per_day
+        modality.max_matches_per_modality_per_day = max_matches_per_modality_per_day
+
+        db.session.commit()
+
+
+
+
+        return jsonify({
+            "success": True,
+            "message": "Modalidade atualizada com sucesso!",
+            "modality": {
+                "id": modality.id,
+                "edition_id": modality.edition_id,
+                "name": modality.name,
+                "description": modality.description or "",
+                "is_active": modality.is_active
+            }
+        }), 200
+
+    except Exception:
+        db.session.rollback()
+
+        app.logger.exception(
+            "Erro ao editar modalidade olímpica"
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Erro interno ao editar modalidade."
+        }), 500
+        
+
+@app.route(
+    "/admin/olimpiadas/modalidades/<int:modality_id>/situacao",
+    methods=["PUT"]
+)
+@admin_required_page
+def admin_toggle_olympic_modality(modality_id):
+    try:
+        # Localiza a modalidade
+        modality = db.session.get(
+            OlympicModality,
+            modality_id
+        )
+
+        if not modality:
+            return jsonify({
+                "success": False,
+                "message": "Modalidade não encontrada."
+            }), 404
+
+        # Localiza a edição da modalidade
+        edition = db.session.get(
+            OlympicEdition,
+            modality.edition_id
+        )
+
+        if not edition or not edition.is_active:
+            return jsonify({
+                "success": False,
+                "message": "Não é possível alterar modalidades de uma edição inativa."
+            }), 400
+
+        # Recebe a situação desejada
+        data = request.get_json(silent=True) or {}
+
+        is_active = data.get("is_active")
+
+        # Aceita somente valores booleanos
+        if not isinstance(is_active, bool):
+            return jsonify({
+                "success": False,
+                "message": "Informe uma situação válida: true ou false."
+            }), 400
+
+        # Atualiza a situação da modalidade
+        modality.is_active = is_active
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": (
+                "Modalidade ativada com sucesso!"
+                if modality.is_active
+                else "Modalidade desativada com sucesso!"
+            ),
+            "modality": {
+                "id": modality.id,
+                "edition_id": modality.edition_id,
+                "name": modality.name,
+                "description": modality.description or "",
+                "is_active": modality.is_active
+            }
+        }), 200
+
+    except Exception:
+        db.session.rollback()
+
+        app.logger.exception(
+            "Erro ao alterar situação da modalidade olímpica"
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Erro interno ao alterar a situação da modalidade."
+        }), 500
+        
+
+
+@app.route(
+    "/admin/olimpiadas/inscricoes/criar",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_create_olympic_modality_registration():
+    try:
+        data = request.get_json(silent=True) or {}
+
+        # Valida os identificadores recebidos
+        try:
+            edition_id = int(data.get("edition_id"))
+            modality_id = int(data.get("modality_id"))
+            athlete_id = int(data.get("athlete_id"))
+
+            if min(edition_id, modality_id, athlete_id) <= 0:
+                raise ValueError()
+
+        except (TypeError, ValueError):
+            return jsonify({
+                "success": False,
+                "message": "Informe edição, modalidade e atleta válidos."
+            }), 400
+
+        # Localiza a edição
+        edition = db.session.get(
+            OlympicEdition,
+            edition_id
+        )
+
+        if not edition:
+            return jsonify({
+                "success": False,
+                "message": "Edição não encontrada."
+            }), 404
+
+        if not edition.is_active:
+            return jsonify({
+                "success": False,
+                "message": "Não é possível inscrever atletas em uma edição inativa."
+            }), 400
+
+        # Localiza a modalidade
+        modality = db.session.get(
+            OlympicModality,
+            modality_id
+        )
+
+        if not modality:
+            return jsonify({
+                "success": False,
+                "message": "Modalidade não encontrada."
+            }), 404
+
+        if modality.edition_id != edition_id:
+            return jsonify({
+                "success": False,
+                "message": "A modalidade não pertence à edição selecionada."
+            }), 400
+
+        if not modality.is_active:
+            return jsonify({
+                "success": False,
+                "message": "Não é possível inscrever atletas em uma modalidade inativa."
+            }), 400
+
+        # Localiza o atleta
+        athlete = db.session.get(
+            OlympicAthlete,
+            athlete_id
+        )
+
+        if not athlete:
+            return jsonify({
+                "success": False,
+                "message": "Atleta não encontrado."
+            }), 404
+
+        
+        if athlete.edition_id != edition_id:
+            return jsonify({
+                "success": False,
+                "message": "O atleta não pertence à edição selecionada."
+            }), 400
+
+        
+        # Impede inscrições duplicadas
+
+        existing_registration = (
+            OlympicModalityRegistration.query.filter_by(
+                modality_id=modality_id,
+                athlete_id=athlete_id
+            ).first()
+        )
+
+        if existing_registration:
+            return jsonify({
+                "success": False,
+                "message": "Este atleta já está inscrito nesta modalidade."
+            }), 400
+
+        # Cria a inscrição
+        registration = OlympicModalityRegistration(
+            edition_id=edition_id,
+            modality_id=modality_id,
+            athlete_id=athlete_id
+        )
+
+        db.session.add(registration)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Atleta inscrito na modalidade com sucesso!",
+            "registration": {
+                "id": registration.id,
+                "edition_id": registration.edition_id,
+                "modality_id": registration.modality_id,
+                "athlete_id": registration.athlete_id
+            }
+        }), 201
+
+    except Exception:
+        db.session.rollback()
+
+        app.logger.exception(
+            "Erro ao inscrever atleta em modalidade olímpica"
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Erro interno ao realizar a inscrição."
+        }), 500
+
+
+# ==========================================
+# OLIMPÍADAS - CADASTRAR CONFRONTO
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/confrontos/criar",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_create_olympic_match():
+    try:
+        data = request.get_json(silent=True) or {}
+
+        try:
+            edition_id = int(data.get("edition_id"))
+            modality_id = int(data.get("modality_id"))
+            team_a_id = int(data.get("team_a_id"))
+            team_b_id = int(data.get("team_b_id"))
+
+            if min(
+                edition_id,
+                modality_id,
+                team_a_id,
+                team_b_id
+            ) <= 0:
+                raise ValueError()
+
+        except (TypeError, ValueError):
+            return jsonify({
+                "success": False,
+                "message": "Informe edição, modalidade e equipes válidas."
+            }), 400
+
+        if team_a_id == team_b_id:
+            return jsonify({
+                "success": False,
+                "message": "Uma equipe não pode enfrentar ela mesma."
+            }), 400
+
+        edition = db.session.get(OlympicEdition, edition_id)
+
+        if not edition:
+            return jsonify({
+                "success": False,
+                "message": "Edição não encontrada."
+            }), 404
+
+        if not edition.is_active:
+            return jsonify({
+                "success": False,
+                "message": "Não é possível cadastrar confrontos em uma edição inativa."
+            }), 400
+
+        modality = db.session.get(OlympicModality, modality_id)
+
+        if not modality:
+            return jsonify({
+                "success": False,
+                "message": "Modalidade não encontrada."
+            }), 404
+
+        if modality.edition_id != edition_id or not modality.is_active:
+            return jsonify({
+                "success": False,
+                "message": "Modalidade inválida ou inativa para esta edição."
+            }), 400
+
+        team_a = db.session.get(OlympicTeam, team_a_id)
+        team_b = db.session.get(OlympicTeam, team_b_id)
+
+        if not team_a or not team_b:
+            return jsonify({
+                "success": False,
+                "message": "Uma ou ambas as equipes não foram encontradas."
+            }), 404
+
+        if (
+            team_a.edition_id != edition_id
+            or team_b.edition_id != edition_id
+        ):
+            return jsonify({
+                "success": False,
+                "message": "As equipes devem pertencer à edição selecionada."
+            }), 400
+
+        phase = str(
+            data.get("phase") or "CLASSIFICATORIA"
+        ).strip().upper()
+
+        if phase not in {
+            "CLASSIFICATORIA",
+            "FINAL_ENTRE_TURNOS"
+        }:
+            return jsonify({
+                "success": False,
+                "message": "Fase do confronto inválida."
+            }), 400
+
+        if phase != "FINAL_ENTRE_TURNOS" and team_a.shift != team_b.shift:
+            return jsonify({
+                "success": False,
+                "message": "Nesta fase, as equipes devem pertencer ao mesmo turno."
+            }), 400
+
+        shift = (
+            team_a.shift
+            if team_a.shift == team_b.shift
+            else "INTERTURNOS"
+        )
+        
+        
+        # ==========================================
+        # VALIDAR CAMPEÃS DA FINAL INTERTURNOS
+        # ==========================================
+
+        if phase == "FINAL_ENTRE_TURNOS":
+
+            turnos = {
+                (team_a.shift or "").strip().upper(),
+                (team_b.shift or "").strip().upper()
+            }
+
+            if turnos != {"MATUTINO", "VESPERTINO"}:
+                return jsonify({
+                    "success": False,
+                    "message": (
+                        "A final interturnos deve reunir "
+                        "uma equipe do matutino e uma do vespertino."
+                    )
+                }), 400
+
+            campeas = {}
+
+            for turno in ("MATUTINO", "VESPERTINO"):
+
+                partidas = OlympicMatch.query.filter(
+                    OlympicMatch.edition_id == edition_id,
+                    OlympicMatch.modality_id == modality_id,
+                    OlympicMatch.phase == "CLASSIFICATORIA",
+                    db.func.upper(OlympicMatch.shift) == turno
+                ).all()
+                
+            
+            # Verifica se todos os confrontos previstos
+            # entre as cinco equipes foram cadastrados.
+
+            equipes_turno = OlympicTeam.query.filter(
+                OlympicTeam.edition_id == edition_id,
+                db.func.upper(OlympicTeam.shift) == turno
+            ).all()
+
+            quantidade_equipes = len(equipes_turno)
+
+            confrontos_esperados = (
+                quantidade_equipes * (quantidade_equipes - 1) // 2
+            )
+
+            pares_cadastrados = {
+                tuple(sorted((p.team_a_id, p.team_b_id)))
+                for p in partidas
+            }
+
+            if (
+                quantidade_equipes != 5
+                or len(partidas) != confrontos_esperados
+                or len(pares_cadastrados) != confrontos_esperados
+            ):
+                return jsonify({
+                    "success": False,
+                    "message": (
+                        f"O calendário do {turno.lower()} "
+                        "está incompleto ou contém confrontos duplicados. "
+                        f"Esperados: {confrontos_esperados}; "
+                        f"cadastrados: {len(partidas)}."
+                    )
+                }), 400
+    
+
+                if not partidas or any(
+                    partida.status != "FINALIZADO"
+                    or partida.score_a is None
+                    or partida.score_b is None
+                    for partida in partidas
+                ):
+                    return jsonify({
+                        "success": False,
+                        "message": (
+                            f"A classificação do {turno.lower()} "
+                            "ainda não está encerrada."
+                        )
+                    }), 400
+
+                classificacao = calculate_olympic_classification(
+                    edition_id,
+                    modality_id,
+                    turno
+                )
+
+                if not classificacao:
+                    return jsonify({
+                        "success": False,
+                        "message": (
+                            f"Não foi possível identificar "
+                            f"a campeã do {turno.lower()}."
+                        )
+                    }), 400
+
+                primeira = classificacao[0]
+
+                def criterios(equipe):
+                    return (
+                        equipe["points"],
+                        equipe["goal_difference"],
+                        -equipe["red_cards"],
+                        -equipe["yellow_cards"],
+                        -equipe["fouls"]
+                    )
+
+                empatadas = [
+                    equipe for equipe in classificacao
+                    if criterios(equipe) == criterios(primeira)
+                ]
+
+                if len(empatadas) > 1:
+                    return jsonify({
+                        "success": False,
+                        "message": (
+                            f"Existe empate não resolvido "
+                            f"na classificação do {turno.lower()}."
+                        )
+                    }), 400
+
+                campeas[turno] = primeira["team_id"]
+
+            equipes_permitidas = set(campeas.values())
+            equipes_informadas = {team_a_id, team_b_id}
+
+            if equipes_informadas != equipes_permitidas:
+                return jsonify({
+                    "success": False,
+                    "message": (
+                        "As equipes selecionadas não são as "
+                        "campeãs confirmadas dos respectivos turnos."
+                    )
+                }), 400
+
+            final_existente = OlympicMatch.query.filter(
+                OlympicMatch.edition_id == edition_id,
+                OlympicMatch.modality_id == modality_id,
+                OlympicMatch.phase == "FINAL_ENTRE_TURNOS"
+            ).first()
+
+            if final_existente:
+                return jsonify({
+                    "success": False,
+                    "message": (
+                        "Esta modalidade já possui uma "
+                        "final interturnos cadastrada."
+                    )
+                }), 400
+
+        
+        # Impede confrontos entre turnos diferentes fora da final interturnos
+        if team_a.shift != team_b.shift and phase != "FINAL_ENTRE_TURNOS":
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Na fase classificatória e na final do turno, "
+                    "as duas equipes devem pertencer ao mesmo turno."
+                )
+            }), 400
+        
+                
+
+        try:
+            match_date = date.fromisoformat(
+                str(data.get("match_date") or "")
+            )
+
+            match_time = datetime.strptime(
+                str(data.get("match_time") or ""),
+                "%H:%M"
+            ).time()
+
+        except (TypeError, ValueError):
+            return jsonify({
+                "success": False,
+                "message": "Informe uma data e um horário válidos."
+            }), 400
+
+        if (
+            (edition.start_date and match_date < edition.start_date)
+            or (edition.end_date and match_date > edition.end_date)
+        ):
+            return jsonify({
+                "success": False,
+                "message": "A data está fora do período da edição."
+            }), 400
+            
+        # Verifica se o calendário da edição está configurado
+        settings = OlympicCalendarSettings.query.filter_by(
+            edition_id=edition_id
+        ).first()
+
+        if settings is None:
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Configure o calendário da edição "
+                    "antes de cadastrar confrontos."
+                )
+            }), 400 
+
+        # Verifica se a data corresponde a um dia permitido
+        allowed_weekdays = settings.game_weekdays or []
+
+        if (
+            phase != "FINAL_ENTRE_TURNOS"
+            and match_date.weekday() not in allowed_weekdays
+        ):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "A data selecionada não corresponde "
+                    "a um dia permitido para os jogos."
+                )
+            }), 400  
+
+        
+        # ==========================================
+        # DATA E HORÁRIO DA FINAL INTERTURNOS
+        # ==========================================
+
+        if phase == "FINAL_ENTRE_TURNOS":
+
+            if match_date != date(2026, 11, 28):
+                return jsonify({
+                    "success": False,
+                    "message": "A final interturnos deve ocorrer em 28/11/2026."
+                }), 400
+
+            duration = get_olympic_match_duration({
+                "modality_id": modality_id,
+                "duration_minutes": modality.match_duration_minutes
+            })
+
+            final_start = datetime.combine(match_date, match_time)
+            final_end = final_start + timedelta(minutes=duration)
+
+            allowed_start = datetime.combine(
+                match_date,
+                datetime.strptime("08:30", "%H:%M").time()
+            )
+
+            allowed_end = datetime.combine(
+                match_date,
+                datetime.strptime("11:30", "%H:%M").time()
+            )
+
+            if final_start < allowed_start or final_end > allowed_end:
+                return jsonify({
+                    "success": False,
+                    "message": (
+                        "A final deve começar e terminar "
+                        "entre 08h30 e 11h30."
+                    )
+                }), 400
+
+
+        # Verifica se o confronto cabe no horário do turno
+        if shift != "INTERTURNOS":
+
+            try:
+                shift_start, shift_end = get_olympic_shift_window(
+                    settings,
+                    shift
+                )
+
+                duration = get_olympic_match_duration({
+                    "modality_id": modality_id,
+                    "duration_minutes": modality.match_duration_minutes
+                })
+
+            except ValueError as error:
+                return jsonify({
+                    "success": False,
+                    "message": str(error)
+                }), 400
+
+            match_start = datetime.combine(match_date, match_time)
+
+            match_end = match_start + timedelta(
+                minutes=duration
+            )
+
+            if (
+                match_time < shift_start
+                or match_end.time() > shift_end
+                or match_end.date() != match_date
+            ):
+                return jsonify({
+                    "success": False,
+                    "message": (
+                        "O confronto precisa começar e terminar "
+                        "dentro do horário permitido para o turno."
+                    )
+                }), 400   
+
+        # Recupera os confrontos já agendados
+        scheduled_matches = get_existing_olympic_scheduled_matches(
+            edition_id
+        )
+
+        # Verifica conflitos de horário e intervalo entre jogos
+        proposed_start = datetime.combine(
+            match_date,
+            match_time
+        )
+
+        proposed_duration = get_olympic_match_duration({
+            "modality_id": modality_id,
+            "duration_minutes": modality.match_duration_minutes
+        })
+
+        if not olympic_time_slot_is_available(
+            proposed_start,
+            proposed_duration,
+            scheduled_matches,
+            settings.interval_minutes,
+            settings.allow_simultaneous_matches
+        ):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Já existe um confronto nesse horário "
+                    "ou o intervalo mínimo entre jogos "
+                    "não está sendo respeitado."
+                )
+            }), 400 
+
+        # Verifica o descanso mínimo das duas equipes
+        for team_id in (team_a_id, team_b_id):
+
+            if not olympic_team_has_enough_rest(
+                team_id,
+                proposed_start,
+                proposed_duration,
+                scheduled_matches,
+                settings.rest_minutes
+            ):
+                return jsonify({
+                    "success": False,
+                    "message": (
+                        "Uma das equipes não terá o descanso "
+                        "mínimo obrigatório entre os confrontos."
+                    )
+                }), 400   
+
+        # Verifica o limite diário de jogos por equipe na modalidade
+        for team_id in (team_a_id, team_b_id):
+
+            if not olympic_team_within_daily_limit(
+                team_id,
+                modality_id,
+                match_date,
+                scheduled_matches,
+                modality.max_matches_per_team_per_day
+            ):
+                return jsonify({
+                    "success": False,
+                    "message": (
+                        "Uma das equipes já atingiu o limite "
+                        "de confrontos desta modalidade no dia."
+                    )
+                }), 400
+
+        # Verifica o limite total de confrontos da modalidade no dia
+        if not olympic_modality_within_daily_limit(
+            modality_id,
+            match_date,
+            scheduled_matches,
+            modality.max_matches_per_modality_per_day
+        ):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "A modalidade já atingiu o limite "
+                    "total de confrontos permitido nesta data."
+                )
+            }), 400
+
+        existing_time = OlympicMatch.query.filter_by(
+            edition_id=edition_id,
+            match_date=match_date,
+            match_time=match_time
+        ).filter(
+            OlympicMatch.status != "CANCELADO"
+        ).first()
+
+        if existing_time:
+            return jsonify({
+                "success": False,
+                "message": "Já existe um confronto agendado neste mesmo horário."
+            }), 400
+
+        match = OlympicMatch(
+            edition_id=edition_id,
+            modality_id=modality_id,
+            team_a_id=team_a_id,
+            team_b_id=team_b_id,
+            match_date=match_date,
+            match_time=match_time,
+            shift=shift,
+            phase=phase,
+            status="AGENDADO"
+        )
+
+        db.session.add(match)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Confronto cadastrado com sucesso!",
+            "match": {
+                "id": match.id,
+                "edition_id": match.edition_id,
+                "modality_id": match.modality_id,
+                "team_a_id": match.team_a_id,
+                "team_b_id": match.team_b_id,
+                "match_date": match.match_date.isoformat(),
+                "match_time": match.match_time.strftime("%H:%M"),
+                "shift": match.shift,
+                "phase": match.phase,
+                "status": match.status
+            }
+        }), 201
+
+    except Exception:
+        db.session.rollback()
+
+        app.logger.exception(
+            "Erro ao cadastrar confronto olímpico"
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Erro interno ao cadastrar confronto."
+        }), 500
+
+
+
+# ==========================================
+# OLIMPÍADAS - SALVAR CONFIGURAÇÕES DO CALENDÁRIO
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/calendario/configuracoes/salvar",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_save_olympic_calendar_settings():
+
+    data = request.get_json(silent=True) or {}
+        
+    # Valida os dias da semana permitidos para jogos
+    game_weekdays = data.get("game_weekdays", [0, 2])
+
+    if (
+        not isinstance(game_weekdays, list)
+        or not game_weekdays
+        or any(
+            type(day) is not int or day < 0 or day > 6
+            for day in game_weekdays
+        )
+        or len(game_weekdays) != len(set(game_weekdays))
+    ):
+        return jsonify({
+            "success": False,
+            "message": "Selecione dias da semana válidos, sem repetições."
+        }), 400
+
+
+    try:
+        edition_id = int(data.get("edition_id"))
+    except (TypeError, ValueError):
+        return jsonify({
+            "success": False,
+            "message": "Selecione uma edição válida."
+        }), 400
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if not edition:
+        return jsonify({
+            "success": False,
+            "message": "Edição não encontrada."
+        }), 404
+
+    try:
+        interval_minutes = int(data.get("interval_minutes"))
+        rest_minutes = int(data.get("rest_minutes"))
+
+        if interval_minutes < 0 or rest_minutes < 0:
+            raise ValueError()
+
+        if (
+            isinstance(data.get("allow_simultaneous_matches"), bool)
+            is False
+        ):
+            raise ValueError()
+
+        time_fields = {}
+
+        for field in (
+            "morning_start",
+            "morning_end",
+            "afternoon_start",
+            "afternoon_end"
+        ):
+            value = data.get(field)
+
+            if not isinstance(value, str):
+                raise ValueError()
+
+            time_fields[field] = datetime.strptime(
+                value, "%H:%M"
+            ).time()
+
+        if (
+            time_fields["morning_start"] >=
+            time_fields["morning_end"]
+        ):
+            raise ValueError()
+
+        if (
+            time_fields["afternoon_start"] >=
+            time_fields["afternoon_end"]
+        ):
+            raise ValueError()
+
+    except (TypeError, ValueError):
+        return jsonify({
+            "success": False,
+            "message": (
+                "Configurações inválidas. Confira os horários, "
+                "os intervalos e a opção de jogos simultâneos."
+            )
+        }), 400
+
+    settings = OlympicCalendarSettings.query.filter_by(
+        edition_id=edition.id
+    ).first()
+
+    if not settings:
+        settings = OlympicCalendarSettings(
+            edition_id=edition.id
+        )
+        db.session.add(settings)
+
+    settings.interval_minutes = interval_minutes
+    settings.rest_minutes = rest_minutes
+    settings.game_weekdays = game_weekdays
+    settings.allow_simultaneous_matches = data[
+        "allow_simultaneous_matches"
+    ]
+
+    settings.morning_start = time_fields["morning_start"]
+    settings.morning_end = time_fields["morning_end"]
+    settings.afternoon_start = time_fields["afternoon_start"]
+    settings.afternoon_end = time_fields["afternoon_end"]
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        app.logger.exception(
+            "Erro ao salvar configurações do calendário olímpico."
+        )
+        return jsonify({
+            "success": False,
+            "message": "Não foi possível salvar as configurações."
+        }), 500
+
+    return jsonify({
+        "success": True,
+        "message": "Configurações do calendário salvas com sucesso."
+    })
+
+
+# ==========================================
+# OLIMPÍADAS - CONSULTAR CONFIGURAÇÕES DO CALENDÁRIO
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/edicoes/<int:edition_id>/calendario/configuracoes",
+    methods=["GET"]
+)
+@admin_required_page
+def admin_get_olympic_calendar_settings(edition_id):
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if not edition:
+        return jsonify({
+            "success": False,
+            "message": "Edição não encontrada."
+        }), 404
+
+    settings = OlympicCalendarSettings.query.filter_by(
+        edition_id=edition_id
+    ).first()
+
+    if not settings:
+        return jsonify({
+            "success": True,
+            "configured": False,
+            "settings": None
+        })
+
+    return jsonify({
+        "success": True,
+        "configured": True,
+        "settings": {
+            "edition_id": settings.edition_id,
+            "interval_minutes": settings.interval_minutes,
+            "rest_minutes": settings.rest_minutes,
+            "game_weekdays": settings.game_weekdays,
+            "allow_simultaneous_matches": settings.allow_simultaneous_matches,
+            "morning_start":
+                settings.morning_start.strftime("%H:%M")
+                if settings.morning_start else None,
+            "morning_end":
+                settings.morning_end.strftime("%H:%M")
+                if settings.morning_end else None,
+            "afternoon_start":
+                settings.afternoon_start.strftime("%H:%M")
+                if settings.afternoon_start else None,
+            "afternoon_end":
+                settings.afternoon_end.strftime("%H:%M")
+                if settings.afternoon_end else None
+        }
+    })
+
+
+# ==========================================
+# OLIMPÍADAS - LISTAR CONFRONTOS
+# ==========================================
+
+# ==========================================
+# OLIMPÍADAS - EDITAR DATA E HORÁRIO
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/confrontos/<int:match_id>/editar",
+    methods=["PUT"]
+)
+@admin_required_page
+def admin_update_olympic_match(match_id):
+
+    data = request.get_json(silent=True) or {}
+
+    match = db.session.get(OlympicMatch, match_id)
+
+    if match is None:
+        return jsonify({
+            "success": False,
+            "message": "Confronto não encontrado."
+        }), 404
+        
+    # Busca as configurações do calendário da edição
+    settings = OlympicCalendarSettings.query.filter_by(
+        edition_id=match.edition_id
+    ).first()
+
+    if settings is None:
+        return jsonify({
+            "success": False,
+            "message": (
+                "Configure o calendário da edição "
+                "antes de editar confrontos."
+            )
+        }), 400    
+
+    if match.status != "AGENDADO":
+        return jsonify({
+            "success": False,
+            "message": "Somente confrontos agendados podem ser alterados."
+        }), 400
+
+    try:
+        new_date = date.fromisoformat(data.get("match_date", ""))
+        new_time = datetime.strptime(
+            data.get("match_time", ""),
+            "%H:%M"
+        ).time()
+
+    except (ValueError, TypeError):
+        return jsonify({
+            "success": False,
+            "message": "Informe uma data e um horário válidos."
+        }), 400
+        
+    # Verifica se o confronto cabe no horário do turno
+    try:
+        shift_start, shift_end = get_olympic_shift_window(
+            settings,
+            match.shift
+        )
+
+        duration = get_olympic_match_duration({
+            "modality_id": match.modality_id,
+            "duration_minutes": match.modality.match_duration_minutes
+        })
+
+        proposed_start = datetime.combine(new_date, new_time)
+        proposed_end = proposed_start + timedelta(minutes=duration)
+
+        allowed_start = datetime.combine(new_date, shift_start)
+        allowed_end = datetime.combine(new_date, shift_end)
+
+        if proposed_start < allowed_start or proposed_end > allowed_end:
+            return jsonify({
+                "success": False,
+                "message": (
+                    "O confronto precisa começar e terminar "
+                    "dentro do horário permitido para o turno."
+                )
+            }), 400
+
+    except (ValueError, TypeError) as error:
+        return jsonify({
+            "success": False,
+            "message": str(error)
+        }), 400 
+
+    # Carrega os outros confrontos para verificar conflitos
+    try:
+        existing_matches = get_existing_olympic_scheduled_matches(
+            match.edition_id
+        )
+
+        # Retira o próprio confronto da comparação
+        other_matches = [
+            existing
+            for existing in existing_matches
+            if existing["match_id"] != match.id
+        ]
+
+        # Verifica se o novo horário está disponível
+        time_available = olympic_time_slot_is_available(
+            proposed_start,
+            duration,
+            other_matches,
+            settings.interval_minutes,
+            settings.allow_simultaneous_matches
+        )
+
+        if not time_available:
+            return jsonify({
+                "success": False,
+                "message": (
+                    "O horário escolhido entra em conflito "
+                    "com outro confronto cadastrado ou "
+                    "não respeita o intervalo entre jogos."
+                )
+            }), 400
+
+    except (ValueError, TypeError) as error:
+        return jsonify({
+            "success": False,
+            "message": str(error)
+        }), 400 
+
+    # Verifica o descanso mínimo das duas equipes
+    try:
+        for team_id in (match.team_a_id, match.team_b_id):
+
+            enough_rest = olympic_team_has_enough_rest(
+                team_id,
+                proposed_start,
+                duration,
+                other_matches,
+                settings.rest_minutes
+            )
+
+            if not enough_rest:
+                return jsonify({
+                    "success": False,
+                    "message": (
+                        "O horário escolhido não respeita "
+                        "o descanso mínimo de uma das equipes."
+                    )
+                }), 400
+
+    except (ValueError, TypeError) as error:
+        return jsonify({
+            "success": False,
+            "message": str(error)
+        }), 400   
+
+    # Verifica o limite diário por equipe na modalidade
+    try:
+        for team_id in (match.team_a_id, match.team_b_id):
+
+            within_limit = olympic_team_within_daily_limit(
+                team_id,
+                match.modality_id,
+                new_date,
+                other_matches,
+                match.modality.max_matches_per_team_per_day
+            )
+
+            if not within_limit:
+                return jsonify({
+                    "success": False,
+                    "message": (
+                        "Uma das equipes já atingiu o limite "
+                        "de confrontos dessa modalidade "
+                        "na data escolhida."
+                    )
+                }), 400
+
+    except (ValueError, TypeError) as error:
+        return jsonify({
+            "success": False,
+            "message": str(error)
+        }), 400
+
+    # Verifica o limite total de confrontos da modalidade no dia
+    try:
+        modality_within_limit = olympic_modality_within_daily_limit(
+            match.modality_id,
+            new_date,
+            other_matches,
+            match.modality.max_matches_per_modality_per_day
+        )
+
+        if not modality_within_limit:
+            return jsonify({
+                "success": False,
+                "message": (
+                    "A modalidade já atingiu o limite total "
+                    "de confrontos permitido para essa data."
+                )
+            }), 400
+
+    except (ValueError, TypeError) as error:
+        return jsonify({
+            "success": False,
+            "message": str(error)
+        }), 400    
+        
+    # Verifica se a data escolhida é um dia permitido
+    allowed_weekdays = settings.game_weekdays or []
+
+    if new_date.weekday() not in allowed_weekdays:
+        return jsonify({
+            "success": False,
+            "message": (
+                "A data escolhida não corresponde a um "
+                "dia da semana permitido para os jogos."
+            )
+        }), 400    
+
+    try:
+        match.match_date = new_date
+        match.match_time = new_time
+
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+        app.logger.exception(
+            "Erro ao atualizar confronto olímpico %s",
+            match_id
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Erro ao salvar as alterações."
+        }), 500
+
+    return jsonify({
+        "success": True,
+        "message": "Confronto atualizado com sucesso."
+    })
+    
+# ==========================================
+# OLIMPÍADAS - EXCLUIR CONFRONTO
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/confrontos/<int:match_id>/excluir",
+    methods=["DELETE"]
+)
+@admin_required_page
+def admin_delete_olympic_match(match_id):
+
+    match = db.session.get(OlympicMatch, match_id)
+
+    if match is None:
+        return jsonify({
+            "success": False,
+            "message": "Confronto não encontrado."
+        }), 404
+
+    try:
+        db.session.delete(match)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Confronto excluído com sucesso."
+        })
+
+    except Exception:
+        db.session.rollback()
+
+        app.logger.exception(
+            "Erro ao excluir confronto olímpico %s",
+            match_id
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Não foi possível excluir o confronto."
+        }), 500 
+
+# ==========================================
+# OLIMPÍADAS - PÁGINA INDIVIDUAL DA SÚMULA
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/confrontos/<int:match_id>/sumula",
+    methods=["GET"]
+)
+@admin_required_page
+def admin_olympic_scoresheet_page(match_id):
+    match = db.session.get(OlympicMatch, match_id)
+
+    if match is None:
+        abort(404)
+
+    athletes_team_a = (
+        OlympicAthlete.query
+        .filter_by(
+            edition_id=match.edition_id,
+            team_id=match.team_a_id
+        )
+        .order_by(OlympicAthlete.name)
+        .all()
+    )
+
+    athletes_team_b = (
+        OlympicAthlete.query
+        .filter_by(
+            edition_id=match.edition_id,
+            team_id=match.team_b_id
+        )
+        .order_by(OlympicAthlete.name)
+        .all()
+    )
+    
+    selected_athlete_ids = {
+        participant.athlete_id
+        for participant in OlympicMatchParticipant.query.filter_by(
+            match_id=match.id
+        ).all()
+    }
+    
+    saved_goals = {
+        record.athlete_id: record.goals
+        for record in OlympicMatchGoal.query.filter_by(
+            match_id=match.id
+        ).all()
+    }
+    
+    # Recupera os arremessos e cobranças individuais já salvos.
+    saved_attempts = [
+        {
+            "athlete_id": record.athlete_id,
+            "attempt_number": record.attempt_number,
+            "successful": record.successful
+        }
+        for record in OlympicMatchAttempt.query.filter_by(
+            match_id=match.id
+        ).order_by(
+            OlympicMatchAttempt.athlete_id,
+            OlympicMatchAttempt.attempt_number
+        ).all()
+    ]
+
+    return render_template(
+        "admin_olympic_scoresheet.html",
+        match_id=match.id,
+        match=match,
+        athletes_team_a=athletes_team_a,
+        athletes_team_b=athletes_team_b,
+        selected_athlete_ids=selected_athlete_ids,
+        saved_goals=saved_goals,
+        saved_attempts=saved_attempts
+    )
+
+# ==========================================
+# OLIMPÍADAS - SALVAR RASCUNHO DA SÚMULA
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/confrontos/<int:match_id>/sumula/rascunho",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_save_olympic_scoresheet_draft(match_id):
+
+    match = db.session.get(OlympicMatch, match_id)
+
+    if match is None:
+        return jsonify({
+            "success": False,
+            "message": "Confronto não encontrado."
+        }), 404
+
+    if match.status in ("FINALIZADO", "CANCELADO"):
+        return jsonify({
+            "success": False,
+            "message": "Este confronto não permite alterações."
+        }), 409
+
+    modality_name = match.modality.name.strip().lower()
+
+    supported_modality = (
+        modality_name in ("futsal", "golzinho")
+        or "basquete" in modality_name
+        or "pênalti" in modality_name
+        or "penalti" in modality_name
+        or "queimada" in modality_name
+        or "corrida" in modality_name
+        or "revezamento" in modality_name
+    )
+
+    if not supported_modality:
+        return jsonify({
+            "success": False,
+            "message": "Esta modalidade ainda não possui formulário de placar."
+        }), 400
+        
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({
+            "success": False,
+            "message": "Dados da súmula inválidos."
+        }), 400
+        
+    # Tentativas individuais de Basquete e Pênaltis.
+    athlete_attempts_data = data.get("athlete_attempts", [])
+
+    if not isinstance(athlete_attempts_data, list):
+        return jsonify({
+            "success": False,
+            "message": "Formato inválido das tentativas individuais."
+        }), 400 
+
+    # Valida a estrutura de cada tentativa individual.
+    for attempt in athlete_attempts_data:
+        if (
+            not isinstance(attempt, dict)
+            or type(attempt.get("athlete_id")) is not int
+            or attempt["athlete_id"] <= 0
+            or type(attempt.get("attempt_number")) is not int
+            or not 1 <= attempt["attempt_number"] <= 5
+            or type(attempt.get("successful")) is not bool
+        ):
+            return jsonify({
+                "success": False,
+                "message": "Existe uma tentativa individual inválida."
+            }), 400
+            
+    # Impede tentativas duplicadas para o mesmo atleta.
+    attempt_keys = [
+        (attempt["athlete_id"], attempt["attempt_number"])
+        for attempt in athlete_attempts_data
+    ]
+
+    if len(attempt_keys) != len(set(attempt_keys)):
+        return jsonify({
+            "success": False,
+            "message": (
+                "Existem tentativas duplicadas para o mesmo atleta."
+            )
+        }), 400  
+
+    # Define o limite de tentativas conforme a modalidade.
+    if "basquete" in modality_name:
+        max_attempts = 5
+    elif "pênalti" in modality_name or "penalti" in modality_name:
+        max_attempts = 3
+    else:
+        max_attempts = 0
+
+    if any(
+        attempt["attempt_number"] > max_attempts
+        for attempt in athlete_attempts_data
+    ):
+        return jsonify({
+            "success": False,
+            "message": (
+                "As tentativas enviadas não são permitidas "
+                "para esta modalidade."
+            )
+        }), 400
+        
+    # Permite tentativas somente dos atletas selecionados
+    # como participantes deste confronto.
+    participant_id_set = set(participant_ids)
+    
+    # Confirma que os atletas das tentativas pertencem
+    # à edição e a uma das equipes deste confronto.
+    attempt_athlete_ids = {
+        attempt["athlete_id"]
+        for attempt in athlete_attempts_data
+    }
+
+    if attempt_athlete_ids:
+        valid_attempt_athletes = OlympicAthlete.query.filter(
+            OlympicAthlete.id.in_(attempt_athlete_ids),
+            OlympicAthlete.edition_id == match.edition_id,
+            OlympicAthlete.team_id.in_([
+                match.team_a_id,
+                match.team_b_id
+            ])
+        ).count()
+
+        if valid_attempt_athletes != len(attempt_athlete_ids):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Existem tentativas vinculadas a atletas "
+                    "que não pertencem às equipes deste confronto."
+                )
+            }), 400
+
+    if any(
+        attempt["athlete_id"] not in participant_id_set
+        for attempt in athlete_attempts_data
+    ):
+        return jsonify({
+            "success": False,
+            "message": (
+                "Existem tentativas registradas para atletas "
+                "que não participam deste confronto."
+            )
+        }), 400
+
+    participant_ids = data.get("participant_ids", [])
+    
+    # Identifica a modalidade de Pênaltis com segurança.
+    is_penalty_modality = (
+        "pênalti" in modality_name.lower()
+        or "penalti" in modality_name.lower()
+    )
+
+    # Aplica as regras específicas somente aos Pênaltis.
+    if is_penalty_modality:
+        
+        # Impede IDs de atletas repetidos na lista de participantes.
+        if len(participant_ids) != len(set(participant_ids)):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Não é permitido registrar o mesmo atleta "
+                    "mais de uma vez na súmula de Pênaltis."
+                )
+            }), 400
+
+        penalty_athletes = OlympicAthlete.query.filter(
+            OlympicAthlete.id.in_(participant_ids)
+        ).all()
+        
+        # Confere se todos os participantes existem e pertencem
+        # a uma das duas equipes deste confronto.
+        if (
+            len(penalty_athletes) != len(participant_ids)
+            or any(
+                athlete.team_id not in (
+                    match.team_a_id,
+                    match.team_b_id
+                )
+                for athlete in penalty_athletes
+            )
+        ):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "A súmula de Pênaltis contém um atleta inválido "
+                    "ou pertencente a outra equipe."
+                )
+            }), 400
+
+        penalty_count_a = sum(
+            1 for athlete in penalty_athletes
+            if athlete.team_id == match.team_a_id
+        )
+
+        penalty_count_b = sum(
+            1 for athlete in penalty_athletes
+            if athlete.team_id == match.team_b_id
+        )
+
+        if penalty_count_a > 5 or penalty_count_b > 5:
+            return jsonify({
+                "success": False,
+                "message": (
+                    "A modalidade de Pênaltis permite "
+                    "no máximo cinco atletas por equipe."
+                )
+            }), 400
+            
+        # Exige a mesma quantidade de atletas nas duas equipes.
+        if penalty_count_a != penalty_count_b:
+            return jsonify({
+                "success": False,
+                "message": (
+                    "As duas equipes devem ter a mesma quantidade "
+                    "de atletas na modalidade de Pênaltis."
+                )
+            }), 400 
+
+        # Impede o salvamento sem participantes nos Pênaltis.
+        if penalty_count_a == 0 or penalty_count_b == 0:
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Para salvar a súmula de Pênaltis, "
+                    "selecione pelo menos um atleta de cada equipe."
+                )
+            }), 400
+
+    if (
+        not isinstance(participant_ids, list)
+        or any(
+            type(athlete_id) is not int or athlete_id <= 0
+            for athlete_id in participant_ids
+        )
+        or len(participant_ids) != len(set(participant_ids))
+    ):
+        return jsonify({
+            "success": False,
+            "message": (
+                "A lista de participantes é inválida "
+                "ou contém atletas duplicados."
+            )
+        }), 400
+        
+    # Verificar se todos os participantes pertencem
+    # às equipes e à edição deste confronto.
+    participants = (
+        OlympicAthlete.query
+        .filter(OlympicAthlete.id.in_(participant_ids))
+        .all()
+        if participant_ids else []
+    )
+
+    if (
+        len(participants) != len(participant_ids)
+        or any(
+            athlete.edition_id != match.edition_id
+            or athlete.team_id not in (
+                match.team_a_id,
+                match.team_b_id
+            )
+            for athlete in participants
+        )
+    ):
+        return jsonify({
+            "success": False,
+            "message": (
+                "Um ou mais atletas não pertencem "
+                "às equipes deste confronto."
+            )
+        }), 400  
+
+    # Regra de idade para a modalidade Golzinho
+    modality_name = (match.modality.name or "").strip().lower()
+
+    if modality_name == "golzinho":
+        for athlete in participants:
+            sex = (athlete.sex or "").strip().upper()
+
+            if sex in ("M", "MASCULINO"):
+                if athlete.age is None or athlete.age > 11:
+                    return jsonify({
+                        "success": False,
+                        "message": (
+                            f"O atleta {athlete.name} não atende "
+                            "à regra de idade do Golzinho. "
+                            "Meninos devem ter até 11 anos."
+                        )
+                    }), 400
+
+    score_a = data.get("score_a")
+    score_b = data.get("score_b")
+
+    if (
+        type(score_a) is not int
+        or type(score_b) is not int
+        or score_a < 0
+        or score_b < 0
+    ):
+        return jsonify({
+            "ok": False,
+            "error": "O placar deve conter números inteiros maiores ou iguais a zero."
+        }), 400
+    
+    # QUEIMADA E CORRIDA/REVEZAMENTO: resultados permitidos
+    modality_name = match.modality.name.strip().lower()
+
+    if (
+        "queimada" in modality_name
+        or "corrida" in modality_name
+        or "revezamento" in modality_name
+    ):
+        valid_scores = (
+            (1, 0),
+            (0, 1),
+            (0, 0)
+        )
+
+        if (score_a, score_b) not in valid_scores:
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Nesta modalidade, informe somente "
+                    "1 x 0, 0 x 1 ou 0 x 0."
+                )
+            }), 400
+    
+    disciplinary_fields = (
+        "red_cards_a",
+        "red_cards_b",
+        "yellow_cards_a",
+        "yellow_cards_b",
+        "fouls_a",
+        "fouls_b"
+    )
+
+    disciplinary_values = {}
+
+    for field in disciplinary_fields:
+        value = data.get(field)
+
+        if type(value) is not int or value < 0:
+            return jsonify({
+                "success": False,
+                "message": f"Valor inválido para {field}."
+            }), 400
+
+        disciplinary_values[field] = value
+    
+
+    athlete_goals = data.get("athlete_goals", [])
+    
+    modality_name = match.modality.name.strip().lower()
+
+    if modality_name not in ("futsal", "golzinho"):
+        if athlete_goals:
+            return jsonify({
+                "success": False,
+                "message": "Esta modalidade não registra gols por atleta."
+            }), 400
+
+        if any(
+            OlympicMatchGoal.query.filter_by(match_id=match.id).all()
+        ):
+            return jsonify({
+                "success": False,
+                "message": "Existem gols individuais vinculados a este confronto."
+            }), 409
+
+    if not isinstance(athlete_goals, list):
+        return jsonify({
+            "success": False,
+            "message": "A lista de gols dos atletas é inválida."
+        }), 400
+        
+    valid_athletes = OlympicAthlete.query.filter(
+        OlympicAthlete.edition_id == match.edition_id,
+        OlympicAthlete.team_id.in_([
+            match.team_a_id,
+            match.team_b_id
+        ])
+    ).all()
+
+    valid_athlete_teams = {
+        athlete.id: athlete.team_id
+        for athlete in valid_athletes
+    }
+    
+    total_goals_a = 0
+    total_goals_b = 0
+    
+    seen_athlete_ids = set()
+
+    for item in athlete_goals:
+        if not isinstance(item, dict):
+            return jsonify({
+                "success": False,
+                "message": "Registro de gols inválido."
+            }), 400
+
+        athlete_id = item.get("athlete_id")
+        team_id = item.get("team_id")
+        goals = item.get("goals")
+        
+        if athlete_id in seen_athlete_ids:
+            return jsonify({
+                "success": False,
+                "message": "O mesmo atleta foi informado mais de uma vez."
+            }), 400
+
+        seen_athlete_ids.add(athlete_id)
+
+        # Somente participantes selecionados podem marcar gols.
+        # Atletas não selecionados podem aparecer com zero gols.
+        if (
+            type(athlete_id) is int
+            and type(goals) is int
+            and goals > 0
+            and athlete_id not in participant_ids
+        ):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Não é permitido registrar gols para "
+                    "atletas que não foram selecionados "
+                    "como participantes do confronto."
+                )
+            }), 400
+
+        if (
+            type(athlete_id) is not int
+            or type(team_id) is not int
+            or type(goals) is not int
+            or goals < 0
+            or valid_athlete_teams.get(athlete_id) != team_id
+        ):
+            return jsonify({
+                "success": False,
+                "message": "Atleta, equipe ou quantidade de gols inválida."
+            }), 400 
+
+        if team_id == match.team_a_id:
+            total_goals_a += goals
+
+        elif team_id == match.team_b_id:
+            total_goals_b += goals  
+
+       
+        
+    # Impede participantes duplicados
+    # na mesma súmula.
+    if len(participant_ids) != len(set(participant_ids)):
+        return jsonify({
+            "success": False,
+            "message": (
+                "Um mesmo atleta não pode ser registrado "
+                "mais de uma vez como participante do confronto."
+            )
+        }), 400
+        
+    # Aceita somente registros com gols positivos.
+    # Atletas sem gols permanecem apenas como participantes.
+    if any(item["goals"] <= 0 for item in athlete_goals):
+        return jsonify({
+            "success": False,
+            "message": (
+                "A lista de artilheiros deve conter "
+                "somente atletas que marcaram gols."
+            )
+        }), 400
+
+    # Impede registros duplicados de gols
+    # para o mesmo atleta no confronto.
+    scorer_ids = [
+        item["athlete_id"]
+        for item in athlete_goals
+    ]
+
+    if len(scorer_ids) != len(set(scorer_ids)):
+        return jsonify({
+            "success": False,
+            "message": (
+                "Um mesmo atleta não pode aparecer "
+                "mais de uma vez na lista de artilheiros."
+            )
+        }), 400
+
+    # Garante que somente participantes selecionados
+    # possam ter gols registrados neste confronto.
+    selected_participant_ids = set(participant_ids)
+
+    for item in athlete_goals:
+        if item["athlete_id"] not in selected_participant_ids:
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Não é permitido registrar gols para "
+                    "atletas que não participam do confronto."
+                )
+            }), 400
+
+    try:
+        # Atualiza as tentativas individuais do confronto.
+        OlympicMatchAttempt.query.filter_by(
+            match_id=match.id
+        ).delete(synchronize_session=False)
+
+        for attempt in athlete_attempts_data:
+            db.session.add(
+                OlympicMatchAttempt(
+                    match_id=match.id,
+                    athlete_id=attempt["athlete_id"],
+                    attempt_number=attempt["attempt_number"],
+                    successful=attempt["successful"]
+                )
+            )
+
+        # Em Futsal e Golzinho, o placar é determinado
+        # automaticamente pelos gols individuais.
+        if modality_name in ("futsal", "golzinho"):
+            match.score_a = total_goals_a
+            match.score_b = total_goals_b
+        else:
+            match.score_a = score_a
+            match.score_b = score_b
+
+        for field, value in disciplinary_values.items():
+            setattr(match, field, value)
+
+        match.status = "RASCUNHO"
+
+        
+        # Atualiza os gols individuais do confronto.
+        existing_goals = {
+            record.athlete_id: record
+            for record in OlympicMatchGoal.query.filter_by(
+                match_id=match.id
+            ).all()
+        }
+        # Remove registros de gols que não constam
+        # mais na lista atualizada enviada pelo formulário.
+        submitted_scorer_ids = {
+            item["athlete_id"]
+            for item in athlete_goals
+        }
+
+        for athlete_id, record in existing_goals.items():
+            if athlete_id not in submitted_scorer_ids:
+                db.session.delete(record)
+
+        for item in athlete_goals:
+            athlete_id = item["athlete_id"]
+            goals = item["goals"]
+
+            if athlete_id in existing_goals:
+                if goals == 0:
+                    db.session.delete(existing_goals[athlete_id])
+                else:
+                    existing_goals[athlete_id].goals = goals
+
+            elif goals > 0:
+                db.session.add(
+                    OlympicMatchGoal(
+                        match_id=match.id,
+                        athlete_id=athlete_id,
+                        goals=goals
+                    )
+                )
+
+        # Atualiza os participantes deste confronto.
+        existing_participants = {
+            record.athlete_id: record
+            for record in OlympicMatchParticipant.query.filter_by(
+                match_id=match.id
+            ).all()
+        }
+
+        selected_ids = set(participant_ids)
+
+        # Remove atletas retirados da súmula.
+        for athlete_id, record in existing_participants.items():
+            if athlete_id not in selected_ids:
+                db.session.delete(record)
+
+        # Adiciona atletas ainda não registrados.
+        for athlete_id in selected_ids:
+            if athlete_id not in existing_participants:
+                db.session.add(
+                    OlympicMatchParticipant(
+                        match_id=match.id,
+                        athlete_id=athlete_id
+                    )
+                )
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Rascunho salvo com sucesso.",
+            "match_id": match.id,
+            "status": match.status,
+            "score_a": match.score_a,
+            "score_b": match.score_b
+        })
+
+    except ValueError as error:
+        return jsonify({
+            "success": False,
+            "message": str(error)
+        }), 400
+
+    except Exception:
+        db.session.rollback()
+        app.logger.exception(
+            "Erro ao salvar rascunho da súmula %s",
+            match_id
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Não foi possível salvar o rascunho."
+        }), 500
+
+@app.route(
+    "/admin/olimpiadas/confrontos/<int:match_id>/sumula/finalizar",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_finalize_olympic_scoresheet(match_id):
+
+    match = db.session.get(OlympicMatch, match_id)
+
+    if match is None:
+        return jsonify({
+            "success": False,
+            "message": "Confronto não encontrado."
+        }), 404
+
+    if match.status == "FINALIZADO":
+        return jsonify({
+            "success": False,
+            "message": "Esta súmula já foi finalizada."
+        }), 400
+
+    if match.status == "CANCELADO":
+        return jsonify({
+            "success": False,
+            "message": "Não é possível finalizar um confronto cancelado."
+        }), 400
+        
+    # Exige os cinco arremessos de cada participante no Basquete.
+    modality_name = match.modality.name.strip().lower()
+    
+    # Exige três cobranças por participante na modalidade de Pênaltis.
+    if "pênalti" in modality_name or "penalti" in modality_name:
+
+        # Confere a quantidade de participantes de cada equipe.
+        penalty_participants = OlympicMatchParticipant.query.filter_by(
+            match_id=match.id
+        ).all()
+
+        penalty_athlete_ids = [
+            participant.athlete_id
+            for participant in penalty_participants
+        ]
+
+        penalty_athletes = OlympicAthlete.query.filter(
+            OlympicAthlete.id.in_(penalty_athlete_ids)
+        ).all()
+
+        penalty_count_a = sum(
+            1 for athlete in penalty_athletes
+            if athlete.team_id == match.team_a_id
+        )
+
+        penalty_count_b = sum(
+            1 for athlete in penalty_athletes
+            if athlete.team_id == match.team_b_id
+        )
+
+        if (
+            penalty_count_a == 0
+            or penalty_count_b == 0
+            or penalty_count_a > 5
+            or penalty_count_b > 5
+            or penalty_count_a != penalty_count_b
+        ):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Não é possível finalizar a súmula de Pênaltis. "
+                    "As equipes devem possuir a mesma quantidade "
+                    "de atletas, entre 1 e 5 por equipe."
+                )
+            }), 400    
+
+        penalty_participant_ids = {
+            participant.athlete_id
+            for participant in OlympicMatchParticipant.query.filter_by(
+                match_id=match.id
+            ).all()
+        }
+
+        penalty_attempts = OlympicMatchAttempt.query.filter_by(
+            match_id=match.id
+        ).all()
+
+        penalty_attempts_by_athlete = {
+            athlete_id: set()
+            for athlete_id in penalty_participant_ids
+        }
+
+        for attempt in penalty_attempts:
+            if attempt.athlete_id in penalty_attempts_by_athlete:
+                penalty_attempts_by_athlete[
+                    attempt.athlete_id
+                ].add(attempt.attempt_number)
+
+        if any(
+            penalty_attempts_by_athlete[athlete_id] != {1, 2, 3}
+            for athlete_id in penalty_participant_ids
+        ):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Não é possível finalizar a súmula de Pênaltis. "
+                    "Todos os participantes precisam ter "
+                    "as três cobranças registradas."
+                )
+            }), 400
+            
+        # Identifica a equipe de cada atleta participante.
+        penalty_athlete_teams = {
+            athlete.id: athlete.team_id
+            for athlete in OlympicAthlete.query.filter(
+                OlympicAthlete.id.in_(penalty_participant_ids)
+            ).all()
+        }
+
+        # Conta as cobranças convertidas por cada equipe.
+        penalty_hits_a = sum(
+            1 for attempt in penalty_attempts
+            if attempt.successful
+            and attempt.athlete_id in penalty_participant_ids
+            and penalty_athlete_teams.get(
+                attempt.athlete_id
+            ) == match.team_a_id
+        )
+
+        penalty_hits_b = sum(
+            1 for attempt in penalty_attempts
+            if attempt.successful
+            and attempt.athlete_id in penalty_participant_ids
+            and penalty_athlete_teams.get(
+                attempt.athlete_id
+            ) == match.team_b_id
+        )
+
+        expected_penalty_score_a = 1 if penalty_hits_a > penalty_hits_b else 0
+        expected_penalty_score_b = 1 if penalty_hits_b > penalty_hits_a else 0
+
+        if (
+            match.score_a != expected_penalty_score_a
+            or match.score_b != expected_penalty_score_b
+        ):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "O placar de Pênaltis não corresponde às "
+                    "cobranças individuais registradas. "
+                    "Salve novamente o rascunho antes de finalizar."
+                )
+            }), 400
+
+    if "basquete" in modality_name:
+        saved_participant_ids = {
+            participant.athlete_id
+            for participant in OlympicMatchParticipant.query.filter_by(
+                match_id=match.id
+            ).all()
+        }
+
+        saved_attempts = OlympicMatchAttempt.query.filter_by(
+            match_id=match.id
+        ).all()
+
+        attempts_by_athlete = {
+            athlete_id: set()
+            for athlete_id in saved_participant_ids
+        }
+
+        for attempt in saved_attempts:
+            if attempt.athlete_id in attempts_by_athlete:
+                attempts_by_athlete[attempt.athlete_id].add(
+                    attempt.attempt_number
+                )
+
+        if any(
+            attempts_by_athlete[athlete_id] != set(range(1, 6))
+            for athlete_id in saved_participant_ids
+        ):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Não é possível finalizar o Basquete. "
+                    "Todos os participantes precisam ter "
+                    "os cinco arremessos registrados."
+                )
+            }), 400  
+            
+        # Calcula os acertos de cada equipe.
+        athlete_teams = {
+            athlete.id: athlete.team_id
+            for athlete in OlympicAthlete.query.filter(
+                OlympicAthlete.id.in_(saved_participant_ids)
+            ).all()
+        }
+
+        hits_a = sum(
+            1 for attempt in saved_attempts
+            if attempt.successful
+            and attempt.athlete_id in saved_participant_ids
+            and athlete_teams.get(attempt.athlete_id) == match.team_a_id
+        )
+
+        hits_b = sum(
+            1 for attempt in saved_attempts
+            if attempt.successful
+            and attempt.athlete_id in saved_participant_ids
+            and athlete_teams.get(attempt.athlete_id) == match.team_b_id
+        )
+
+        expected_score_a = 1 if hits_a > hits_b else 0
+        expected_score_b = 1 if hits_b > hits_a else 0
+
+        if (
+            match.score_a != expected_score_a
+            or match.score_b != expected_score_b
+        ):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "O placar do Basquete não corresponde "
+                    "aos arremessos individuais registrados. "
+                    "Salve novamente o rascunho antes de finalizar."
+                )
+            }), 400
+        
+    if match.status != "RASCUNHO":
+        return jsonify({
+            "success": False,
+            "message": "Salve a súmula como rascunho antes de finalizá-la."
+        }), 400 
+
+    # Verifica se as duas equipes possuem participantes.
+    selected_participants = OlympicMatchParticipant.query.filter_by(
+        match_id=match.id
+    ).all()
+
+    team_a_has_participants = False
+    team_b_has_participants = False
+
+    for participant in selected_participants:
+
+        # Confirma que o atleta pertence à edição e
+        # a uma das equipes deste confronto.
+        if (
+            participant.athlete.edition_id != match.edition_id
+            or participant.athlete.team_id not in (
+                match.team_a_id,
+                match.team_b_id
+            )
+        ):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Não é possível finalizar a súmula. "
+                    "Existe um participante que não pertence "
+                    "à edição ou às equipes deste confronto."
+                )
+            }), 400
+            
+        # Confere as regras de participação no Golzinho.
+        if match.modality.name.strip().lower() == "golzinho":
+            athlete_age = participant.athlete.age
+            athlete_sex = participant.athlete.sex
+
+            if (
+                type(athlete_age) is not int
+                or athlete_age > 11
+                or athlete_age < 7
+                or str(athlete_sex or "").strip().upper()
+                not in ("M", "MASCULINO")
+            ):
+                return jsonify({
+                    "success": False,
+                    "message": (
+                        "Não é possível finalizar a súmula. "
+                        "O Golzinho permite apenas participantes "
+                        "masculinos de 7 a 11 anos."
+                    )
+                }), 400    
+
+        if participant.athlete.team_id == match.team_a_id:
+            team_a_has_participants = True
+
+        elif participant.athlete.team_id == match.team_b_id:
+            team_b_has_participants = True
+
+    if not team_a_has_participants or not team_b_has_participants:
+        return jsonify({
+            "success": False,
+            "message": (
+                "Não é possível finalizar a súmula. "
+                "Selecione pelo menos um atleta de cada equipe "
+                "e salve o rascunho antes de finalizar."
+            )
+        }), 400
+
+    # Valida o placar antes de finalizar.
+    if (
+        type(match.score_a) is not int
+        or type(match.score_b) is not int
+        or match.score_a < 0
+        or match.score_b < 0
+    ):
+        return jsonify({
+            "success": False,
+            "message": "A súmula precisa ter um placar válido antes da finalização."
+        }), 400
+        
+    total_goals_a = 0
+    total_goals_b = 0
+
+    saved_goals = OlympicMatchGoal.query.filter_by(
+        match_id=match.id
+    ).all()
+    
+    # Somente Futsal e Golzinho possuem artilharia individual.
+    modality_name = match.modality.name.strip().lower()
+
+    if modality_name not in ("futsal", "golzinho") and saved_goals:
+        return jsonify({
+            "success": False,
+            "message": (
+                "Não é possível finalizar a súmula. "
+                "Esta modalidade não permite registros "
+                "individuais de gols."
+            )
+        }), 400
+
+    # Identifica os participantes registrados no confronto.
+    participant_athlete_ids = {
+        participant.athlete_id
+        for participant in OlympicMatchParticipant.query.filter_by(
+            match_id=match.id
+        ).all()
+    }
+
+    for record in saved_goals:
+
+        # Valida a quantidade de gols registrada.
+        if type(record.goals) is not int or record.goals <= 0:
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Não é possível finalizar a súmula. "
+                    "Existe um registro individual de gols inválido. "
+                    "Verifique os gols dos atletas antes de finalizar."
+                )
+            }), 400
+
+        # Um atleta só pode ter gols registrados se participou.
+        if record.athlete_id not in participant_athlete_ids:
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Não é possível finalizar a súmula. "
+                    "Existem gols registrados para atletas "
+                    "que não estão na lista de participantes."
+                )
+            }), 400
+
+        if record.athlete.team_id == match.team_a_id:
+            total_goals_a += record.goals
+
+        elif record.athlete.team_id == match.team_b_id:
+            total_goals_b += record.goals
+
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Existe um gol registrado para um atleta que não pertence às equipes deste confronto."
+            }), 400
+
+    # Em Futsal e Golzinho, o placar deve corresponder
+    # exatamente à soma dos gols individuais.
+    if modality_name in ("futsal", "golzinho"):
+        if (
+            total_goals_a != match.score_a
+            or total_goals_b != match.score_b
+        ):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Não é possível finalizar a súmula. "
+                    "O placar deve corresponder exatamente "
+                    "à soma dos gols registrados pelos atletas. "
+                    "Salve novamente o rascunho antes de finalizar."
+                )
+            }), 400
+
+    try:
+        # Recupera os atletas selecionados neste confronto.
+        match_participants = OlympicMatchParticipant.query.filter_by(
+            match_id=match.id
+        ).all()
+
+        # Identifica atletas já inscritos na modalidade.
+        registered_athlete_ids = {
+            registration.athlete_id
+            for registration in OlympicModalityRegistration.query.filter_by(
+                edition_id=match.edition_id,
+                modality_id=match.modality_id
+            ).all()
+        }
+
+        # Inscreve apenas quem ainda não está registrado.
+        for participant in match_participants:
+            if participant.athlete_id not in registered_athlete_ids:
+                db.session.add(
+                    OlympicModalityRegistration(
+                        edition_id=match.edition_id,
+                        modality_id=match.modality_id,
+                        athlete_id=participant.athlete_id
+                    )
+                )
+
+                registered_athlete_ids.add(participant.athlete_id)
+
+        match.status = "FINALIZADO"
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Súmula finalizada com sucesso!"
+        }), 200
+
+    except Exception as error:
+        db.session.rollback()
+
+        print(
+            "ERRO AO FINALIZAR SÚMULA:",
+            repr(error),
+            flush=True
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Não foi possível finalizar a súmula."
+        }), 500       
+
+@app.route(
+    "/admin/olimpiadas/edicoes/<int:edition_id>/confrontos",
+    methods=["GET"]
+)
+@admin_required_page
+def admin_list_olympic_matches(edition_id):
+    try:
+        edition = db.session.get(
+            OlympicEdition,
+            edition_id
+        )
+
+        if not edition:
+            return jsonify({
+                "success": False,
+                "message": "Edição não encontrada."
+            }), 404
+
+        matches = (
+            OlympicMatch.query
+            .filter_by(edition_id=edition_id)
+            .order_by(
+                OlympicMatch.match_date,
+                OlympicMatch.match_time,
+                OlympicMatch.id
+            )
+            .all()
+        )
+
+        match_list = []
+
+        for match in matches:
+            modality = match.modality
+            team_a = match.team_a
+            team_b = match.team_b
+
+            match_list.append({
+                "id": match.id,
+                "edition_id": match.edition_id,
+                "modality_id": match.modality_id,
+                "modality_name": modality.name,
+                "team_a_id": match.team_a_id,
+                "team_a_name": team_a.name,
+                "team_a_color": team_a.color,
+                "team_a_coach": team_a.coach,
+                "team_b_id": match.team_b_id,
+                "team_b_name": team_b.name,
+                "team_b_color": team_b.color,
+                "team_b_coach": team_b.coach,
+                "match_date": match.match_date.isoformat(),
+                "match_time": match.match_time.strftime("%H:%M"),
+                "shift": match.shift,
+                "phase": match.phase,
+                "status": match.status,
+                "score_a": match.score_a,
+                "score_b": match.score_b,
+                "notes": match.notes
+            })
+
+        return jsonify({
+            "success": True,
+            "edition": {
+                "id": edition.id,
+                "name": edition.name,
+                "year": edition.year
+            },
+            "matches": match_list
+        }), 200
+
+    except Exception:
+        app.logger.exception(
+            "Erro ao listar confrontos olímpicos"
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Erro interno ao consultar confrontos."
+        }), 500
+
+
+
+
+
+@app.route(
+    "/admin/olimpiadas/edicoes/<int:edition_id>/inscricoes",
+    methods=["GET"]
+)
+@admin_required_page
+def admin_list_olympic_modality_registrations(edition_id):
+    try:
+        # Verifica se a edição existe
+        edition = db.session.get(
+            OlympicEdition,
+            edition_id
+        )
+
+        if not edition:
+            return jsonify({
+                "success": False,
+                "message": "Edição não encontrada."
+            }), 404
+
+        # Busca as inscrições da edição
+        registrations = (
+            OlympicModalityRegistration.query
+            .filter_by(edition_id=edition_id)
+            .order_by(OlympicModalityRegistration.id)
+            .all()
+        )
+
+        registration_list = []
+
+        for registration in registrations:
+
+            modality = registration.modality
+            athlete = registration.athlete
+
+            # Recupera a equipe do atleta
+            team = db.session.get(
+                OlympicTeam,
+                athlete.team_id
+            )
+
+            registration_list.append({
+                "id": registration.id,
+                "edition_id": registration.edition_id,
+                "modality_id": registration.modality_id,
+                "modality_name": modality.name,
+                "modality_is_active": modality.is_active,
+                "athlete_id": registration.athlete_id,
+                "athlete_name": athlete.name,
+                "team_id": athlete.team_id,
+                "team_name": team.name if team else "",
+                "team_color": team.color if team else "",
+                "team_coach": team.coach if team else "",
+                "team_shift": team.shift if team else ""
+            })
+
+        return jsonify({
+            "success": True,
+            "edition": {
+                "id": edition.id,
+                "name": edition.name,
+                "year": edition.year
+            },
+            "registrations": registration_list
+        }), 200
+
+    except Exception:
+        app.logger.exception(
+            "Erro ao listar inscrições olímpicas"
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Erro interno ao consultar inscrições."
+        }), 500
+
+
+@app.route(
+    "/admin/olimpiadas/inscricoes/<int:registration_id>/excluir",
+    methods=["DELETE"]
+)
+@admin_required_page
+def admin_delete_olympic_modality_registration(registration_id):
+    try:
+        # Localiza a inscrição
+        registration = db.session.get(
+            OlympicModalityRegistration,
+            registration_id
+        )
+
+        if not registration:
+            return jsonify({
+                "success": False,
+                "message": "Inscrição não encontrada."
+            }), 404
+
+        # Verifica a edição da inscrição
+        edition = db.session.get(
+            OlympicEdition,
+            registration.edition_id
+        )
+
+        if not edition or not edition.is_active:
+            return jsonify({
+                "success": False,
+                "message": "Não é possível cancelar inscrições de uma edição inativa."
+            }), 400
+
+        # Guarda os dados para a resposta
+        athlete_name = registration.athlete.name
+        modality_name = registration.modality.name
+
+        # Exclui somente o vínculo de inscrição
+        db.session.delete(registration)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": (
+                f"Inscrição de {athlete_name} na modalidade "
+                f"{modality_name} cancelada com sucesso!"
+            )
+        }), 200
+
+    except Exception:
+        db.session.rollback()
+
+        app.logger.exception(
+            "Erro ao cancelar inscrição olímpica"
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Erro interno ao cancelar inscrição."
+        }), 500
+
+
+# ==========================================
+# OLIMPÍADAS - LISTAR ATLETAS POR EDIÇÃO
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/edicoes/<int:edition_id>/atletas",
+    methods=["GET"]
+)
+@admin_required_page
+def admin_list_olympic_athletes(edition_id):
+
+    edition = db.session.get(
+        OlympicEdition,
+        edition_id
+    )
+
+    if not edition:
+        return jsonify({
+            "message": "Edição não encontrada."
+        }), 404
+
+    athletes = (
+        db.session.query(OlympicAthlete, OlympicTeam)
+        .join(
+            OlympicTeam,
+            OlympicAthlete.team_id == OlympicTeam.id
+        )
+        .filter(
+            OlympicAthlete.edition_id == edition_id,
+            OlympicTeam.edition_id == edition_id
+        )
+        .order_by(
+            OlympicTeam.shift.asc(),
+            OlympicTeam.color.asc(),
+            OlympicAthlete.name.asc()
+        )
+        .all()
+    )
+
+    return jsonify({
+        "edition": {
+            "id": edition.id,
+            "name": edition.name,
+            "year": edition.year
+        },
+        "athletes": [
+            {
+                "id": athlete.id,
+                "edition_id": athlete.edition_id,
+                "team_id": athlete.team_id,
+                "name": athlete.name,
+                "age": athlete.age,
+                "sex": athlete.sex,
+                "team": {
+                    "id": team.id,
+                    "name": team.name,
+                    "color": team.color,
+                    "coach": team.coach,
+                    "shift": team.shift
+                }
+            }
+            for athlete, team in athletes
+        ]
+    }), 200
+
 
 @app.route("/admin/passeios")
 @admin_required_page

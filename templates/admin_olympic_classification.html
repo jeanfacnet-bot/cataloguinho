@@ -1,0 +1,257 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classificação - Olimpíadas</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 25px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px #00000015;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: center;
+        }
+
+        th {
+            background: #183153;
+            color: white;
+        }
+
+        tbody tr:hover {
+            background: #f1f5fa;
+        }
+		
+		tbody tr.first-place {
+			background: #dcfce7;
+		}
+
+		tbody tr.first-place:hover {
+			background: #bbf7d0;
+		}
+
+        .team {
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .points {
+			display: inline-block;
+			min-width: 28px;
+			padding: 6px 10px;
+			border-radius: 8px;
+			background: #dbeafe;
+			color: #1e40af;
+			font-weight: bold;
+			text-align: center;
+		}
+
+        .empty {
+            padding: 25px;
+            color: #777;
+        }
+
+        .legend {
+            color: #666;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    {% set modalidade = modality_name|lower|trim %}
+    {% set usa_gols = modalidade in ['futsal', 'golzinho'] %}
+
+    <div class="container">
+	
+		
+		<div style="margin-bottom: 25px;">
+			<a
+				href="/admin/olimpiadas"
+				style="
+					display: inline-block;
+					padding: 10px 18px;
+					background: #183153;
+					color: white;
+					text-decoration: none;
+					border-radius: 8px;
+					font-weight: bold;
+				"
+			>
+				← Voltar ao painel das Olimpíadas
+			</a>
+		</div>
+
+
+        <h1>Olimpíadas Internas</h1>
+
+        <p class="subtitle">
+			Modalidade: <strong>{{ modality_name }}</strong>
+			— Turno: <strong>{{ shift|capitalize }}</strong>
+		</p>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Pos.</th>
+                        <th>Equipe</th>
+                        <th>Técnico</th>
+						<th>Pts</th>
+                        <th>J</th>
+                        <th>V</th>
+                        <th>E</th>
+                        <th>D</th>
+					{% if usa_gols %}
+						<th>GP</th>
+						<th>GC</th>
+						<th>SG</th>
+						<th>Faltas</th>
+						<th>CA</th>
+						<th>CV</th>
+					{% endif %}			
+						
+                    </tr>
+                </thead>
+
+                <tbody>
+					{% for team in classification %}
+
+					{% set empatada_em_primeiro = false %}
+
+					{% if team.position in [1, 2] and classification|length > 1 %}
+						{% set segunda = classification[1] %}
+
+						{% if usa_gols %}
+							{% set empatada_em_primeiro = (
+								team.points == segunda.points
+								and team.goal_difference == segunda.goal_difference
+								and team.red_cards == segunda.red_cards
+								and team.yellow_cards == segunda.yellow_cards
+								and team.fouls == segunda.fouls
+							) %}
+						{% else %}
+							{% set empatada_em_primeiro = (
+								team.points == segunda.points
+								and team.wins == segunda.wins
+							) %}
+						{% endif %}
+					{% endif %}
+
+					<tr {% if team.position == 1 and not empatada_em_primeiro %}class="first-place"{% endif %}>
+						
+						<td>
+							{% if team.position == 1 %}
+								🥇 1º
+							{% elif team.position == 2 %}
+								🥈 2º
+							{% elif team.position == 3 %}
+								🥉 3º
+							{% else %}
+								{{ team.position }}º
+							{% endif %}
+						</td>
+                        <td class="team">{{ team.team_name }}</td>
+                        <td>{{ team.coach }}</td>
+						<td>
+							<span class="points">{{ team.points }}</span>
+						</td>
+                        <td>{{ team.played }}</td>
+                        <td>{{ team.wins }}</td>
+                        <td>{{ team.draws }}</td>
+                        <td>{{ team.losses }}</td>
+                        {% if usa_gols %}
+							<td>{{ team.goals_for }}</td>
+							<td>{{ team.goals_against }}</td>
+
+							<td>
+								{% if team.goal_difference > 0 %}
+									<span style="color: #15803d; font-weight: bold;">
+										+{{ team.goal_difference }}
+									</span>
+								{% elif team.goal_difference < 0 %}
+									<span style="color: #dc2626; font-weight: bold;">
+										{{ team.goal_difference }}
+									</span>
+								{% else %}
+									<span style="color: #64748b;">
+										0
+									</span>
+								{% endif %}
+							</td>
+
+							<td>{{ team.fouls }}</td>
+							<td>{{ team.yellow_cards }}</td>
+							<td>{{ team.red_cards }}</td>
+						{% endif %}
+						
+						
+                        
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="11" class="empty">
+                            Nenhuma equipe encontrada.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <p class="legend">
+			Pts = Pontos |
+			J = Jogos |
+			V = Vitórias |
+			E = Empates |
+			D = Derrotas
+
+			{% if usa_gols %}
+				| GP = Gols Pró
+				| GC = Gols Contra
+				| SG = Saldo de Gols
+				| CA = Cartões Amarelos
+				| CV = Cartões Vermelhos
+			{% endif %}
+		</p>
+
+    </div>
+</body>
+</html>
