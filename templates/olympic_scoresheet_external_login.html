@@ -1,0 +1,237 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <meta name="robots" content="noindex, nofollow">
+
+    <title>Acesso às Súmulas | Bombeiro Mirim Ceilândia</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: linear-gradient(
+                135deg,
+                #0f172a,
+                #1e3a8a
+            );
+            font-family: Arial, sans-serif;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 440px;
+            padding: 35px 28px;
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 20px 50px rgba(0,0,0,.25);
+            text-align: center;
+        }
+
+        .emblem {
+            font-size: 55px;
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            margin: 0;
+            color: #0f172a;
+            font-size: 25px;
+        }
+
+        .subtitle {
+            margin: 12px 0 28px;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            text-align: left;
+            font-weight: bold;
+            color: #334155;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        input:focus {
+            outline: 2px solid #2563eb;
+            border-color: transparent;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 18px;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: #1d4ed8;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1e40af;
+        }
+
+        button:disabled {
+            opacity: .65;
+            cursor: wait;
+        }
+
+        .message {
+            margin-top: 18px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #b91c1c;
+        }
+
+        .footer {
+            margin-top: 28px;
+            padding-top: 18px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="login-card">
+
+        <div class="emblem">🚒</div>
+
+        <h1>Olimpíadas Internas</h1>
+
+        <p class="subtitle">
+            Programa Bombeiro Mirim de Ceilândia
+            <br>
+            <strong>Acesso às Súmulas</strong>
+        </p>
+
+        <form id="olympicExternalLoginForm">
+
+            <label for="accessKey">
+                Chave de acesso
+            </label>
+
+            <input
+                type="password"
+                id="accessKey"
+                name="access_key"
+                minlength="12"
+                maxlength="128"
+                placeholder="Digite sua chave"
+                autocomplete="off"
+                required
+            >
+
+            <button
+                type="submit"
+                id="btnOlympicExternalLogin"
+            >
+                🔐 Entrar nas súmulas
+            </button>
+
+        </form>
+
+        <p
+            id="olympicExternalLoginMessage"
+            class="message"
+            role="status"
+            aria-live="polite"
+        ></p>
+
+        <div class="footer">
+            Acesso restrito aos militares autorizados.
+            <br>
+            Bombeiro Mirim — Ceilândia
+        </div>
+
+    </main>
+
+    <script>
+        document.getElementById(
+            "olympicExternalLoginForm"
+        ).addEventListener("submit", async function(event) {
+
+            event.preventDefault();
+
+            const button = document.getElementById(
+                "btnOlympicExternalLogin"
+            );
+
+            const message = document.getElementById(
+                "olympicExternalLoginMessage"
+            );
+
+            const accessKey = document.getElementById(
+                "accessKey"
+            ).value;
+
+            button.disabled = true;
+            message.textContent = "Validando acesso...";
+
+            try {
+                const response = await fetch(
+                    "/olimpiadas/sumulas/autenticar",
+                    {
+                        method: "POST",
+                        credentials: "same-origin",
+                        cache: "no-store",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            access_key: accessKey
+                        })
+                    }
+                );
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(
+                        result.message ||
+                        "Não foi possível validar o acesso."
+                    );
+                }
+
+                window.location.replace(
+                    result.redirect_url
+                );
+
+            } catch (error) {
+                message.textContent = error.message;
+
+            } finally {
+                button.disabled = false;
+            }
+        });
+    </script>
+
+</body>
+</html>

@@ -961,6 +961,30 @@
 				</button>
 
 			</div>
+			
+			
+			<!-- GERENCIAMENTO DAS CHAVES DE SÚMULAS -->
+
+			<div class="olympics-card">
+
+				<h2>🔑 Chaves de acesso às súmulas</h2>
+
+				<p>
+					Cadastre militares autorizados, gere chaves
+					de acesso e revogue permissões quando necessário.
+				</p>
+
+				<button
+					type="button"
+					id="btnManageOlympicAccessKeys"
+					onclick="toggleOlympicAccessKeys()"
+					style="cursor: pointer; opacity: 1;"
+				>
+					Gerenciar chaves
+				</button>
+
+			</div>
+
 
             <div class="olympics-card">
                 <h2>🏆 Classificação</h2>
@@ -1434,6 +1458,173 @@
 
 			</div>
 		</section>
+		
+		
+		<!-- ==========================================
+			 OLIMPÍADAS - CHAVES DE ACESSO
+		========================================== -->
+
+		<section
+			id="olympicAccessKeysSection"
+			style="display: none; margin-top: 30px;"
+		>
+
+			<div class="olympics-card">
+
+				<h2>🔑 Gerenciamento de chaves de acesso</h2>
+
+				<p>
+					Cadastre os militares que poderão preencher
+					as súmulas das Olimpíadas.
+				</p>
+
+				<div style="
+					display: grid;
+					gap: 15px;
+					max-width: 550px;
+					margin-top: 20px;
+				">
+
+					<div>
+						<label for="olympicAccessKeyName">
+							Nome do militar ou responsável
+						</label>
+
+						<input
+							type="text"
+							id="olympicAccessKeyName"
+							maxlength="150"
+							placeholder="Ex.: Sgt Patrick"
+							style="width: 100%; padding: 12px;"
+						>
+					</div>
+					
+					
+					<div>
+						<label for="olympicCustomAccessKey">
+							Chave de acesso personalizada
+						</label>
+
+						<input
+							type="text"
+							id="olympicCustomAccessKey"
+							minlength="12"
+							maxlength="128"
+							autocomplete="off"
+							spellcheck="false"
+							placeholder="Digite a chave que deseja cadastrar"
+							style="width: 100%; padding: 12px;"
+						>
+
+						<small style="color: #64748b;">
+							Mínimo de 12 caracteres. Utilize uma chave
+							diferente para cada militar.
+						</small>
+					</div>
+
+
+					<div>
+						<label for="olympicAccessKeyExpiration">
+							Validade da chave
+						</label>
+
+						<select
+							id="olympicAccessKeyExpiration"
+							style="width: 100%; padding: 12px;"
+						>
+							<option value="">Sem vencimento</option>
+							<option value="7">7 dias</option>
+							<option value="15">15 dias</option>
+							<option value="30">30 dias</option>
+							<option value="60">60 dias</option>
+							<option value="90">90 dias</option>
+						</select>
+					</div>
+
+					<button
+						type="button"
+						id="btnCreateOlympicAccessKey"
+						onclick="createOlympicAccessKey()"
+						style="
+							padding: 12px 20px;
+							background: #15803d;
+							color: white;
+							border: none;
+							border-radius: 8px;
+							cursor: pointer;
+						"
+					>
+						🔑 Gerar nova chave
+					</button>
+
+				</div>
+
+				<div
+					id="olympicGeneratedKeyContainer"
+					style="
+						display: none;
+						margin-top: 25px;
+						padding: 20px;
+						background: #eff6ff;
+						border: 1px solid #93c5fd;
+						border-radius: 10px;
+					"
+				>
+
+					<h3>Chave gerada com sucesso</h3>
+
+					<p>
+						Copie a chave e entregue ao responsável.
+						Ela não poderá ser consultada novamente.
+					</p>
+
+					<input
+						type="text"
+						id="olympicGeneratedKey"
+						readonly
+						autocomplete="off"
+						style="
+							width: 100%;
+							padding: 12px;
+							font-family: monospace;
+						"
+					>
+
+					<button
+						type="button"
+						onclick="copyOlympicAccessKey()"
+						style="
+							margin-top: 12px;
+							padding: 10px 20px;
+							cursor: pointer;
+						"
+					>
+						📋 Copiar chave
+					</button>
+
+				</div>
+
+				<hr style="margin: 30px 0;">
+
+				<h3>Chaves cadastradas</h3>
+
+				<div id="olympicAccessKeysList">
+					<p>
+						Abra esta seção para consultar
+						as chaves cadastradas.
+					</p>
+				</div>
+
+				<p
+					id="olympicAccessKeysMessage"
+					role="status"
+					style="margin-top: 15px;"
+				></p>
+
+			</div>
+
+		</section>
+
 		
 		<!-- ==========================================
 			 GERENCIAMENTO DAS SÚMULAS
@@ -9107,6 +9298,307 @@
 
 
 	</script>
+	
+	
+	<!-- OLIMPÍADAS - GERENCIAMENTO DAS CHAVES -->
+	<script>
+		const olympicKeysApi = "/admin/olimpiadas/chaves-sumulas";
+
+		function olympicKeyMessage(text, isError = false) {
+			const element = document.getElementById(
+				"olympicAccessKeysMessage"
+			);
+
+			if (element) {
+				element.textContent = text;
+				element.style.color = isError ? "#b91c1c" : "#166534";
+			}
+		}
+
+		async function olympicKeyRequest(url, options = {}) {
+			const response = await fetch(url, {
+				credentials: "same-origin",
+				cache: "no-store",
+				...options
+			});
+
+			const contentType =
+				response.headers.get("content-type") || "";
+
+			if (!contentType.includes("application/json")) {
+				throw new Error(
+					"Não foi possível validar a sessão administrativa. " +
+					"Atualize a página e faça login novamente."
+				);
+			}
+
+			const result = await response.json();
+
+			if (!response.ok || !result.success) {
+				throw new Error(
+					result.message || "Não foi possível concluir a operação."
+				);
+			}
+
+			return result;
+		}
+
+		async function toggleOlympicAccessKeys() {
+			const section = document.getElementById(
+				"olympicAccessKeysSection"
+			);
+
+			if (!section) {
+				alert("Seção de gerenciamento não encontrada.");
+				return;
+			}
+
+			const opening = getComputedStyle(section).display === "none";
+
+			section.style.display = opening ? "block" : "none";
+
+			if (opening) {
+				section.scrollIntoView({
+					behavior: "smooth",
+					block: "start"
+				});
+
+				await loadOlympicAccessKeys();
+			}
+		}
+
+		async function loadOlympicAccessKeys() {
+			const container = document.getElementById(
+				"olympicAccessKeysList"
+			);
+
+			if (!container) return;
+
+			container.replaceChildren();
+			container.textContent = "Carregando chaves...";
+
+			try {
+				const result = await olympicKeyRequest(olympicKeysApi);
+
+				container.replaceChildren();
+
+				if (!result.keys.length) {
+					container.textContent =
+						"Nenhuma chave cadastrada até o momento.";
+					return;
+				}
+
+				const table = document.createElement("table");
+				table.style.cssText =
+					"width:100%;border-collapse:collapse;";
+
+				const header = document.createElement("tr");
+
+				["Responsável", "Situação", "Validade", "Ação"]
+					.forEach(function (title) {
+						const th = document.createElement("th");
+						th.textContent = title;
+						th.style.cssText =
+							"padding:10px;text-align:left;border-bottom:1px solid #ddd;";
+						header.appendChild(th);
+					});
+
+				table.appendChild(header);
+
+				result.keys.forEach(function (record) {
+					const row = document.createElement("tr");
+
+					const name = document.createElement("td");
+					name.textContent = record.name;
+
+					const status = document.createElement("td");
+					const expired = record.expires_at &&
+						new Date(record.expires_at + "Z") <= new Date();
+
+					status.textContent = !record.is_active
+						? "Revogada"
+						: expired ? "Expirada" : "Ativa";
+
+					const expiration = document.createElement("td");
+					expiration.textContent = record.expires_at
+						? new Date(record.expires_at + "Z")
+							.toLocaleDateString("pt-BR")
+						: "Sem vencimento";
+
+					const actions = document.createElement("td");
+
+					if (record.is_active && !expired) {
+						const button = document.createElement("button");
+						button.type = "button";
+						button.textContent = "Revogar";
+						button.style.cssText =
+							"padding:8px 12px;background:#b91c1c;" +
+							"color:white;border:0;border-radius:6px;cursor:pointer;";
+
+						button.addEventListener("click", function () {
+							revokeOlympicAccessKey(record.id, record.name);
+						});
+
+						actions.appendChild(button);
+					} else {
+						actions.textContent = "—";
+					}
+
+					[name, status, expiration, actions]
+						.forEach(function (cell) {
+							cell.style.padding = "10px";
+							cell.style.borderBottom = "1px solid #e2e8f0";
+							row.appendChild(cell);
+						});
+
+					table.appendChild(row);
+				});
+
+				const wrapper = document.createElement("div");
+				wrapper.style.overflowX = "auto";
+				wrapper.appendChild(table);
+				container.appendChild(wrapper);
+
+			} catch (error) {
+				container.textContent = "Erro ao carregar as chaves.";
+				olympicKeyMessage(error.message, true);
+			}
+		}
+
+		async function createOlympicAccessKey() {
+			const nameInput = document.getElementById(
+				"olympicAccessKeyName"
+			);
+
+			const expirationInput = document.getElementById(
+				"olympicAccessKeyExpiration"
+			);
+
+			const button = document.getElementById(
+				"btnCreateOlympicAccessKey"
+			);
+
+			const name = nameInput.value.trim();
+			
+			
+			const customKeyInput = document.getElementById(
+				"olympicCustomAccessKey"
+			);
+
+			const accessKey = customKeyInput.value;
+
+			if (
+				accessKey.length < 12 ||
+				accessKey.length > 128 ||
+				accessKey !== accessKey.trim()
+			) {
+				olympicKeyMessage(
+					"A chave deve ter entre 12 e 128 caracteres, " +
+					"sem espaços no início ou no final.",
+					true
+				);
+				return;
+			}
+
+
+			if (!name || name.length > 150) {
+				olympicKeyMessage(
+					"Informe o nome do responsável (até 150 caracteres).",
+					true
+				);
+				return;
+			}
+
+			button.disabled = true;
+			olympicKeyMessage("Gerando chave...");
+
+			try {
+				const result = await olympicKeyRequest(olympicKeysApi, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json"
+					},
+					
+					body: JSON.stringify({
+						name: name,
+						access_key: accessKey,
+						expires_in_days: expirationInput.value || null
+					})
+
+				});
+
+				const keyInput = document.getElementById(
+					"olympicGeneratedKey"
+				);
+
+				keyInput.value = result.access_key;
+
+				document.getElementById(
+					"olympicGeneratedKeyContainer"
+				).style.display = "block";
+
+				nameInput.value = "";
+				customKeyInput.value = "";
+
+				olympicKeyMessage(
+					"Chave gerada! Copie e guarde o código antes de sair."
+				);
+
+				await loadOlympicAccessKeys();
+
+			} catch (error) {
+				olympicKeyMessage(error.message, true);
+
+			} finally {
+				button.disabled = false;
+			}
+		}
+
+		async function copyOlympicAccessKey() {
+			const input = document.getElementById(
+				"olympicGeneratedKey"
+			);
+
+			if (!input || !input.value) return;
+
+			try {
+				await navigator.clipboard.writeText(input.value);
+				olympicKeyMessage("Chave copiada para a área de transferência.");
+
+			} catch (error) {
+				input.focus();
+				input.select();
+				olympicKeyMessage(
+					"Selecione e copie a chave manualmente.",
+					true
+				);
+			}
+		}
+
+		async function revokeOlympicAccessKey(keyId, name) {
+			if (!confirm(
+				"Deseja revogar a chave de " + name + "?\n\n" +
+				"Esta operação não poderá ser desfeita."
+			)) {
+				return;
+			}
+
+			try {
+				await olympicKeyRequest(
+					olympicKeysApi + "/" + keyId + "/revogar",
+					{ method: "POST" }
+				);
+
+				await loadOlympicAccessKeys();
+
+				olympicKeyMessage("Chave revogada com sucesso.");
+
+			} catch (error) {
+				olympicKeyMessage(error.message, true);
+			}
+		}
+	</script>
+
 
 
     <script src="{{ static_asset('common_layout.js') }}"></script>

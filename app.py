@@ -3,6 +3,7 @@ from flask import (
     request,
     jsonify,
     render_template,
+    make_response,
     session,
     redirect,
     url_for,
@@ -688,6 +689,54 @@ class Report(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     reviewed_at = db.Column(db.DateTime, nullable=True)
     reviewed_by_admin_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+
+
+# ==========================================
+# OLIMPÍADAS - CHAVES DE ACESSO ÀS SÚMULAS
+# ==========================================
+
+class OlympicScoresheetAccessKey(db.Model):
+    __tablename__ = "olympic_scoresheet_access_keys"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    name = db.Column(
+        db.String(150),
+        nullable=False
+    )
+
+    key_hash = db.Column(
+        db.String(255),
+        nullable=False,
+        unique=True,
+        index=True
+    )
+
+    is_active = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+    expires_at = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
+    last_used_at = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
 
 # ==========================================
 # OLIMPÍADAS BOMBEIRO MIRIM
@@ -4974,6 +5023,299 @@ def login_required_page(view_func):
     return wrapper
 
 
+# ==========================================
+# OLIMPÍADAS - SEGURANÇA DAS CHAVES DE SÚMULAS
+# ==========================================
+
+def generate_olympic_scoresheet_key():
+    """
+    Gera uma chave aleatória de acesso às súmulas.
+    A chave original deve ser exibida somente
+    no momento do cadastro.
+    """
+    return secrets.token_urlsafe(32)
+
+
+def hash_olympic_scoresheet_key(access_key):
+    """
+    Calcula o hash da chave para armazenamento
+    e consulta no banco de dados.
+    """
+    return hashlib.sha256(
+        access_key.encode("utf-8")
+    ).hexdigest()
+
+
+def validate_olympic_scoresheet_key(access_key):
+    """
+    Verifica se a chave existe, está ativa
+    e ainda não expirou.
+
+    Retorna o registro da chave quando válida.
+    Caso contrário, retorna None.
+    """
+
+    if not isinstance(access_key, str):
+        return None
+
+    access_key = access_key.strip()
+
+    if not access_key or len(access_key) > 256:
+        return None
+
+    key_hash = hash_olympic_scoresheet_key(
+        access_key
+    )
+
+    access_record = (
+        OlympicScoresheetAccessKey.query
+        .filter_by(key_hash=key_hash)
+        .first()
+    )
+
+    if access_record is None:
+        return None
+
+    if not access_record.is_active:
+        return None
+
+    if (
+        access_record.expires_at is not None
+        and access_record.expires_at <= datetime.utcnow()
+    ):
+        return None
+
+    return access_record
+    
+
+# ==========================================
+# OLIMPÍADAS - AUTORIZAÇÃO EXTERNA DAS SÚMULAS
+# ==========================================
+
+def olympic_scoresheet_access_required(view_func):
+
+    @wraps(view_func)
+    def wrapper(*args, **kwargs):
+
+        access_id = session.get(
+            "olympic_scoresheet_access_id"
+        )
+
+        if not access_id:
+            return redirect(
+                url_for("olympic_scoresheet_external_login")
+            )
+
+        access_record = db.session.get(
+            OlympicScoresheetAccessKey,
+            access_id
+        )
+
+        if access_record is None:
+            session.pop(
+                "olympic_scoresheet_access_id",
+                None
+            )
+            return redirect(
+                url_for("olympic_scoresheet_external_login")
+            )
+
+        if not access_record.is_active:
+            session.pop(
+                "olympic_scoresheet_access_id",
+                None
+            )
+            return redirect(
+                url_for("olympic_scoresheet_external_login")
+            )
+
+        if (
+            access_record.expires_at is not None
+            and access_record.expires_at <= datetime.utcnow()
+        ):
+            session.pop(
+                "olympic_scoresheet_access_id",
+                None
+            )
+            return redirect(
+                url_for("olympic_scoresheet_external_login")
+            )
+
+        return view_func(*args, **kwargs)
+
+    return wrapper
+    
+
+# ==========================================
+# OLIMPÍADAS - PÁGINA EXTERNA DE ACESSO
+# ÀS SÚMULAS
+# ==========================================
+
+@app.route(
+    "/olimpiadas/sumulas/acesso",
+    methods=["GET"]
+)
+def olympic_scoresheet_external_login():
+
+    access_id = session.get(
+        "olympic_scoresheet_access_id"
+    )
+
+    if access_id:
+
+        access_record = db.session.get(
+            OlympicScoresheetAccessKey,
+            access_id
+        )
+
+        if (
+            access_record is not None
+            and access_record.is_active
+            and (
+                access_record.expires_at is None
+                or access_record.expires_at > datetime.utcnow()
+            )
+        ):
+            return redirect(
+                url_for("olympic_scoresheet_external_home")
+            )
+
+        session.pop(
+            "olympic_scoresheet_access_id",
+            None
+        )
+
+    response = make_response(
+        render_template(
+            "olympic_scoresheet_external_login.html"
+        )
+    )
+
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+
+    return response
+
+
+# ==========================================
+# OLIMPÍADAS - AUTENTICAÇÃO EXTERNA DAS SÚMULAS
+# ==========================================
+
+@app.route(
+    "/olimpiadas/sumulas/autenticar",
+    methods=["POST"]
+)
+def olympic_scoresheet_external_authenticate():
+
+    # Impede o uso de uma sessão antiga de acesso às súmulas.
+    session.pop("olympic_scoresheet_access_id", None)
+
+    # Exige JSON para a autenticação.
+    if not request.is_json:
+        return jsonify({
+            "success": False,
+            "message": "Requisição inválida."
+        }), 400
+
+    # Proteção contra requisições de outras origens.
+    if not olympic_admin_same_origin():
+        return jsonify({
+            "success": False,
+            "message": "Origem da requisição não autorizada."
+        }), 403
+
+    data = request.get_json(silent=True) or {}
+    access_key = data.get("access_key")
+
+    if (
+        not isinstance(access_key, str)
+        or len(access_key) < 12
+        or len(access_key) > 128
+    ):
+        return jsonify({
+            "success": False,
+            "message": "Chave de acesso inválida."
+        }), 401
+
+    access_record = validate_olympic_scoresheet_key(
+        access_key
+    )
+
+    if access_record is None:
+        return jsonify({
+            "success": False,
+            "message": "Chave inválida, revogada ou expirada."
+        }), 401
+
+    # Registra a identificação da chave na sessão.
+    # As rotas protegidas continuarão verificando
+    # se ela permanece ativa e dentro da validade.
+    session.clear()
+    session["olympic_scoresheet_access_id"] = access_record.id
+    session.permanent = False
+
+    access_record.last_used_at = datetime.utcnow()
+    db.session.commit()
+
+    response = jsonify({
+        "success": True,
+        "message": "Acesso autorizado.",
+        "redirect_url": url_for(
+            "olympic_scoresheet_external_home"
+        )
+    })
+
+    response.headers["Cache-Control"] = "no-store"
+
+    return response
+
+
+# ==========================================
+# OLIMPÍADAS - CONFRONTOS EXTERNOS
+# ==========================================
+
+@app.route(
+    "/olimpiadas/sumulas/confrontos",
+    methods=["GET"]
+)
+@olympic_scoresheet_access_required
+def olympic_scoresheet_external_home():
+
+    edition = (
+        OlympicEdition.query
+        .filter_by(is_active=True)
+        .order_by(OlympicEdition.year.desc())
+        .first()
+    )
+
+    if edition is None:
+        abort(404, description="Nenhuma edição ativa encontrada.")
+
+    matches = (
+        OlympicMatch.query
+        .filter_by(edition_id=edition.id)
+        .order_by(
+            OlympicMatch.match_date,
+            OlympicMatch.match_time,
+            OlympicMatch.id
+        )
+        .all()
+    )
+
+    response = make_response(
+        render_template(
+            "olympic_scoresheet_external_home.html",
+            edition=edition,
+            matches=matches
+        )
+    )
+
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+
+    return response
+
+
 def admin_required_page(view_func):
     @wraps(view_func)
     def wrapper(*args, **kwargs):
@@ -4985,6 +5327,287 @@ def admin_required_page(view_func):
 
         return view_func(*args, **kwargs)
     return wrapper
+    
+
+# ==========================================
+# OLIMPÍADAS - ADMINISTRAÇÃO DAS CHAVES
+# DE ACESSO ÀS SÚMULAS
+# ==========================================
+
+def olympic_admin_api_required(view_func):
+    @wraps(view_func)
+    def wrapper(*args, **kwargs):
+
+        if (
+            not session.get("user_id")
+            or not session.get("is_admin")
+        ):
+            return jsonify({
+                "success": False,
+                "message": "Acesso administrativo necessário."
+            }), 403
+
+        return view_func(*args, **kwargs)
+
+    return wrapper
+
+
+def olympic_admin_same_origin():
+    """
+    Confere a origem das requisições que
+    modificam as chaves de acesso.
+    """
+
+    origin = request.headers.get("Origin")
+    referer = request.headers.get("Referer")
+
+    if not origin and not referer:
+        return False
+
+    source = origin or referer
+
+    source_url = urlparse(source)
+
+    return (
+        source_url.scheme == request.scheme
+        and source_url.netloc == request.host
+    )
+
+
+# ==========================================
+# LISTAR CHAVES CADASTRADAS
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/chaves-sumulas",
+    methods=["GET"]
+)
+@olympic_admin_api_required
+def admin_list_olympic_scoresheet_keys():
+
+    records = (
+        OlympicScoresheetAccessKey.query
+        .order_by(
+            OlympicScoresheetAccessKey.id.desc()
+        )
+        .all()
+    )
+
+    return jsonify({
+        "success": True,
+        "keys": [
+            {
+                "id": record.id,
+                "name": record.name,
+                "is_active": record.is_active,
+                "created_at": (
+                    record.created_at.isoformat()
+                    if record.created_at else None
+                ),
+                "expires_at": (
+                    record.expires_at.isoformat()
+                    if record.expires_at else None
+                ),
+                "last_used_at": (
+                    record.last_used_at.isoformat()
+                    if record.last_used_at else None
+                )
+            }
+            for record in records
+        ]
+    })
+
+
+# ==========================================
+# CADASTRAR NOVA CHAVE
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/chaves-sumulas",
+    methods=["POST"]
+)
+@olympic_admin_api_required
+def admin_create_olympic_scoresheet_key():
+
+    if not olympic_admin_same_origin():
+        return jsonify({
+            "success": False,
+            "message": "Origem da requisição não autorizada."
+        }), 403
+
+    if not request.is_json:
+        return jsonify({
+            "success": False,
+            "message": "Envie os dados em JSON."
+        }), 415
+
+    data = request.get_json(silent=True) or {}
+
+    name = str(data.get("name") or "").strip()
+
+    if not name or len(name) > 150:
+        return jsonify({
+            "success": False,
+            "message": "Informe um nome de até 150 caracteres."
+        }), 400
+
+    expires_in_days = data.get("expires_in_days")
+
+    expires_at = None
+
+    if expires_in_days not in (None, ""):
+
+        if (
+            isinstance(expires_in_days, bool)
+            or not str(expires_in_days).isdigit()
+        ):
+            return jsonify({
+                "success": False,
+                "message": "Prazo de validade inválido."
+            }), 400
+
+        expires_in_days = int(expires_in_days)
+
+        if not 1 <= expires_in_days <= 365:
+            return jsonify({
+                "success": False,
+                "message": "O prazo deve ser de 1 a 365 dias."
+            }), 400
+
+        expires_at = (
+            datetime.utcnow()
+            + timedelta(days=expires_in_days)
+        )
+
+    
+        # Chave personalizada informada pelo administrador
+        access_key = data.get("access_key")
+
+        if not isinstance(access_key, str):
+            return jsonify({
+                "success": False,
+                "message": "Informe uma chave de acesso válida."
+            }), 400
+
+        # Não removemos espaços automaticamente para evitar
+        # modificar silenciosamente a chave escolhida.
+        if (
+            len(access_key) < 12
+            or len(access_key) > 128
+            or access_key != access_key.strip()
+        ):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "A chave deve ter entre 12 e 128 caracteres "
+                    "e não pode começar ou terminar com espaços."
+                )
+            }), 400
+
+        key_hash = hash_olympic_scoresheet_key(access_key)
+
+        existing_key = (
+            OlympicScoresheetAccessKey.query
+            .filter_by(key_hash=key_hash)
+            .first()
+        )
+
+        if existing_key:
+            return jsonify({
+                "success": False,
+                "message": "Esta chave já está cadastrada."
+            }), 409
+
+        record = OlympicScoresheetAccessKey(
+            name=name,
+            key_hash=key_hash,
+            is_active=True,
+            expires_at=expires_at
+        )
+
+
+    try:
+        db.session.add(record)
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+        app.logger.exception(
+            "Erro ao cadastrar chave de súmula."
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Não foi possível cadastrar a chave."
+        }), 500
+
+    response = jsonify({
+        "success": True,
+        "message": "Chave cadastrada com sucesso.",
+        "id": record.id,
+        "name": record.name,
+        "access_key": access_key
+    })
+
+    response.headers["Cache-Control"] = "no-store"
+
+    return response, 201
+
+
+# ==========================================
+# REVOGAR CHAVE DE ACESSO
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/chaves-sumulas/<int:key_id>/revogar",
+    methods=["POST"]
+)
+@olympic_admin_api_required
+def admin_revoke_olympic_scoresheet_key(key_id):
+
+    if not olympic_admin_same_origin():
+        return jsonify({
+            "success": False,
+            "message": "Origem da requisição não autorizada."
+        }), 403
+
+    record = db.session.get(
+        OlympicScoresheetAccessKey,
+        key_id
+    )
+
+    if record is None:
+        return jsonify({
+            "success": False,
+            "message": "Chave não encontrada."
+        }), 404
+
+    if not record.is_active:
+        return jsonify({
+            "success": False,
+            "message": "Esta chave já está revogada."
+        }), 400
+
+    try:
+        record.is_active = False
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+        app.logger.exception(
+            "Erro ao revogar chave de súmula."
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Não foi possível revogar a chave."
+        }), 500
+
+    return jsonify({
+        "success": True,
+        "message": "Chave revogada com sucesso."
+    })
+    
     
 @app.route(
     "/admin/olimpiadas/geral/<int:edition_id>",
@@ -11061,8 +11684,20 @@ def admin_delete_olympic_match(match_id):
     "/admin/olimpiadas/confrontos/<int:match_id>/sumula",
     methods=["GET"]
 )
+
 @admin_required_page
 def admin_olympic_scoresheet_page(match_id):
+    return render_olympic_scoresheet(
+        match_id,
+        external_access=False
+    )
+
+
+def render_olympic_scoresheet(
+    match_id,
+    external_access=False
+):
+
     match = db.session.get(OlympicMatch, match_id)
 
     if match is None:
@@ -11125,12 +11760,33 @@ def admin_olympic_scoresheet_page(match_id):
         athletes_team_b=athletes_team_b,
         selected_athlete_ids=selected_athlete_ids,
         saved_goals=saved_goals,
-        saved_attempts=saved_attempts
+        saved_attempts=saved_attempts,
+        external_access=external_access
+
     )
+
+
+# ==========================================
+# OLIMPÍADAS - ABRIR SÚMULA PELO ACESSO EXTERNO
+# ==========================================
+
+@app.route(
+    "/olimpiadas/sumulas/confrontos/<int:match_id>",
+    methods=["GET"]
+)
+@olympic_scoresheet_access_required
+def olympic_scoresheet_external_match(match_id):
+
+    return render_olympic_scoresheet(
+        match_id,
+        external_access=True
+    )
+
 
 # ==========================================
 # OLIMPÍADAS - SALVAR RASCUNHO DA SÚMULA
 # ==========================================
+
 
 @app.route(
     "/admin/olimpiadas/confrontos/<int:match_id>/sumula/rascunho",
@@ -11138,6 +11794,20 @@ def admin_olympic_scoresheet_page(match_id):
 )
 @admin_required_page
 def admin_save_olympic_scoresheet_draft(match_id):
+    return save_olympic_scoresheet_draft(match_id)
+
+
+@app.route(
+    "/olimpiadas/sumulas/confrontos/<int:match_id>/rascunho",
+    methods=["POST"]
+)
+@olympic_scoresheet_access_required
+def olympic_scoresheet_external_draft(match_id):
+    return save_olympic_scoresheet_draft(match_id)
+
+
+def save_olympic_scoresheet_draft(match_id):
+
 
     match = db.session.get(OlympicMatch, match_id)
 
@@ -11772,14 +12442,29 @@ def admin_save_olympic_scoresheet_draft(match_id):
             "message": "Não foi possível salvar o rascunho."
         }), 500
 
+
 @app.route(
     "/admin/olimpiadas/confrontos/<int:match_id>/sumula/finalizar",
     methods=["POST"]
 )
 @admin_required_page
 def admin_finalize_olympic_scoresheet(match_id):
+    return finalize_olympic_scoresheet(match_id)
+
+
+@app.route(
+    "/olimpiadas/sumulas/confrontos/<int:match_id>/finalizar",
+    methods=["POST"]
+)
+@olympic_scoresheet_access_required
+def olympic_scoresheet_external_finalize(match_id):
+    return finalize_olympic_scoresheet(match_id)
+
+
+def finalize_olympic_scoresheet(match_id):
 
     match = db.session.get(OlympicMatch, match_id)
+
 
     if match is None:
         return jsonify({

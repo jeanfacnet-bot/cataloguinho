@@ -103,8 +103,12 @@ body { background:var(--sum-bg); }
 
 <body>
 
-    {% include "partials/topbar.html" %}
-    {% include "partials/admin_sidebar.html" %}
+    
+	{% if not external_access %}
+		{% include "partials/topbar.html" %}
+		{% include "partials/admin_sidebar.html" %}
+	{% endif %}
+
 	<script>
 	(function () {
 		let adminLayoutUser = null;
@@ -1830,7 +1834,13 @@ body { background:var(--sum-bg); }
 
 				try {
 					const response = await fetch(
-						"/admin/olimpiadas/confrontos/{{ match.id }}/sumula/finalizar",
+						
+						{{ (
+							url_for("olympic_scoresheet_external_finalize", match_id=match.id)
+							if external_access
+							else url_for("admin_finalize_olympic_scoresheet", match_id=match.id)
+						)|tojson }}
+						,
 						{
 							method: "POST",
 							headers: {
@@ -2073,7 +2083,13 @@ body { background:var(--sum-bg); }
 			try {
 
 				const response = await fetch(
-					"/admin/olimpiadas/confrontos/{{ match.id }}/sumula/rascunho",
+					
+					{{ (
+						url_for("olympic_scoresheet_external_draft", match_id=match.id)
+						if external_access
+						else url_for("admin_save_olympic_scoresheet_draft", match_id=match.id)
+					)|tojson }}
+					,
 					{
 						method: "POST",
 						headers: {
@@ -2123,6 +2139,10 @@ body { background:var(--sum-bg); }
 
 	});
 	</script>
-<script src="{{ static_asset('common_layout.js') }}"></script>
+
+{% if not external_access %}
+    <script src="{{ static_asset('common_layout.js') }}"></script>
+{% endif %}
+
 </body>
 </html>
