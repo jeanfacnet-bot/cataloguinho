@@ -1505,16 +1505,16 @@
 							Chave de acesso personalizada
 						</label>
 
+						
 						<input
 							type="text"
 							id="olympicCustomAccessKey"
-							minlength="12"
-							maxlength="128"
 							autocomplete="off"
 							spellcheck="false"
 							placeholder="Digite a chave que deseja cadastrar"
 							style="width: 100%; padding: 12px;"
 						>
+
 
 						<small style="color: #64748b;">
 							Mínimo de 12 caracteres. Utilize uma chave
@@ -9487,18 +9487,15 @@
 
 			const accessKey = customKeyInput.value;
 
-			if (
-				accessKey.length < 12 ||
-				accessKey.length > 128 ||
-				accessKey !== accessKey.trim()
-			) {
+			
+			if (!accessKey.trim()) {
 				olympicKeyMessage(
-					"A chave deve ter entre 12 e 128 caracteres, " +
-					"sem espaços no início ou no final.",
+					"Informe uma chave de acesso.",
 					true
 				);
 				return;
 			}
+
 
 
 			if (!name || name.length > 150) {
