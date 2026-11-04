@@ -2726,13 +2726,17 @@ def get_existing_olympic_scheduled_matches(edition_id):
 
     scheduled_matches = []
 
+    
     for match in existing_matches:
 
-        if match.status == "CANCELADO":
+        # Jogos finalizados ou cancelados não ocupam
+        # horários na nova geração do calendário.
+        if match.status in ("FINALIZADO", "CANCELADO"):
             continue
 
         if match.match_date is None or match.match_time is None:
             continue
+
 
         duration = match.modality.match_duration_minutes
 
@@ -11620,6 +11624,93 @@ def admin_update_olympic_match(match_id):
         "success": True,
         "message": "Confronto atualizado com sucesso."
     })
+    
+
+# ==========================================
+# OLIMPÍADAS - LIMPAR CALENDÁRIO
+# PRESERVANDO JOGOS FINALIZADOS
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/edicoes/<int:edition_id>/calendario/limpar",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_clear_olympic_calendar(edition_id):
+
+    edition = db.session.get(OlympicEdition, edition_id)
+
+    if edition is None:
+        return jsonify({
+            "success": False,
+            "message": "Edição não encontrada."
+        }), 404
+
+    try:
+        # Seleciona apenas jogos NÃO finalizados.
+        matches = (
+            OlympicMatch.query
+            .filter(
+                OlympicMatch.edition_id == edition_id,
+                OlympicMatch.status != "FINALIZADO"
+            )
+            .all()
+        )
+
+        match_ids = [match.id for match in matches]
+
+        if not match_ids:
+            return jsonify({
+                "success": True,
+                "message": (
+                    "Nenhum jogo pendente para excluir. "
+                    "Todos os jogos finalizados foram preservados."
+                ),
+                "deleted": 0
+            })
+
+        # Remove registros associados somente
+        # aos confrontos que serão excluídos.
+        OlympicMatchParticipant.query.filter(
+            OlympicMatchParticipant.match_id.in_(match_ids)
+        ).delete(synchronize_session=False)
+
+        OlympicMatchGoal.query.filter(
+            OlympicMatchGoal.match_id.in_(match_ids)
+        ).delete(synchronize_session=False)
+
+        OlympicMatchAttempt.query.filter(
+            OlympicMatchAttempt.match_id.in_(match_ids)
+        ).delete(synchronize_session=False)
+
+        # Exclui os confrontos não finalizados.
+        for match in matches:
+            db.session.delete(match)
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": (
+                f"{len(matches)} confronto(s) excluído(s). "
+                "Os jogos finalizados foram preservados."
+            ),
+            "deleted": len(matches)
+        })
+
+    except Exception:
+        db.session.rollback()
+
+        app.logger.exception(
+            "Erro ao limpar calendário olímpico da edição %s",
+            edition_id
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Não foi possível limpar o calendário."
+        }), 500
+    
     
 # ==========================================
 # OLIMPÍADAS - EXCLUIR CONFRONTO

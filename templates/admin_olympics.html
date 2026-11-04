@@ -1742,7 +1742,26 @@
 								style="padding: 12px 20px; cursor: pointer;"
 							>
 								Gerar calendário automaticamente
-							</button>							
+							</button>
+
+							
+							<!-- LIMPAR CALENDÁRIO PRESERVANDO FINALIZADOS -->
+							<button
+								type="button"
+								id="btnClearOlympicCalendar"
+								style="
+									padding: 12px 20px;
+									margin-left: 10px;
+									background: #b91c1c;
+									color: white;
+									border: none;
+									border-radius: 8px;
+									cursor: pointer;
+								"
+							>
+								🗑️ Limpar calendário (preservar finalizados)
+							</button>
+			
 							
 							<div id="olympicCalendarPreview" style="display: none; margin-top: 20px;">
 								<h3>Prévia do Calendário de Confrontos</h3>
@@ -9232,6 +9251,80 @@
 
 		});
 		
+	
+		// LIMPAR CALENDÁRIO PRESERVANDO JOGOS FINALIZADOS
+		document.getElementById("btnClearOlympicCalendar")
+			?.addEventListener("click", async function () {
+
+				const selectedEdition = JSON.parse(
+					localStorage.getItem("olympic_selected_edition") || "null"
+				);
+
+				if (!selectedEdition || !selectedEdition.id) {
+					alert("Selecione uma edição das Olimpíadas.");
+					return;
+				}
+
+				const confirmed = confirm(
+					"ATENÇÃO!\n\n" +
+					"Esta operação excluirá definitivamente todos os " +
+					"confrontos NÃO FINALIZADOS desta edição, " +
+					"incluindo eventuais súmulas em andamento.\n\n" +
+					"Os jogos FINALIZADOS e seus resultados serão preservados.\n\n" +
+					"Deseja continuar?"
+				);
+
+				if (!confirmed) return;
+
+				const button = this;
+				const originalText = button.textContent;
+
+				button.disabled = true;
+				button.textContent = "Limpando calendário...";
+
+				try {
+					const response = await fetch(
+						`/admin/olimpiadas/edicoes/${selectedEdition.id}/calendario/limpar`,
+						{
+							method: "POST",
+							credentials: "same-origin",
+							headers: {
+								"Content-Type": "application/json"
+							}
+						}
+					);
+
+					const result = await response.json();
+
+					if (!response.ok || !result.success) {
+						throw new Error(
+							result.message || "Erro ao limpar calendário."
+						);
+					}
+
+					window.olympicCalendarPendingPreview = null;
+
+					alert(
+						result.message ||
+						"Calendário limpo com sucesso."
+					);
+
+					window.location.reload();
+
+				} catch (error) {
+					console.error(
+						"Erro ao limpar calendário:",
+						error
+					);
+
+					alert(error.message);
+
+				} finally {
+					button.disabled = false;
+					button.textContent = originalText;
+				}
+			});
+	
 		
     // CONFIRMAR CALENDÁRIO AUTOMÁTICO
     document.getElementById("btnSaveGeneratedCalendar")
