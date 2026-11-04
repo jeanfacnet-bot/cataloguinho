@@ -5227,11 +5227,9 @@ def olympic_scoresheet_external_authenticate():
     data = request.get_json(silent=True) or {}
     access_key = data.get("access_key")
 
-    if (
-        not isinstance(access_key, str)
-        or len(access_key) < 12
-        or len(access_key) > 128
-    ):
+    
+    if not isinstance(access_key, str) or not access_key.strip():
+
         return jsonify({
             "success": False,
             "message": "Chave de acesso inválida."
@@ -5491,18 +5489,15 @@ def admin_create_olympic_scoresheet_key():
 
         # Não removemos espaços automaticamente para evitar
         # modificar silenciosamente a chave escolhida.
-        if (
-            len(access_key) < 12
-            or len(access_key) > 128
-            or access_key != access_key.strip()
-        ):
+        
+        if not access_key.strip():
             return jsonify({
                 "success": False,
-                "message": (
-                    "A chave deve ter entre 12 e 128 caracteres "
-                    "e não pode começar ou terminar com espaços."
-                )
+                "message": "Informe uma chave de acesso."
             }), 400
+
+        access_key = access_key.strip()
+
 
         key_hash = hash_olympic_scoresheet_key(access_key)
 
