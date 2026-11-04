@@ -5449,8 +5449,8 @@ def admin_create_olympic_scoresheet_key():
             "message": "Informe um nome de até 150 caracteres."
         }), 400
 
+    
     expires_in_days = data.get("expires_in_days")
-
     expires_at = None
 
     if expires_in_days not in (None, ""):
@@ -5477,48 +5477,39 @@ def admin_create_olympic_scoresheet_key():
             + timedelta(days=expires_in_days)
         )
 
-    
-        # Chave personalizada informada pelo administrador
-        access_key = data.get("access_key")
+    # Chave personalizada
+    access_key = data.get("access_key")
 
-        if not isinstance(access_key, str):
-            return jsonify({
-                "success": False,
-                "message": "Informe uma chave de acesso válida."
-            }), 400
+    if not isinstance(access_key, str) or not access_key.strip():
+        return jsonify({
+            "success": False,
+            "message": "Informe uma chave de acesso."
+        }), 400
 
-        # Não removemos espaços automaticamente para evitar
-        # modificar silenciosamente a chave escolhida.
-        
-        if not access_key.strip():
-            return jsonify({
-                "success": False,
-                "message": "Informe uma chave de acesso."
-            }), 400
+    access_key = access_key.strip()
 
-        access_key = access_key.strip()
+    key_hash = hash_olympic_scoresheet_key(access_key)
+
+    existing_key = (
+        OlympicScoresheetAccessKey.query
+        .filter_by(key_hash=key_hash)
+        .first()
+    )
+
+    if existing_key:
+        return jsonify({
+            "success": False,
+            "message": "Esta chave já está cadastrada."
+        }), 409
+
+    record = OlympicScoresheetAccessKey(
+        name=name,
+        key_hash=key_hash,
+        is_active=True,
+        expires_at=expires_at
+    )
 
 
-        key_hash = hash_olympic_scoresheet_key(access_key)
-
-        existing_key = (
-            OlympicScoresheetAccessKey.query
-            .filter_by(key_hash=key_hash)
-            .first()
-        )
-
-        if existing_key:
-            return jsonify({
-                "success": False,
-                "message": "Esta chave já está cadastrada."
-            }), 409
-
-        record = OlympicScoresheetAccessKey(
-            name=name,
-            key_hash=key_hash,
-            is_active=True,
-            expires_at=expires_at
-        )
 
 
     try:
