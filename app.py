@@ -5804,6 +5804,35 @@ def admin_olympic_overall_page(edition_id):
 
 
 # ==========================================
+# OLIMPÍADAS - CLASSIFICAÇÃO GERAL PÚBLICA
+# ==========================================
+
+@app.route(
+    "/olimpiadas/classificacao-geral/<int:edition_id>",
+    methods=["GET"]
+)
+def public_olympic_overall_page(edition_id):
+
+    edition = db.session.get(
+        OlympicEdition,
+        edition_id
+    )
+
+    if edition is None:
+        return "Edição não encontrada", 404
+
+    result = calculate_olympic_overall_standings(
+        edition_id
+    )
+
+    return render_template(
+        "public_olympic_overall.html",
+        edition=edition,
+        result=result
+    )
+
+
+# ==========================================
 # OLIMPÍADAS - ANDAMENTO DAS CLASSIFICATÓRIAS
 # ==========================================
 
