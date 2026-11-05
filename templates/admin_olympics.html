@@ -1645,6 +1645,31 @@
 				</p>
 
 				<h3>Confrontos disponíveis</h3>
+				
+				
+				<div style="margin: 15px 0 20px;">
+					<label for="olympicScoresheetsStatusFilter"
+						   style="display: block; margin-bottom: 8px; font-weight: bold;">
+						Filtrar súmulas por situação
+					</label>
+
+					<select
+						id="olympicScoresheetsStatusFilter"
+						onchange="loadOlympicScoresheetMatches()"
+						style="width: 100%; max-width: 350px; padding: 10px;"
+					>
+						<option value="PENDENTES" selected>
+							Pendentes (padrão)
+						</option>
+						<option value="FINALIZADO">
+							Finalizados
+						</option>
+						<option value="TODOS">
+							Todos os confrontos
+						</option>
+					</select>
+				</div>
+
 
 				<p>
 					Selecione um confronto para preencher
@@ -4678,7 +4703,34 @@
 					return;
 				}
 
-				const matches = result.matches || [];
+				
+				const allMatches = result.matches || [];
+
+				const statusFilter = document.getElementById(
+					"olympicScoresheetsStatusFilter"
+				);
+
+				const selectedStatus = statusFilter?.value || "PENDENTES";
+
+				const matches = allMatches.filter(function (match) {
+
+					const status = String(match.status || "")
+						.trim()
+						.toUpperCase();
+
+					if (selectedStatus === "TODOS") {
+						return true;
+					}
+
+					if (selectedStatus === "FINALIZADO") {
+						return status === "FINALIZADO";
+					}
+
+					// Padrão: exibir somente confrontos não finalizados.
+					return status !== "FINALIZADO";
+
+				});
+
 
 				container.replaceChildren();
 

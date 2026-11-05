@@ -178,13 +178,16 @@
             <option value="VESPERTINO">Vespertino</option>
         </select>
 
-        <select id="filterStatus">
-            <option value="">Todas as situações</option>
-            <option value="AGENDADO">Agendados</option>
-            <option value="EM_ANDAMENTO">Em andamento</option>
-            <option value="FINALIZADO">Finalizados</option>
-            <option value="CANCELADO">Cancelados</option>
-        </select>
+        
+		<select id="filterStatus">
+			<option value="PENDENTES" selected>Pendentes (padrão)</option>
+			<option value="">Todas as situações</option>
+			<option value="AGENDADO">Agendados</option>
+			<option value="EM_ANDAMENTO">Em andamento</option>
+			<option value="FINALIZADO">Finalizados</option>
+			<option value="CANCELADO">Cancelados</option>
+		</select>
+
 
         <input
             type="search"
@@ -335,8 +338,12 @@
             const matchesShift =
                 !shift || card.dataset.shift === shift;
 
-            const matchesStatus =
-                !status || card.dataset.status === status;
+            
+			const matchesStatus =
+				status === "PENDENTES"
+					? card.dataset.status !== "FINALIZADO"
+					: (!status || card.dataset.status === status);
+
 
             const matchesSearch =
                 !search ||
@@ -374,6 +381,11 @@
         "input",
         filterOlympicMatches
     );
+	
+	
+	// Aplica o filtro padrão ao abrir a página
+	filterOlympicMatches();
+
 
     function openOlympicScoresheet(button) {
         const matchId = button.dataset.matchId;
