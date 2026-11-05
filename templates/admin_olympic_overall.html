@@ -6,7 +6,7 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1">
 
-    <title>Classificação Geral — Olimpíadas Bombeiro Mirim</title>
+    <title>Classificação Geral — Olimpíadas</title>
 
     <style>
         * { box-sizing: border-box; }
@@ -115,6 +115,9 @@
 <body>
 <div class="container">
 
+    <a class="back" href="javascript:history.back()">
+        ← Voltar
+    </a>
 
     <h1>🏆 Classificação Geral</h1>
 
@@ -354,6 +357,257 @@
     </p>
 
 </div>
+
+
+<div style="text-align:center; margin:30px 0;">
+    <button
+        type="button"
+        id="btn-gerar-finais"
+        onclick="visualizarFinais()"
+        style="padding:14px 24px; background:#176b43; color:white;
+               border:none; border-radius:8px; font-size:16px;
+               font-weight:bold; cursor:pointer;"
+    >
+        Visualizar Finais Interturnos
+    </button>
+</div>
+
+
+<section style="max-width:1100px; margin:25px auto; padding:20px;
+                background:white; border-radius:12px;">
+    <h3>Andamento das classificatórias</h3>
+
+    <button
+        type="button"
+        onclick="carregarAndamento()"
+        style="padding:10px 18px; background:#245a86;
+               color:white; border:0; border-radius:7px;
+               cursor:pointer; margin-bottom:15px;"
+    >
+        Atualizar andamento
+    </button>
+
+    <div id="andamento-olimpiadas">
+        Carregando classificações...
+    </div>
+</section>
+
+<script>
+async function carregarAndamento() {
+    const area = document.getElementById("andamento-olimpiadas");
+    area.textContent = "Consultando resultados...";
+
+    try {
+        const resposta = await fetch(
+            "/admin/olimpiadas/andamento/{{ edition.id }}",
+            { credentials: "same-origin" }
+        );
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.success) {
+            throw new Error(dados.message || "Erro ao consultar andamento.");
+        }
+
+        area.replaceChildren();
+
+        const tabela = document.createElement("table");
+        tabela.style.cssText =
+            "width:100%;border-collapse:collapse;font-size:14px;";
+
+        const cabecalho = document.createElement("tr");
+
+        for (const titulo of [
+            "Modalidade", "Turno", "Finalizados",
+            "Pendentes", "Líder", "Situação"
+        ]) {
+            const th = document.createElement("th");
+            th.textContent = titulo;
+            th.style.cssText =
+                "padding:10px;border-bottom:2px solid #ddd;text-align:left;";
+            cabecalho.appendChild(th);
+        }
+
+        tabela.appendChild(cabecalho);
+
+        for (const modalidade of dados.progress) {
+            for (const turno of modalidade.shifts) {
+                const linha = document.createElement("tr");
+
+                let situacao = "Em andamento";
+
+                if (turno.total === 0) {
+                    situacao = "Sem jogos cadastrados";
+                } else if (turno.completed) {
+                    situacao = "Campeã definida";
+                } else if (turno.pending === 0 && turno.tie) {
+                    situacao = "Desempate necessário";
+                }
+
+                const lider = turno.leader
+                    ? `${turno.leader.team} — ${turno.leader.coach} ` +
+                      `(${turno.leader.points} pts)`
+                    : "Ainda não definido";
+
+                const valores = [
+                    modalidade.modality,
+                    turno.shift === "MATUTINO" ? "Matutino" : "Vespertino",
+                    `${turno.finished}/${turno.total}`,
+                    String(turno.pending),
+                    lider,
+                    situacao
+                ];
+
+                for (const valor of valores) {
+                    const td = document.createElement("td");
+                    td.textContent = valor;
+                    td.style.cssText =
+                        "padding:10px;border-bottom:1px solid #eee;";
+                    linha.appendChild(td);
+                }
+
+                tabela.appendChild(linha);
+            }
+        }
+
+        area.appendChild(tabela);
+
+    } catch (erro) {
+        area.textContent = erro.message;
+    }
+}
+
+carregarAndamento();
+</script>
+
+
+<div id="painel-finais" style="display:none; margin:20px 0;">
+    <h3>Pré-visualização das finais interturnos</h3>
+    <div id="conteudo-finais"></div>
+
+    <button
+        type="button"
+        id="btn-confirmar-finais"
+        onclick="confirmarFinais()"
+        style="display:none; margin-top:16px; padding:12px 20px;
+               background:#176b43; color:white; border:none;
+               border-radius:8px; cursor:pointer;"
+    >
+        Confirmar e salvar finais
+    </button>
+</div>
+
+<script>
+const rotaFinais = "/admin/olimpiadas/gerar-finais/{{ edition.id }}";
+
+function criarLinha(texto) {
+    const p = document.createElement("p");
+    p.textContent = texto;
+    return p;
+}
+
+async function visualizarFinais() {
+    const painel = document.getElementById("painel-finais");
+    const conteudo = document.getElementById("conteudo-finais");
+    const confirmar = document.getElementById("btn-confirmar-finais");
+    const botao = document.getElementById("btn-gerar-finais");
+
+    painel.style.display = "block";
+    conteudo.replaceChildren(criarLinha("Calculando finais..."));
+    confirmar.style.display = "none";
+    botao.disabled = true;
+
+    try {
+        const resposta = await fetch(rotaFinais + "?preview=1", {
+            method: "POST",
+            credentials: "same-origin"
+        });
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.success) {
+            throw new Error(dados.message || "Erro ao calcular finais.");
+        }
+
+        conteudo.replaceChildren();
+
+        const criadas = dados.created || [];
+        const pendentes = dados.pending || [];
+        const existentes = dados.already_exists || [];
+
+        conteudo.appendChild(criarLinha(
+            `${criadas.length} final(is) pronta(s) para geração.`
+        ));
+
+        for (const final of criadas) {
+            conteudo.appendChild(criarLinha(
+                `${final.time} | ${final.modality}: ` +
+                `${final.team_a} x ${final.team_b}`
+            ));
+        }
+
+        if (pendentes.length) {
+            const titulo = document.createElement("h4");
+            titulo.textContent = "Modalidades pendentes";
+            conteudo.appendChild(titulo);
+
+            for (const item of pendentes) {
+                conteudo.appendChild(criarLinha(
+                    `${item.modality}: ${item.reason}`
+                ));
+            }
+        }
+
+        if (existentes.length) {
+            conteudo.appendChild(criarLinha(
+                "Finais já cadastradas: " + existentes.join(", ")
+            ));
+        }
+
+        if (criadas.length > 0) {
+            confirmar.style.display = "inline-block";
+        }
+
+    } catch (erro) {
+        conteudo.replaceChildren(criarLinha(erro.message));
+    } finally {
+        botao.disabled = false;
+    }
+}
+
+async function confirmarFinais() {
+    if (!confirm(
+        "Confirma o cadastro das finais interturnos? " +
+        "Os horários serão verificados novamente antes de salvar."
+    )) {
+        return;
+    }
+
+    const botao = document.getElementById("btn-confirmar-finais");
+    botao.disabled = true;
+
+    try {
+        const resposta = await fetch(rotaFinais, {
+            method: "POST",
+            credentials: "same-origin"
+        });
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.success) {
+            throw new Error(dados.message || "Erro ao salvar finais.");
+        }
+
+        alert(dados.message);
+        window.location.reload();
+
+    } catch (erro) {
+        alert(erro.message);
+        botao.disabled = false;
+    }
+}
+</script>
+
 
 </body>
 </html>

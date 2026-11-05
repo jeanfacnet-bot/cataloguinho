@@ -1,0 +1,613 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>Classificação Geral — Olimpíadas</title>
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 30px;
+            background: #f1f5f9;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 1150px;
+            margin: auto;
+        }
+
+        h1 { margin-bottom: 5px; }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 25px;
+        }
+
+        .panel {
+            background: white;
+            padding: 24px;
+            border-radius: 14px;
+            margin-bottom: 22px;
+            box-shadow: 0 3px 12px #0000000c;
+        }
+
+        .table-wrap { overflow-x: auto; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 13px 10px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #eaf0f7;
+            font-size: 13px;
+        }
+
+        td.team { text-align: left; }
+
+        .leader { background: #fff8df; }
+
+        .color-dot {
+            display: inline-block;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 1px solid #aaa;
+            vertical-align: middle;
+        }
+
+        .number {
+            font-size: 19px;
+            font-weight: bold;
+            color: #155eaa;
+        }
+
+        .status {
+            padding: 12px 16px;
+            border-radius: 9px;
+            background: #eff6ff;
+            margin-bottom: 20px;
+        }
+
+        .pending {
+            color: #92400e;
+            background: #fffbeb;
+        }
+
+        .champion {
+            color: #166534;
+            background: #f0fdf4;
+        }
+
+        .back {
+            display: inline-block;
+            margin-bottom: 20px;
+            text-decoration: none;
+            color: #1d4ed8;
+            font-weight: bold;
+        }
+
+        ul { line-height: 1.9; }
+
+        @media (max-width: 650px) {
+            body { padding: 12px; }
+            .panel { padding: 12px; }
+            th, td { padding: 9px 5px; font-size: 12px; }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <a class="back" href="javascript:history.back()">
+        ← Voltar
+    </a>
+
+    <h1>🏆 Classificação Geral</h1>
+
+    <div class="subtitle">
+        {{ edition.name }} — {{ edition.year }}
+    </div>
+
+    {% if result.champion %}
+        <div class="status champion">
+            🏆 Campeã geral confirmada:
+            <strong>
+                {{ result.champion.color }} —
+                {{ result.champion.coach }}
+            </strong>
+        </div>
+    {% elif result.complete %}
+        <div class="status">
+            Todas as finais estão registradas.
+            {% if result.teams %}
+                {% set first = result.teams[0] %}
+                {% if first.total_titles > 0 %}
+                    Verifique o desempate regulamentar
+                    antes de confirmar a campeã geral.
+                {% else %}
+                    Nenhum título registrado.
+                {% endif %}
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="status pending">
+            Classificação provisória:
+            existem finais ou desempates pendentes.
+        </div>
+    {% endif %}
+
+    <div class="panel">
+        <h2>Quadro geral de títulos</h2>
+
+        <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Pos.</th>
+                    <th>Equipe / Técnico</th>
+                    <th>Turno</th>
+                    <th>Títulos do turno</th>
+					<th>Títulos provisórios</th>
+					<th>Títulos interturnos</th>
+					<th>Total de títulos</th>
+					<th>Pontos extras</th>
+
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for team in result.teams %}
+                <tr class="{% if loop.first and result.champion %}leader{% endif %}">
+                    <td>{{ team.position }}º</td>
+
+                    <td class="team">
+                        <strong>{{ team.color }}</strong>
+                        <div>{{ team.coach }}</div>
+                    </td>
+
+                    <td>{{ team.shift|title }}</td>
+
+                    
+					<td>{{ team.shift_titles }}</td>
+
+					<td style="color: #b45309; font-weight: bold;">
+						{{ team.provisional_titles }}
+					</td>
+
+					<td>{{ team.intershift_titles }}</td>
+
+
+                    <td class="number">
+                        {{ team.total_titles }}
+                    </td>
+
+                    <td>+{{ team.bonus_points }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8">
+                        Nenhuma equipe cadastrada.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        
+        </table>
+        </div>
+    </div>
+
+    <!-- LÍDERES POR MODALIDADE -->
+    <div class="panel">
+        <h2>🏅 Líderes por modalidade</h2>
+
+        <p style="color: #64748b; line-height: 1.6;">
+            Acompanhe as equipes que ocupam a primeira
+            colocação em cada modalidade. As lideranças
+            parciais podem mudar conforme os resultados
+            dos próximos confrontos.
+        </p>
+
+        {% for shift in ["MATUTINO", "VESPERTINO"] %}
+
+        <h3 style="margin-top: 25px; color: #1e40af;">
+            {{ "🌅 Matutino" if shift == "MATUTINO"
+               else "🌇 Vespertino" }}
+        </h3>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Modalidade</th>
+                        <th>Equipe</th>
+                        <th>Técnico</th>
+                        <th>Pontos</th>
+                        <th>Situação</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for item in result.modality_leaders
+                       if item.shift == shift %}
+
+                    <tr>
+                        <td>
+                            <strong>{{ item.modality }}</strong>
+                        </td>
+
+                        <td>{{ item.color }}</td>
+
+                        <td>{{ item.coach }}</td>
+
+                        <td class="number">
+                            {{ item.points }}
+                        </td>
+
+                        <td>
+                            
+							{% if item.status == "DEFINITIVO" %}
+								<span style="color: #166534; font-weight: bold;">
+									🟢 Definitivo
+								</span>
+
+							{% elif item.status == "PARCIAL" %}
+								<span style="color: #b45309; font-weight: bold;">
+									🟡 Parcial
+								</span>
+
+							{% elif item.status == "AGUARDANDO" %}
+								<span style="color: #64748b; font-weight: bold;">
+									⚪ Aguardando resultados
+								</span>
+
+							
+							{% elif item.status == "EMPATE_PROVISORIO" %}
+								<span style="color: #b45309; font-weight: bold;">
+									🟡 Empate provisório
+								</span>
+
+							{% elif item.status == "DESEMPATE" %}
+								<span style="color: #991b1b; font-weight: bold;">
+									🔴 Desempate necessário
+								</span>
+
+							{% else %}
+								<span style="color: #64748b;">
+									Situação não identificada
+								</span>
+							{% endif %}
+
+
+                        </td>
+                    </tr>
+
+                    {% else %}
+                    <tr>
+                        <td colspan="5">
+                            Nenhuma liderança definida neste turno.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% endfor %}
+    </div>
+
+    <div class="panel">
+        <h2>🏅 Títulos confirmados</h2>
+
+
+        {% if result.confirmed %}
+            <ul>
+                {% for item in result.confirmed %}
+                    <li>
+                        <strong>{{ item.modality }}</strong>
+                        — {{ item.stage }}
+                        ({{ item.shift|title }}):
+                        {{ item.winner }}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Nenhum título confirmado até o momento.</p>
+        {% endif %}
+    </div>
+
+    <div class="panel">
+        <h2>📋 Finais pendentes</h2>
+
+        {% if result.pending %}
+            <ul>
+                {% for item in result.pending %}
+					<li>
+						<strong>{{ item.modality }}</strong> —
+						{{ item.shift|title }}:
+						{{ item.reason }}
+					</li>
+				{% endfor %}
+            </ul>
+        {% else %}
+            <p>Não há finais pendentes.</p>
+        {% endif %}
+    </div>
+
+    <p class="subtitle">
+        Critério principal: quantidade de títulos conquistados.
+        Cada vitória interturnos concede três pontos extras.
+        Empates na disputa geral exigem decisão regulamentar.
+    </p>
+
+</div>
+
+
+<div style="text-align:center; margin:30px 0;">
+    <button
+        type="button"
+        id="btn-gerar-finais"
+        onclick="visualizarFinais()"
+        style="padding:14px 24px; background:#176b43; color:white;
+               border:none; border-radius:8px; font-size:16px;
+               font-weight:bold; cursor:pointer;"
+    >
+        Visualizar Finais Interturnos
+    </button>
+</div>
+
+
+<section style="max-width:1100px; margin:25px auto; padding:20px;
+                background:white; border-radius:12px;">
+    <h3>Andamento das classificatórias</h3>
+
+    <button
+        type="button"
+        onclick="carregarAndamento()"
+        style="padding:10px 18px; background:#245a86;
+               color:white; border:0; border-radius:7px;
+               cursor:pointer; margin-bottom:15px;"
+    >
+        Atualizar andamento
+    </button>
+
+    <div id="andamento-olimpiadas">
+        Carregando classificações...
+    </div>
+</section>
+
+<script>
+async function carregarAndamento() {
+    const area = document.getElementById("andamento-olimpiadas");
+    area.textContent = "Consultando resultados...";
+
+    try {
+        const resposta = await fetch(
+            "/admin/olimpiadas/andamento/{{ edition.id }}",
+            { credentials: "same-origin" }
+        );
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.success) {
+            throw new Error(dados.message || "Erro ao consultar andamento.");
+        }
+
+        area.replaceChildren();
+
+        const tabela = document.createElement("table");
+        tabela.style.cssText =
+            "width:100%;border-collapse:collapse;font-size:14px;";
+
+        const cabecalho = document.createElement("tr");
+
+        for (const titulo of [
+            "Modalidade", "Turno", "Finalizados",
+            "Pendentes", "Líder", "Situação"
+        ]) {
+            const th = document.createElement("th");
+            th.textContent = titulo;
+            th.style.cssText =
+                "padding:10px;border-bottom:2px solid #ddd;text-align:left;";
+            cabecalho.appendChild(th);
+        }
+
+        tabela.appendChild(cabecalho);
+
+        for (const modalidade of dados.progress) {
+            for (const turno of modalidade.shifts) {
+                const linha = document.createElement("tr");
+
+                let situacao = "Em andamento";
+
+                if (turno.total === 0) {
+                    situacao = "Sem jogos cadastrados";
+                } else if (turno.completed) {
+                    situacao = "Campeã definida";
+                } else if (turno.pending === 0 && turno.tie) {
+                    situacao = "Desempate necessário";
+                }
+
+                const lider = turno.leader
+                    ? `${turno.leader.team} — ${turno.leader.coach} ` +
+                      `(${turno.leader.points} pts)`
+                    : "Ainda não definido";
+
+                const valores = [
+                    modalidade.modality,
+                    turno.shift === "MATUTINO" ? "Matutino" : "Vespertino",
+                    `${turno.finished}/${turno.total}`,
+                    String(turno.pending),
+                    lider,
+                    situacao
+                ];
+
+                for (const valor of valores) {
+                    const td = document.createElement("td");
+                    td.textContent = valor;
+                    td.style.cssText =
+                        "padding:10px;border-bottom:1px solid #eee;";
+                    linha.appendChild(td);
+                }
+
+                tabela.appendChild(linha);
+            }
+        }
+
+        area.appendChild(tabela);
+
+    } catch (erro) {
+        area.textContent = erro.message;
+    }
+}
+
+carregarAndamento();
+</script>
+
+
+<div id="painel-finais" style="display:none; margin:20px 0;">
+    <h3>Pré-visualização das finais interturnos</h3>
+    <div id="conteudo-finais"></div>
+
+    <button
+        type="button"
+        id="btn-confirmar-finais"
+        onclick="confirmarFinais()"
+        style="display:none; margin-top:16px; padding:12px 20px;
+               background:#176b43; color:white; border:none;
+               border-radius:8px; cursor:pointer;"
+    >
+        Confirmar e salvar finais
+    </button>
+</div>
+
+<script>
+const rotaFinais = "/admin/olimpiadas/gerar-finais/{{ edition.id }}";
+
+function criarLinha(texto) {
+    const p = document.createElement("p");
+    p.textContent = texto;
+    return p;
+}
+
+async function visualizarFinais() {
+    const painel = document.getElementById("painel-finais");
+    const conteudo = document.getElementById("conteudo-finais");
+    const confirmar = document.getElementById("btn-confirmar-finais");
+    const botao = document.getElementById("btn-gerar-finais");
+
+    painel.style.display = "block";
+    conteudo.replaceChildren(criarLinha("Calculando finais..."));
+    confirmar.style.display = "none";
+    botao.disabled = true;
+
+    try {
+        const resposta = await fetch(rotaFinais + "?preview=1", {
+            method: "POST",
+            credentials: "same-origin"
+        });
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.success) {
+            throw new Error(dados.message || "Erro ao calcular finais.");
+        }
+
+        conteudo.replaceChildren();
+
+        const criadas = dados.created || [];
+        const pendentes = dados.pending || [];
+        const existentes = dados.already_exists || [];
+
+        conteudo.appendChild(criarLinha(
+            `${criadas.length} final(is) pronta(s) para geração.`
+        ));
+
+        for (const final of criadas) {
+            conteudo.appendChild(criarLinha(
+                `${final.time} | ${final.modality}: ` +
+                `${final.team_a} x ${final.team_b}`
+            ));
+        }
+
+        if (pendentes.length) {
+            const titulo = document.createElement("h4");
+            titulo.textContent = "Modalidades pendentes";
+            conteudo.appendChild(titulo);
+
+            for (const item of pendentes) {
+                conteudo.appendChild(criarLinha(
+                    `${item.modality}: ${item.reason}`
+                ));
+            }
+        }
+
+        if (existentes.length) {
+            conteudo.appendChild(criarLinha(
+                "Finais já cadastradas: " + existentes.join(", ")
+            ));
+        }
+
+        if (criadas.length > 0) {
+            confirmar.style.display = "inline-block";
+        }
+
+    } catch (erro) {
+        conteudo.replaceChildren(criarLinha(erro.message));
+    } finally {
+        botao.disabled = false;
+    }
+}
+
+async function confirmarFinais() {
+    if (!confirm(
+        "Confirma o cadastro das finais interturnos? " +
+        "Os horários serão verificados novamente antes de salvar."
+    )) {
+        return;
+    }
+
+    const botao = document.getElementById("btn-confirmar-finais");
+    botao.disabled = true;
+
+    try {
+        const resposta = await fetch(rotaFinais, {
+            method: "POST",
+            credentials: "same-origin"
+        });
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.success) {
+            throw new Error(dados.message || "Erro ao salvar finais.");
+        }
+
+        alert(dados.message);
+        window.location.reload();
+
+    } catch (erro) {
+        alert(erro.message);
+        botao.disabled = false;
+    }
+}
+</script>
+
+
+</body>
+</html>
