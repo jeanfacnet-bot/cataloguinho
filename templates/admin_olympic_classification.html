@@ -156,7 +156,7 @@
 
 					{% set empatada_em_primeiro = false %}
 
-					{% if team.position in [1, 2] and classification|length > 1 %}
+					{% if team.position in [1, 2] and classification|length > 1 %}	
 						{% set segunda = classification[1] %}
 
 						{% if usa_gols %}
@@ -251,6 +251,68 @@
 				| CV = Cartões Vermelhos
 			{% endif %}
 		</p>
+
+		
+        {% if usa_gols %}
+
+        <h2 style="
+            margin-top: 40px;
+            text-align: center;
+            color: #183153;
+        ">
+            🏆 Artilharia — {{ modality_name }}
+        </h2>
+
+        <p class="subtitle">
+            Ranking de artilheiros — {{ shift|capitalize }}
+        </p>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Pos.</th>
+                        <th>Atleta</th>
+                        <th>Equipe</th>
+                        <th>Técnico</th>
+                        <th>Gols</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for atleta in artilharia %}
+                    <tr {% if atleta.position == 1 %}class="first-place"{% endif %}>
+                        <td>
+                            {% if atleta.position == 1 %}
+                                🥇 1º
+                            {% elif atleta.position == 2 %}
+                                🥈 2º
+                            {% elif atleta.position == 3 %}
+                                🥉 3º
+                            {% else %}
+                                {{ atleta.position }}º
+                            {% endif %}
+                        </td>
+
+                        <td>{{ atleta.athlete_name }}</td>
+                        <td class="team">{{ atleta.team_name }}</td>
+                        <td>{{ atleta.coach }}</td>
+                        <td>
+                            <span class="points">{{ atleta.goals }}</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="empty">
+                            Nenhum gol registrado em jogos finalizados.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% endif %}
 
     </div>
 </body>

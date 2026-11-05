@@ -1695,6 +1695,64 @@ def admin_olympic_classification_page(
         OlympicModality,
         modality_id
     )
+    
+    
+    # Ranking de artilharia: Futsal e Golzinho
+    artilharia = []
+
+    if modality and modality.name.strip().lower() in ("futsal", "golzinho"):
+        gols_por_atleta = (
+            db.session.query(
+                OlympicAthlete.id.label("athlete_id"),
+                OlympicAthlete.name.label("athlete_name"),
+                OlympicTeam.name.label("team_name"),
+                OlympicTeam.coach.label("coach"),
+                func.sum(OlympicMatchGoal.goals).label("total_goals")
+            )
+            .join(
+                OlympicMatchGoal,
+                OlympicMatchGoal.athlete_id == OlympicAthlete.id
+            )
+            .join(
+                OlympicMatch,
+                OlympicMatch.id == OlympicMatchGoal.match_id
+            )
+            .join(
+                OlympicTeam,
+                OlympicTeam.id == OlympicAthlete.team_id
+            )
+            .filter(
+                OlympicMatch.edition_id == edition_id,
+                OlympicMatch.modality_id == modality_id,
+                func.upper(OlympicMatch.shift) == shift.strip().upper(),
+                OlympicMatch.phase == "CLASSIFICATORIA",
+                OlympicMatch.status == "FINALIZADO",
+                OlympicMatchGoal.goals > 0
+            )
+            .group_by(
+                OlympicAthlete.id,
+                OlympicAthlete.name,
+                OlympicTeam.name,
+                OlympicTeam.coach
+            )
+            .order_by(
+                func.sum(OlympicMatchGoal.goals).desc(),
+                OlympicAthlete.name.asc()
+            )
+            .all()
+        )
+
+        artilharia = [
+            {
+                "position": position,
+                "athlete_name": item.athlete_name,
+                "team_name": item.team_name,
+                "coach": item.coach,
+                "goals": int(item.total_goals)
+            }
+            for position, item in enumerate(gols_por_atleta, start=1)
+        ]
+
 
     return render_template(
         "admin_olympic_classification.html",
@@ -1702,7 +1760,8 @@ def admin_olympic_classification_page(
         modality_id=modality_id,
         modality_name=modality.name if modality else "Modalidade",
         shift=shift,
-        classification=classification
+        classification=classification,
+        artilharia=artilharia
     )
 
 # ==========================================
