@@ -1442,6 +1442,7 @@ def calculate_olympic_overall_standings(edition_id):
                 for match in matches
             )
 
+            
             # Sem resultados, ainda não há liderança provisória.
             if not has_results:
                 pending.append({
@@ -1449,7 +1450,21 @@ def calculate_olympic_overall_standings(edition_id):
                     "shift": shift,
                     "reason": "Aguardando resultados"
                 })
+
+                # Mantém a modalidade visível na tabela,
+                # mesmo sem confrontos finalizados.
+                modality_leaders.append({
+                    "modality": modality.name,
+                    "shift": shift,
+                    "team_id": None,
+                    "color": "—",
+                    "coach": "—",
+                    "points": 0,
+                    "status": "AGUARDANDO"
+                })
+
                 continue
+
 
             # Se ainda existem confrontos pendentes,
             # a classificação será considerada provisória.
@@ -1496,13 +1511,46 @@ def calculate_olympic_overall_standings(edition_id):
                 if ranking_key(item) == ranking_key(first)
             ]
 
+            
+            
             if len(tied) > 1:
                 pending.append({
                     "modality": modality.name,
                     "shift": shift,
-                    "reason": "Desempate regulamentar necessário"
+                    "reason": (
+                        "Desempate regulamentar necessário"
+                        if classification_complete
+                        else "Empate provisório na liderança"
+                    )
                 })
+
+
+                # Registra as equipes empatadas na liderança.
+                tied_teams = [
+                    (
+                        f'{standings[item["team_id"]]["color"]} — '
+                        f'{standings[item["team_id"]]["coach"]}'
+                    )
+                    for item in tied
+                ]
+
+                modality_leaders.append({
+                    "modality": modality.name,
+                    "shift": shift,
+                    "team_id": None,
+                    "color": " / ".join(tied_teams),
+                    "coach": "Desempate pendente",
+                    "points": first["points"],
+                    "status": (
+                        "DESEMPATE"
+                        if classification_complete
+                        else "EMPATE_PROVISORIO"
+                    )
+
+                })
+
                 continue
+
 
             
             winner_id = first["team_id"]
