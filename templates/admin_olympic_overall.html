@@ -164,9 +164,11 @@
                     <th>Equipe / Técnico</th>
                     <th>Turno</th>
                     <th>Títulos do turno</th>
-                    <th>Títulos interturnos</th>
-                    <th>Total de títulos</th>
-                    <th>Pontos extras</th>
+					<th>Títulos provisórios</th>
+					<th>Títulos interturnos</th>
+					<th>Total de títulos</th>
+					<th>Pontos extras</th>
+
                 </tr>
             </thead>
 
@@ -182,9 +184,15 @@
 
                     <td>{{ team.shift|title }}</td>
 
-                    <td>{{ team.shift_titles }}</td>
+                    
+					<td>{{ team.shift_titles }}</td>
 
-                    <td>{{ team.intershift_titles }}</td>
+					<td style="color: #b45309; font-weight: bold;">
+						{{ team.provisional_titles }}
+					</td>
+
+					<td>{{ team.intershift_titles }}</td>
+
 
                     <td class="number">
                         {{ team.total_titles }}
@@ -194,18 +202,100 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="7">
+                    <td colspan="8">
                         Nenhuma equipe cadastrada.
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
+        
         </table>
         </div>
     </div>
 
+    <!-- LÍDERES POR MODALIDADE -->
+    <div class="panel">
+        <h2>🏅 Líderes por modalidade</h2>
+
+        <p style="color: #64748b; line-height: 1.6;">
+            Acompanhe as equipes que ocupam a primeira
+            colocação em cada modalidade. As lideranças
+            parciais podem mudar conforme os resultados
+            dos próximos confrontos.
+        </p>
+
+        {% for shift in ["MATUTINO", "VESPERTINO"] %}
+
+        <h3 style="margin-top: 25px; color: #1e40af;">
+            {{ "🌅 Matutino" if shift == "MATUTINO"
+               else "🌇 Vespertino" }}
+        </h3>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Modalidade</th>
+                        <th>Equipe</th>
+                        <th>Técnico</th>
+                        <th>Pontos</th>
+                        <th>Situação</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for item in result.modality_leaders
+                       if item.shift == shift %}
+
+                    <tr>
+                        <td>
+                            <strong>{{ item.modality }}</strong>
+                        </td>
+
+                        <td>{{ item.color }}</td>
+
+                        <td>{{ item.coach }}</td>
+
+                        <td class="number">
+                            {{ item.points }}
+                        </td>
+
+                        <td>
+                            {% if item.status == "DEFINITIVO" %}
+                                <span style="
+                                    color: #166534;
+                                    font-weight: bold;
+                                ">
+                                    🟢 Definitivo
+                                </span>
+                            {% else %}
+                                <span style="
+                                    color: #b45309;
+                                    font-weight: bold;
+                                ">
+                                    🟡 Parcial
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    {% else %}
+                    <tr>
+                        <td colspan="5">
+                            Nenhuma liderança definida neste turno.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% endfor %}
+    </div>
+
     <div class="panel">
         <h2>🏅 Títulos confirmados</h2>
+
 
         {% if result.confirmed %}
             <ul>

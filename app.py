@@ -1398,14 +1398,20 @@ def calculate_olympic_overall_standings(edition_id):
             "coach": team.coach,
             "shift": team.shift,
             "shift_titles": 0,
+            "provisional_titles": 0,
             "intershift_titles": 0,
             "total_titles": 0,
             "bonus_points": 0,
-            "won_modalities": []
+            "won_modalities": [],
+            "provisional_modalities": []
+
         }
 
+    
     modality_results = []
     pending = []
+    modality_leaders = []
+
 
     for modality in modalities:
         champions = {}
@@ -1418,20 +1424,42 @@ def calculate_olympic_overall_standings(edition_id):
                 db.func.upper(OlympicMatch.shift) == shift
             ).all()
 
-            # Sem jogos ou com jogos pendentes:
-            # ainda não existe campeã confirmada.
-            if not matches or any(
-                match.status != "FINALIZADO"
-                or match.score_a is None
-                or match.score_b is None
+            
+            # Verifica se todos os confrontos classificatórios
+            # foram concluídos e possuem resultados válidos.
+            classification_complete = bool(matches) and all(
+                match.status == "FINALIZADO"
+                and match.score_a is not None
+                and match.score_b is not None
                 for match in matches
-            ):
+            )
+
+            # Verifica se existe pelo menos um resultado válido.
+            has_results = any(
+                match.status == "FINALIZADO"
+                and match.score_a is not None
+                and match.score_b is not None
+                for match in matches
+            )
+
+            # Sem resultados, ainda não há liderança provisória.
+            if not has_results:
+                pending.append({
+                    "modality": modality.name,
+                    "shift": shift,
+                    "reason": "Aguardando resultados"
+                })
+                continue
+
+            # Se ainda existem confrontos pendentes,
+            # a classificação será considerada provisória.
+            if not classification_complete:
                 pending.append({
                     "modality": modality.name,
                     "shift": shift,
                     "reason": "Classificatória não encerrada"
                 })
-                continue
+
 
             classification = calculate_olympic_classification(
                 edition_id,
@@ -1476,23 +1504,53 @@ def calculate_olympic_overall_standings(edition_id):
                 })
                 continue
 
+            
             winner_id = first["team_id"]
-            champions[shift] = winner_id
 
-            standings[winner_id]["shift_titles"] += 1
-            standings[winner_id]["won_modalities"].append(
-                f"{modality.name} — {shift.title()}"
-            )
-
-            modality_results.append({
+            # Registra a liderança para a tabela por modalidade.
+            modality_leaders.append({
                 "modality": modality.name,
-                "stage": "Campeã do turno",
                 "shift": shift,
-                "winner": (
-                    f'{standings[winner_id]["color"]} — '
-                    f'{standings[winner_id]["coach"]}'
+                "team_id": winner_id,
+                "color": standings[winner_id]["color"],
+                "coach": standings[winner_id]["coach"],
+                "points": first["points"],
+                "status": (
+                    "DEFINITIVO"
+                    if classification_complete
+                    else "PARCIAL"
                 )
             })
+
+            if classification_complete:
+                # Título confirmado somente após o encerramento
+                # de todos os confrontos classificatórios.
+                champions[shift] = winner_id
+
+                standings[winner_id]["shift_titles"] += 1
+
+                standings[winner_id]["won_modalities"].append(
+                    f"{modality.name} — {shift.title()}"
+                )
+
+                modality_results.append({
+                    "modality": modality.name,
+                    "stage": "Campeã do turno",
+                    "shift": shift,
+                    "winner": (
+                        f'{standings[winner_id]["color"]} — '
+                        f'{standings[winner_id]["coach"]}'
+                    )
+                })
+
+            else:
+                # Liderança provisória enquanto houver jogos pendentes.
+                standings[winner_id]["provisional_titles"] += 1
+
+                standings[winner_id]["provisional_modalities"].append(
+                    f"{modality.name} — {shift.title()}"
+                )
+
 
         # A final interturnos só pode ter resultado
         # reconhecido depois de ambas as campeãs
@@ -1572,11 +1630,16 @@ def calculate_olympic_overall_standings(edition_id):
             )
         })
 
+    
     for team in standings.values():
+        # Soma títulos definitivos, provisórios
+        # e conquistas das finais interturnos.
         team["total_titles"] = (
             team["shift_titles"]
+            + team["provisional_titles"]
             + team["intershift_titles"]
         )
+
 
     ordered = sorted(
         standings.values(),
@@ -1607,13 +1670,22 @@ def calculate_olympic_overall_standings(edition_id):
         if highest > 0 and len(leaders) == 1:
             champion = leaders[0]
 
+    
     return {
         "teams": ordered,
         "confirmed": modality_results,
         "pending": pending,
+        "modality_leaders": sorted(
+            modality_leaders,
+            key=lambda item: (
+                0 if item["shift"] == "MATUTINO" else 1,
+                item["modality"].lower()
+            )
+        ),
         "champion": champion,
         "complete": len(pending) == 0
     }
+
   
 # ==========================================
 # OLIMPÍADAS - CONSULTAR CLASSIFICAÇÃO GERAL
