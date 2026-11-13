@@ -40,6 +40,63 @@
         }
 
         .table-wrap { overflow-x: auto; }
+		
+		
+		/* CONTROLES DE ZOOM - CLASSIFICAÇÃO GERAL */
+
+		.zoom-toolbar {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			flex-wrap: wrap;
+			gap: 8px;
+			margin: 15px 0;
+		}
+
+		.zoom-toolbar button {
+			border: none;
+			background: #183153;
+			color: white;
+			border-radius: 8px;
+			padding: 10px 14px;
+			font-size: 16px;
+			font-weight: bold;
+			cursor: pointer;
+			min-height: 44px;
+			touch-action: manipulation;
+		}
+
+		.zoom-toolbar button:active {
+			background: #2563eb;
+		}
+
+		.zoom-toolbar .zoom-fit {
+			background: #15803d;
+			font-size: 14px;
+		}
+
+		.zoom-toolbar .zoom-level {
+			min-width: 55px;
+			text-align: center;
+			font-size: 14px;
+			font-weight: bold;
+			color: #183153;
+		}
+
+		@media (max-width: 600px) {
+			.zoom-toolbar {
+				gap: 6px;
+			}
+
+			.zoom-toolbar button {
+				padding: 10px 12px;
+			}
+
+			.zoom-toolbar .zoom-fit {
+				font-size: 12px;
+			}
+		}
+
 
         table {
             width: 100%;
@@ -153,11 +210,28 @@
         </div>
     {% endif %}
 
-    <div class="panel">
-        <h2>Quadro geral de títulos</h2>
+    
+	<h2>Quadro geral de títulos</h2>
 
-        <div class="table-wrap">
-        <table>
+	<div class="zoom-toolbar">
+		<button type="button" class="zoom-out" title="Diminuir zoom">
+			−
+		</button>
+
+		<span class="zoom-level">100%</span>
+
+		<button type="button" class="zoom-in" title="Aumentar zoom">
+			+
+		</button>
+
+		<button type="button" class="zoom-fit">
+			⛶ Ajustar à tela
+		</button>
+	</div>
+
+	<div class="table-wrap">
+		<table>
+
             <thead>
                 <tr>
                     <th>Pos.</th>
@@ -231,9 +305,27 @@
                else "🌇 Vespertino" }}
         </h3>
 
-        <div class="table-wrap">
-            <table>
-                <thead>
+        
+		<div class="zoom-toolbar">
+			<button type="button" class="zoom-out" title="Diminuir zoom">
+				−
+			</button>
+
+			<span class="zoom-level">100%</span>
+
+			<button type="button" class="zoom-in" title="Aumentar zoom">
+				+
+			</button>
+
+			<button type="button" class="zoom-fit">
+				⛶ Ajustar à tela
+			</button>
+		</div>
+
+		<div class="table-wrap">
+			<table>
+				<thead>
+
                     <tr>
                         <th>Modalidade</th>
                         <th>Equipe</th>
@@ -608,6 +700,63 @@ async function confirmarFinais() {
 }
 </script>
 
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    document.querySelectorAll(".zoom-toolbar").forEach(function (toolbar) {
+
+        const wrapper = toolbar.nextElementSibling;
+
+        if (!wrapper || !wrapper.classList.contains("table-wrap")) {
+            return;
+        }
+
+        const tabela = wrapper.querySelector("table");
+        if (!tabela) return;
+
+        const botaoMenos = toolbar.querySelector(".zoom-out");
+        const botaoMais = toolbar.querySelector(".zoom-in");
+        const botaoAjustar = toolbar.querySelector(".zoom-fit");
+        const indicador = toolbar.querySelector(".zoom-level");
+
+        let escala = 1;
+
+        function aplicarZoom(novaEscala) {
+            escala = Math.max(0.2, Math.min(3, novaEscala));
+
+            tabela.style.zoom = escala;
+            indicador.textContent = Math.round(escala * 100) + "%";
+
+            wrapper.scrollLeft = 0;
+        }
+
+        botaoMenos.addEventListener("click", function () {
+            aplicarZoom(escala - 0.1);
+        });
+
+        botaoMais.addEventListener("click", function () {
+            aplicarZoom(escala + 0.1);
+        });
+
+        botaoAjustar.addEventListener("click", function () {
+            tabela.style.zoom = 1;
+
+            const larguraTabela = tabela.scrollWidth;
+            const larguraDisponivel = wrapper.clientWidth;
+
+            if (larguraTabela > 0) {
+                aplicarZoom(
+                    Math.min(1, larguraDisponivel / larguraTabela)
+                );
+            }
+        });
+
+        aplicarZoom(1);
+    });
+
+});
+</script>
 
 </body>
 </html>
