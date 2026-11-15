@@ -42,6 +42,59 @@
         }
 		
 		
+		/* BOTÕES DE COMPARTILHAMENTO */
+
+		.share-toolbar {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			flex-wrap: wrap;
+			gap: 10px;
+			margin: 20px 0 10px;
+		}
+
+		.share-toolbar button {
+			border: none;
+			border-radius: 8px;
+			padding: 12px 16px;
+			color: white;
+			font-size: 14px;
+			font-weight: bold;
+			cursor: pointer;
+			min-height: 44px;
+			touch-action: manipulation;
+			transition: opacity 0.2s;
+		}
+
+		.share-toolbar button:hover {
+			opacity: 0.85;
+		}
+
+		.share-story {
+			background: #9333ea;
+		}
+
+		.share-post {
+			background: #db2777;
+		}
+
+		.share-image {
+			background: #15803d;
+		}
+
+		@media (max-width: 600px) {
+			.share-toolbar {
+				gap: 8px;
+			}
+
+			.share-toolbar button {
+				flex: 1 1 120px;
+				padding: 12px 8px;
+				font-size: 12px;
+			}
+		}
+
+		
 		/* CONTROLES DE ZOOM DAS TABELAS */
 
 		.zoom-toolbar {
@@ -187,6 +240,35 @@
 			Modalidade: <strong>{{ modality_name }}</strong>
 			— Turno: <strong>{{ shift|capitalize }}</strong>
 		</p>
+		
+		
+		
+		<!-- COMPARTILHAMENTO DA CLASSIFICAÇÃO -->
+		<div class="share-toolbar">
+
+			<button
+				type="button"
+				class="share-story"
+				onclick="gerarImagemClassificacao('story')">
+				📱 Gerar Story
+			</button>
+
+			<button
+				type="button"
+				class="share-post"
+				onclick="gerarImagemClassificacao('post')">
+				📸 Gerar Post
+			</button>
+
+			<button
+				type="button"
+				class="share-image">
+				📤 Compartilhar
+			</button>
+
+		</div>
+
+
 
 		<div class="zoom-toolbar">
 			<button type="button" class="zoom-out" title="Diminuir zoom">
@@ -466,6 +548,114 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 </script>
+
+<!-- BIBLIOTECA PARA GERAR IMAGENS DAS TABELAS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+
+<script>
+async function gerarImagemClassificacao(formato = "story") {
+
+    if (typeof html2canvas === "undefined") {
+        alert("A biblioteca de imagens não foi carregada.");
+        return;
+    }
+
+    const tabelaOriginal = document.querySelector(
+        ".container > .table-wrapper table"
+    );
+
+    if (!tabelaOriginal) {
+        alert("Tabela de classificação não encontrada.");
+        return;
+    }
+
+    const largura = 1080;
+    const altura = formato === "story" ? 1920 : 1080;
+
+    const area = document.createElement("div");
+
+    area.style.cssText = `
+        position: fixed;
+        left: -20000px;
+        top: 0;
+        width: ${largura}px;
+        height: ${altura}px;
+        background: #f4f6f9;
+        padding: 40px;
+        box-sizing: border-box;
+        font-family: Arial, sans-serif;
+        overflow: hidden;
+    `;
+
+    const titulo = document.createElement("h1");
+    titulo.textContent = "🏆 OLIMPÍADAS INTERNAS 2026";
+    titulo.style.cssText = `
+        text-align: center;
+        color: #183153;
+        font-size: 38px;
+        margin: 20px 0;
+    `;
+
+    const subtitulo = document.createElement("h2");
+    subtitulo.textContent = document.querySelector(
+        ".container > .subtitle"
+    )?.textContent.trim() || "Classificação";
+
+    subtitulo.style.cssText = `
+        text-align: center;
+        color: #475569;
+        font-size: 26px;
+        margin-bottom: 35px;
+    `;
+
+    const tabela = tabelaOriginal.cloneNode(true);
+
+    tabela.style.zoom = "1";
+    tabela.style.width = "100%";
+    tabela.style.fontSize = "18px";
+    tabela.style.background = "white";
+
+    const quadro = document.createElement("div");
+    quadro.style.cssText = `
+        width: 100%;
+        background: white;
+        border-radius: 15px;
+        padding: 15px;
+        box-sizing: border-box;
+    `;
+
+    quadro.appendChild(tabela);
+
+    area.appendChild(titulo);
+    area.appendChild(subtitulo);
+    area.appendChild(quadro);
+
+    document.body.appendChild(area);
+
+    try {
+        const canvas = await html2canvas(area, {
+            backgroundColor: "#f4f6f9",
+            scale: 1,
+            width: largura,
+            height: altura,
+            windowWidth: largura
+        });
+
+        const link = document.createElement("a");
+        link.download = `classificacao-${formato}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+
+    } catch (erro) {
+        console.error(erro);
+        alert("Não foi possível gerar a imagem.");
+    } finally {
+        area.remove();
+    }
+}
+</script>
+
 	
 </body>
 </html>
