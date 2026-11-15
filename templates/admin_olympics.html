@@ -1278,6 +1278,27 @@
 				<div id="olympicTeamsAthletesReportSection">
 
 					<h3>👥 Relatório de Equipes e Atletas</h3>
+					<div style="margin: 20px 0;">
+
+						<label for="reportAthletesModality">
+							Selecione a modalidade
+						</label>
+
+						<select
+							id="reportAthletesModality"
+							style="
+								display: block;
+								width: 100%;
+								padding: 10px;
+								margin-top: 8px;
+							"
+						>
+							<option value="">
+								Todas as modalidades (atletas cadastrados)
+							</option>
+						</select>
+
+					</div>
 
 					<p>
 						Consulte a relação completa das equipes,
@@ -2979,6 +3000,38 @@
 
 			window.print();
 		}
+		
+		async function loadOlympicAthletesReportModalities() {
+
+			const select = document.getElementById(
+				"reportAthletesModality"
+			);
+
+			if (!select) return;
+
+			// Aproveita as modalidades já carregadas pelo sistema.
+			const source = document.getElementById("reportModality");
+
+			select.innerHTML = `
+				<option value="">
+					Todas as modalidades (atletas cadastrados)
+				</option>
+			`;
+
+			if (!source) return;
+
+			Array.from(source.options).forEach(option => {
+
+				if (!option.value) return;
+
+				select.add(new Option(
+					option.textContent.trim(),
+					option.value
+				));
+
+			});
+
+		}
 	
 		// ==========================================
 		// OLIMPÍADAS — CONSULTAR ATLETAS DO RELATÓRIO
@@ -3025,10 +3078,61 @@
 					"reportAthletesTeam"
 				).value;
 
+				const selectedModality = document.getElementById(
+					"reportAthletesModality"
+				).value;
+
+				// Consulta as inscrições somente quando uma modalidade for selecionada
+				let registrations = [];
+
+				if (selectedModality) {
+
+					const registrationsResponse = await fetch(
+						`/admin/olimpiadas/edicoes/${edition.id}/inscricoes`,
+						{ credentials: "same-origin" }
+					);
+
+					const registrationsResult = await registrationsResponse.json();
+
+					if (!registrationsResponse.ok) {
+						throw new Error(
+							registrationsResult.message ||
+							"Erro ao consultar inscrições."
+						);
+					}
+
+					registrations = registrationsResult.registrations || [];
+				}
+
+				// Identifica os atletas inscritos na modalidade selecionada
+				const registeredAthleteIds = new Set();
+
+				if (selectedModality) {
+
+					registrations.forEach(function (registration) {
+
+						if (
+							String(registration.modality_id) === String(selectedModality)
+						) {
+							registeredAthleteIds.add(String(registration.athlete_id));
+						}
+
+					});
+
+				}
+
+				// Aplica os filtros de equipe e modalidade
 				const filteredAthletes = athletes.filter(function (athlete) {
 
-					return !selectedTeam ||
+					const matchesTeam =
+						!selectedTeam ||
 						String(athlete.team_id) === String(selectedTeam);
+
+					const matchesModality =
+						!selectedModality ||
+						registeredAthleteIds.has(String(athlete.id));
+
+					return matchesTeam && matchesModality;
 
 				});
 
@@ -3839,8 +3943,10 @@
 
 			section.style.display = "block";
 
-			// Carrega as modalidades do relatório de confrontos
-			loadOlympicReportModalities();
+			// Carrega as modalidades dos relatórios
+			loadOlympicReportModalities().then(() => {
+				loadOlympicAthletesReportModalities();
+			});
 
 			// Carrega as equipes do relatório de atletas
 			loadOlympicReportTeams();
