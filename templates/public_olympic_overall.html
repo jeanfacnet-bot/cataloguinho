@@ -248,9 +248,11 @@
             </thead>
 
             <tbody>
-                {% for team in result.teams %}
-                <tr class="{% if loop.first and result.champion %}leader{% endif %}">
-                    <td>{{ team.position }}º</td>
+                
+				{% for team in result.teams %}
+				<tr class="{% if result.champion and team.color == result.champion.color and team.shift == result.champion.shift %}leader{% endif %}">
+					<td>{{ team.position }}º</td>
+
 
                     <td class="team">
                         <strong>{{ team.color }}</strong>

@@ -1224,21 +1224,76 @@ def get_olympic_classification_matches(
     return matches  
 
 
+def olympic_head_to_head(team_a_id, team_b_id, matches):
+    """
+    Verifica o confronto direto entre duas equipes.
+
+    Retorna:
+        -1: equipe A venceu o confronto direto
+         1: equipe B venceu o confronto direto
+         0: empate ou confronto sem resultado decisivo
+
+    Considera somente partidas classificatórias
+    finalizadas, recebidas em matches.
+    """
+
+    points_a = 0
+    points_b = 0
+
+    for match in matches:
+        if match.score_a is None or match.score_b is None:
+            continue
+
+        if match.team_a_id == team_a_id and match.team_b_id == team_b_id:
+            score_a = match.score_a
+            score_b = match.score_b
+
+        elif match.team_a_id == team_b_id and match.team_b_id == team_a_id:
+            score_a = match.score_b
+            score_b = match.score_a
+
+        else:
+            continue
+
+        if score_a > score_b:
+            points_a += 3
+        elif score_b > score_a:
+            points_b += 3
+        else:
+            points_a += 1
+            points_b += 1
+
+    if points_a > points_b:
+        return -1
+
+    if points_b > points_a:
+        return 1
+
+    return 0
+
+
 def calculate_olympic_classification(
     edition_id,
     modality_id,
     shift
 ):
+    
     """
     Calcula a classificação por turno e modalidade.
 
-    Desempates:
-    1. Pontos
-    2. Saldo de gols
+    Critérios para Futsal e Golzinho:
+    1. Maior número de pontos
+    2. Maior saldo de gols
     3. Menos cartões vermelhos
     4. Menos cartões amarelos
     5. Menos faltas
+    6. Confronto direto
+
+    O confronto direto será utilizado somente
+    quando os critérios anteriores não resolverem
+    o empate entre duas equipes.
     """
+
 
     normalized_shift = (shift or "").strip().upper()
     
@@ -1304,14 +1359,22 @@ def calculate_olympic_classification(
 
         team_a["played"] += 1
         team_b["played"] += 1
+        
+        
+        # Gols e saldo de gols
+        team_a["goals_for"] += match.score_a
+        team_a["goals_against"] += match.score_b
+        team_b["goals_for"] += match.score_b
+        team_b["goals_against"] += match.score_a
 
-        if uses_goal_difference:
-            team_a["goals_for"] += match.score_a
-            team_a["goals_against"] += match.score_b
+        team_a["goal_difference"] = (
+            team_a["goals_for"] - team_a["goals_against"]
+        )
+        team_b["goal_difference"] = (
+            team_b["goals_for"] - team_b["goals_against"]
+        )
 
-            team_b["goals_for"] += match.score_b
-            team_b["goals_against"] += match.score_a
-
+        # Cartões e faltas
         team_a["red_cards"] += match.red_cards_a or 0
         team_b["red_cards"] += match.red_cards_b or 0
 
@@ -1321,15 +1384,16 @@ def calculate_olympic_classification(
         team_a["fouls"] += match.fouls_a or 0
         team_b["fouls"] += match.fouls_b or 0
 
+        # Vitórias, empates, derrotas e pontos
         if match.score_a > match.score_b:
             team_a["wins"] += 1
-            team_a["points"] += 3
             team_b["losses"] += 1
+            team_a["points"] += 3
 
         elif match.score_b > match.score_a:
             team_b["wins"] += 1
-            team_b["points"] += 3
             team_a["losses"] += 1
+            team_b["points"] += 3
 
         else:
             team_a["draws"] += 1
@@ -1337,12 +1401,11 @@ def calculate_olympic_classification(
             team_a["points"] += 1
             team_b["points"] += 1
 
-    for team in classification.values():
-        team["goal_difference"] = (
-            team["goals_for"] - team["goals_against"]
-        )
 
+        
     if uses_goal_difference:
+                    
+        # Primeiro, ordena pelos cinco critérios principais.
         ordered_classification = sorted(
             classification.values(),
             key=lambda team: (
@@ -1354,6 +1417,43 @@ def calculate_olympic_classification(
                 team["team_id"]
             )
         )
+
+        # Identifica grupos empatados nos cinco critérios.
+        groups = {}
+        for team in ordered_classification:
+            criteria = (
+                team["points"],
+                team["goal_difference"],
+                team["red_cards"],
+                team["yellow_cards"],
+                team["fouls"]
+            )
+            groups.setdefault(criteria, []).append(team)
+
+        # Aplica confronto direto apenas a pares empatados.
+        for group in groups.values():
+            if len(group) != 2:
+                continue
+
+            result = olympic_head_to_head(
+                group[0]["team_id"],
+                group[1]["team_id"],
+                matches
+            )
+
+            if result == 0:
+                continue
+
+            winner = group[0] if result == -1 else group[1]
+            loser = group[1] if result == -1 else group[0]
+
+            first_index = ordered_classification.index(group[0])
+            ordered_classification[first_index:first_index + 2] = [
+                winner,
+                loser
+            ]
+
+
     else:
         ordered_classification = sorted(
             classification.values(),
@@ -1364,13 +1464,56 @@ def calculate_olympic_classification(
             )
         )
 
-    for position, team in enumerate(
-        ordered_classification,
-        start=1
-    ):
+
+    
+    for index, team in enumerate(ordered_classification):
+
+        position = index + 1
+
+        if index > 0:
+            previous = ordered_classification[index - 1]
+
+            if uses_goal_difference:
+                same_criteria = (
+                    team["points"] == previous["points"]
+                    and team["goal_difference"] == previous["goal_difference"]
+                    and team["red_cards"] == previous["red_cards"]
+                    and team["yellow_cards"] == previous["yellow_cards"]
+                    and team["fouls"] == previous["fouls"]
+                )
+
+                if same_criteria:
+                    direct_result = olympic_head_to_head(
+                        team["team_id"],
+                        previous["team_id"],
+                        matches
+                    )
+
+                    tied_group = [
+                        item for item in ordered_classification
+                        if (
+                            item["points"] == team["points"]
+                            and item["goal_difference"] == team["goal_difference"]
+                            and item["red_cards"] == team["red_cards"]
+                            and item["yellow_cards"] == team["yellow_cards"]
+                            and item["fouls"] == team["fouls"]
+                        )
+                    ]
+
+                    if len(tied_group) != 2 or direct_result == 0:
+                        position = previous["position"]
+
+            else:
+                if (
+                    team["points"] == previous["points"]
+                    and team["wins"] == previous["wins"]
+                ):
+                    position = previous["position"]
+
         team["position"] = position
 
     return ordered_classification
+
     
         
 
@@ -1506,10 +1649,47 @@ def calculate_olympic_overall_standings(edition_id):
                         item["wins"]
                     )
 
+            
             tied = [
                 item for item in classification
                 if ranking_key(item) == ranking_key(first)
             ]
+
+            # Último critério: confronto direto.
+            # Aplicável apenas quando exatamente duas
+            # equipes permanecem empatadas.
+            if (
+                modality_name in ("futsal", "golzinho")
+                and len(tied) == 2
+            ):
+                classification_matches = (
+                    get_olympic_classification_matches(
+                        edition_id,
+                        modality.id,
+                        shift
+                    )
+                )
+
+                direct_result = olympic_head_to_head(
+                    tied[0]["team_id"],
+                    tied[1]["team_id"],
+                    classification_matches
+                )
+
+                if direct_result != 0:
+                    winner_id = (
+                        tied[0]["team_id"]
+                        if direct_result == -1
+                        else tied[1]["team_id"]
+                    )
+
+                    first = next(
+                        item for item in tied
+                        if item["team_id"] == winner_id
+                    )
+
+                    tied = [first]
+
 
             
             

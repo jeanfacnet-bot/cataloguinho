@@ -314,26 +314,12 @@
                 <tbody>
 					{% for team in classification %}
 
-					{% set empatada_em_primeiro = false %}
+					
+					{% set empatada_em_primeiro = (
+						team.position == 1
+						and classification|selectattr('position', 'equalto', 1)|list|length > 1
+					) %}
 
-					{% if team.position in [1, 2] and classification|length > 1 %}	
-						{% set segunda = classification[1] %}
-
-						{% if usa_gols %}
-							{% set empatada_em_primeiro = (
-								team.points == segunda.points
-								and team.goal_difference == segunda.goal_difference
-								and team.red_cards == segunda.red_cards
-								and team.yellow_cards == segunda.yellow_cards
-								and team.fouls == segunda.fouls
-							) %}
-						{% else %}
-							{% set empatada_em_primeiro = (
-								team.points == segunda.points
-								and team.wins == segunda.wins
-							) %}
-						{% endif %}
-					{% endif %}
 
 					<tr {% if team.position == 1 and not empatada_em_primeiro %}class="first-place"{% endif %}>
 						
