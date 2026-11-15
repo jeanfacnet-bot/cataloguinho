@@ -1454,6 +1454,7 @@ def calculate_olympic_classification(
             ]
 
 
+    
     else:
         ordered_classification = sorted(
             classification.values(),
@@ -1463,6 +1464,35 @@ def calculate_olympic_classification(
                 team["team_id"]
             )
         )
+
+        # Desempate por confronto direto entre duas equipes.
+        groups = {}
+        for team in ordered_classification:
+            criteria = (team["points"], team["wins"])
+            groups.setdefault(criteria, []).append(team)
+
+        for group in groups.values():
+            if len(group) != 2:
+                continue
+
+            result = olympic_head_to_head(
+                group[0]["team_id"],
+                group[1]["team_id"],
+                matches
+            )
+
+            if result == 0:
+                continue
+
+            winner = group[0] if result == -1 else group[1]
+            loser = group[1] if result == -1 else group[0]
+
+            first_index = ordered_classification.index(group[0])
+            ordered_classification[first_index:first_index + 2] = [
+                winner,
+                loser
+            ]
+
 
 
     
@@ -1503,12 +1533,32 @@ def calculate_olympic_classification(
                     if len(tied_group) != 2 or direct_result == 0:
                         position = previous["position"]
 
+            
             else:
                 if (
                     team["points"] == previous["points"]
                     and team["wins"] == previous["wins"]
                 ):
-                    position = previous["position"]
+                    tied_group = [
+                        item for item in ordered_classification
+                        if (
+                            item["points"] == team["points"]
+                            and item["wins"] == team["wins"]
+                        )
+                    ]
+
+                    if len(tied_group) == 2:
+                        direct_result = olympic_head_to_head(
+                            team["team_id"],
+                            previous["team_id"],
+                            matches
+                        )
+
+                        if direct_result == 0:
+                            position = previous["position"]
+                    else:
+                        position = previous["position"]
+
 
         team["position"] = position
 
@@ -1650,48 +1700,15 @@ def calculate_olympic_overall_standings(edition_id):
                     )
 
             
+            
+            # Considera a posição já calculada, incluindo
+            # o desempate por confronto direto.
             tied = [
                 item for item in classification
-                if ranking_key(item) == ranking_key(first)
+                if item["position"] == first["position"]
             ]
 
-            # Último critério: confronto direto.
-            # Aplicável apenas quando exatamente duas
-            # equipes permanecem empatadas.
-            if (
-                modality_name in ("futsal", "golzinho")
-                and len(tied) == 2
-            ):
-                classification_matches = (
-                    get_olympic_classification_matches(
-                        edition_id,
-                        modality.id,
-                        shift
-                    )
-                )
-
-                direct_result = olympic_head_to_head(
-                    tied[0]["team_id"],
-                    tied[1]["team_id"],
-                    classification_matches
-                )
-
-                if direct_result != 0:
-                    winner_id = (
-                        tied[0]["team_id"]
-                        if direct_result == -1
-                        else tied[1]["team_id"]
-                    )
-
-                    first = next(
-                        item for item in tied
-                        if item["team_id"] == winner_id
-                    )
-
-                    tied = [first]
-
-
-            
+                     
             
             if len(tied) > 1:
                 pending.append({
