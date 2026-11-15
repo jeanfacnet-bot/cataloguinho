@@ -182,13 +182,31 @@
 
         <h1>Olimpíadas Internas</h1>
 
-        <p class="subtitle">
+        
+		<p class="subtitle">
 			Modalidade: <strong>{{ modality_name }}</strong>
 			— Turno: <strong>{{ shift|capitalize }}</strong>
 		</p>
 
-        <div class="table-wrapper">
-            <table>
+		<div class="zoom-toolbar">
+			<button type="button" class="zoom-out" title="Diminuir zoom">
+				−
+			</button>
+
+			<span class="zoom-level">100%</span>
+
+			<button type="button" class="zoom-in" title="Aumentar zoom">
+				+
+			</button>
+
+			<button type="button" class="zoom-fit">
+				⛶ Ajustar à tela
+			</button>
+		</div>
+
+		<div class="table-wrapper">
+			<table>
+
                 <thead>
                     <tr>
                         <th>Pos.</th>
@@ -328,23 +346,7 @@
         </p>
 
         
-		<div class="zoom-toolbar">
-			<button type="button" class="zoom-out" title="Diminuir zoom">
-				−
-			</button>
-
-			<span class="zoom-level">100%</span>
-
-			<button type="button" class="zoom-in" title="Aumentar zoom">
-				+
-			</button>
-
-			<button type="button" class="zoom-fit">
-				⛶ Ajustar à tela
-			</button>
-		</div>
-
-		
+				
 		<div class="zoom-toolbar">
 			<button type="button" class="zoom-out" title="Diminuir zoom">
 				−
