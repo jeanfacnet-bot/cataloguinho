@@ -3480,7 +3480,8 @@
 					).toLowerCase();
 
 					return matchDate === selectedDate &&
-						(!selectedShift || matchShift === selectedShift);
+						(!selectedShift || matchShift === selectedShift) &&
+						String(match.status || "").trim().toUpperCase() !== "FINALIZADO";
 
 				});
 
