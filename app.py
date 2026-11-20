@@ -12153,8 +12153,8 @@ def admin_corrigir_sumula_918():
     if not (
         match.status == "FINALIZADO"
         and match.modality.name.strip().lower() == "futsal"
-        and match.team_a.name.strip().lower() == "azul"
-        and match.team_b.name.strip().lower() == "vermelha"
+        and match.team_a.name.strip().lower() == "equipe azul"
+        and match.team_b.name.strip().lower() == "equipe vermelha"
         and match.match_date.isoformat() == "2026-11-18"
         and match.match_time.strftime("%H:%M") == "08:20"
         and match.phase == "CLASSIFICATORIA"
