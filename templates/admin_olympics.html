@@ -4275,6 +4275,19 @@
 				);
 
 				const result = await response.json();
+				
+				console.log(
+					"STATUS DOS CONFRONTOS:",
+					(result.matches || []).map(function (match) {
+						return {
+							id: match.id,
+							status: match.status,
+							situacao: match.situation,
+							data: match.match_date,
+							horario: match.match_time
+						};
+					})
+				);
 
 				if (!response.ok || result.success === false) {
 					throw new Error(

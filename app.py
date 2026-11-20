@@ -12116,6 +12116,85 @@ def admin_clear_olympic_calendar(edition_id):
             "message": "Não foi possível limpar o calendário."
         }), 500
     
+
+# ==========================================
+# CORREÇÃO PONTUAL DA SÚMULA 918
+# ==========================================
+
+@app.route(
+    "/admin/olimpiadas/correcao-sumula-918",
+    methods=["POST"]
+)
+@admin_required_page
+def admin_corrigir_sumula_918():
+
+    match = db.session.get(OlympicMatch, 918)
+
+    if match is None:
+        return jsonify({
+            "success": False,
+            "message": "Confronto 918 não encontrado."
+        }), 404
+
+    # Proteção contra alteração de outro confronto.
+    if not (
+        match.status == "FINALIZADO"
+        and match.modality.name.strip().lower() == "futsal"
+        and match.team_a.name.strip().lower() == "azul"
+        and match.team_b.name.strip().lower() == "vermelha"
+        and match.match_date.isoformat() == "2026-11-18"
+        and match.match_time.strftime("%H:%M") == "08:20"
+        and match.phase == "CLASSIFICATORIA"
+    ):
+        return jsonify({
+            "success": False,
+            "message": "Os dados não correspondem à súmula esperada."
+        }), 409
+
+    try:
+        # Remove registros vinculados à súmula incorreta.
+        OlympicMatchParticipant.query.filter_by(
+            match_id=918
+        ).delete(synchronize_session=False)
+
+        OlympicMatchGoal.query.filter_by(
+            match_id=918
+        ).delete(synchronize_session=False)
+
+        OlympicMatchAttempt.query.filter_by(
+            match_id=918
+        ).delete(synchronize_session=False)
+
+        # Limpa o resultado e os dados disciplinares.
+        match.score_a = None
+        match.score_b = None
+        match.red_cards_a = None
+        match.red_cards_b = None
+        match.yellow_cards_a = None
+        match.yellow_cards_b = None
+        match.fouls_a = None
+        match.fouls_b = None
+        match.notes = None
+
+        # Devolve o confronto à condição de agendado.
+        match.status = "AGENDADO"
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Súmula 918 reaberta e limpa com sucesso."
+        })
+
+    except Exception:
+        db.session.rollback()
+        app.logger.exception(
+            "Erro na correção da súmula 918"
+        )
+        return jsonify({
+            "success": False,
+            "message": "Erro ao corrigir a súmula 918."
+        }), 500
     
 # ==========================================
 # OLIMPÍADAS - EXCLUIR CONFRONTO
