@@ -2039,12 +2039,13 @@ def admin_olympic_classification_page(
                 OlympicTeam.id == OlympicAthlete.team_id
             )
             .filter(
+                
                 OlympicMatch.edition_id == edition_id,
                 OlympicMatch.modality_id == modality_id,
-                func.upper(OlympicMatch.shift) == shift.strip().upper(),
                 OlympicMatch.phase == "CLASSIFICATORIA",
                 OlympicMatch.status == "FINALIZADO",
                 OlympicMatchGoal.goals > 0
+
             )
             .group_by(
                 OlympicAthlete.id,
