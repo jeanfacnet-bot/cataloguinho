@@ -12137,6 +12137,19 @@ def admin_corrigir_sumula_918():
         }), 404
 
     # Proteção contra alteração de outro confronto.
+    
+    app.logger.warning(
+        "DIAGNOSTICO SUMULA 918: status=%r, modalidade=%r, "
+        "equipe_a=%r, equipe_b=%r, data=%r, horario=%r, fase=%r",
+        match.status,
+        match.modality.name,
+        match.team_a.name,
+        match.team_b.name,
+        str(match.match_date),
+        str(match.match_time),
+        match.phase
+    )
+
     if not (
         match.status == "FINALIZADO"
         and match.modality.name.strip().lower() == "futsal"
